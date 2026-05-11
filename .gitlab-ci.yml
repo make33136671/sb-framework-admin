@@ -7,11 +7,12 @@ before_script:
   - corepack enable
   - pnpm config set store-dir $PNPM_CACHE_DIR
 
-cache:
+# 默认 cache 只 pull、不 push、不要 node_modules（pnpm install 26s 比 archive 10w 文件还快）
+cache: &pnpm_cache
   key: pnpm-${CI_COMMIT_REF_SLUG}
   paths:
     - .pnpm-cache/
-    - node_modules/
+  policy: pull
 
 stages:
   - validate
@@ -21,6 +22,7 @@ stages:
 
 lint:naming:
   stage: validate
+  cache: []
   script:
     - echo "=== 硬编码颜色检查 ==="
     - |
@@ -50,6 +52,10 @@ lint:eslint:
 
 build:antd:
   stage: build
+  # build 是唯一允许 push cache 的 job，避免每个 job 重复 archive 7 万文件
+  cache:
+    <<: *pnpm_cache
+    policy: pull-push
   script:
     - pnpm install --frozen-lockfile
     - pnpm build:antd
