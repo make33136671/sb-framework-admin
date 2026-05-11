@@ -1,0 +1,12 @@
+{
+  "role": {
+    "guanliyuanguanli": "管理员管理",
+    "guanliyuanliebiao": "管理员列表",
+    "guanliyuanbianji": "管理员编辑",
+    "guanliyuantianjia": "管理员添加",
+    "guanliyuanJueseguanli": "管理员角色管理",
+    "guanliyuanJueseliebiao": "管理员角色列表",
+    "guanliyuanJuesebianji": "管理员角色编辑",
+    "guanliyuanJuesetianjia": "管理员角色添加"
+  }
+}

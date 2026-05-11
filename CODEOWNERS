@@ -1,0 +1,16 @@
+* @root
+/CODEOWNERS @root
+/CONTRIBUTING.md @root
+/README.md @root
+/.gitlab-ci.yml @root
+/.gitlab/ @root
+
+# Vben 基础架构 — 不动
+/apps/web-antd/src/layouts/ @root
+/apps/web-antd/src/router/ @root
+/apps/web-antd/src/store/ @root
+/packages/ @root
+/internal/ @root
+
+# 命名约定文档
+/AI_Conventions.md @root

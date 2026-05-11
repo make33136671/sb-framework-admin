@@ -1,0 +1,44 @@
+{
+  "menu": {
+    "name": "名称",
+    "menu": "菜单",
+    "menuTitle": "菜单标题",
+    "menuName": "菜单名称",
+    "redirect": "路由重定向",
+    "type": "类型",
+    "typeCatalog": "目录",
+    "typeMenu": "菜单",
+    "typeButton": "按钮",
+    "typeEmbedded": "内嵌",
+    "typeLink": "外链",
+    "authCode": "权限标识",
+    "path": "路由路径",
+    "component": "组件路径",
+    "orderNo": "排序号",
+    "hideInMenu": "隐藏菜单",
+    "ignoreKeepAlive": "忽略缓存",
+    "status": "状态",
+    "operation": "操作",
+    "parent": "父级菜单",
+    "activePath": "激活路径",
+    "activePathHelp": "用于路由激活时，需要激活的菜单路径",
+    "activePathMustExist": "激活路径必须存在",
+    "icon": "菜单图标",
+    "activeIcon": "激活图标",
+    "linkSrc": "链接地址",
+    "badge": "徽标内容",
+    "badgeType": {
+      "title": "徽标类型",
+      "dot": "点型",
+      "normal": "常规"
+    },
+    "badgeVariants": "徽标颜色",
+    "advancedSettings": "高级设置",
+    "keepAlive": "缓存页面",
+    "affixTab": "固定标签",
+
+    "hideChildrenInMenu": "隐藏子菜单",
+    "hideInBreadcrumb": "隐藏面包屑",
+    "hideInTab": "隐藏标签"
+  }
+}

@@ -1,0 +1,59 @@
+image: node:20
+
+variables:
+  PNPM_CACHE_DIR: "$CI_PROJECT_DIR/.pnpm-cache"
+
+before_script:
+  - corepack enable
+  - pnpm config set store-dir $PNPM_CACHE_DIR
+
+cache:
+  key: pnpm-${CI_COMMIT_REF_SLUG}
+  paths:
+    - .pnpm-cache/
+    - node_modules/
+
+stages:
+  - validate
+  - build
+
+# ============ Stage 1: validate ============
+
+lint:naming:
+  stage: validate
+  script:
+    - echo "=== 硬编码颜色检查 ==="
+    - |
+      if grep -rE "#[0-9a-fA-F]{3,6}(?![\w])" apps/web-antd/src/views \
+         --include="*.vue" --include="*.ts" --include="*.css" \
+         2>/dev/null | grep -v "//" | head -5; then
+        echo "⚠️ 发现疑似硬编码十六进制颜色（需人工审查）"
+      fi
+    - echo "=== 派生业务关键字检查 ==="
+    - |
+      FORBIDDEN_VIEWS="views/projects|views/requirements|views/tasks|views/mind-maps"
+      if grep -rE "$FORBIDDEN_VIEWS" apps/web-antd/src --include="*.ts" 2>/dev/null | head -5; then
+        echo "❌ 基座代码不允许派生业务路由 — 派生 view 应在 saibo/apps/* 仓库"
+        exit 1
+      fi
+    - echo "✓ 命名规范检查通过"
+  allow_failure: true
+
+lint:eslint:
+  stage: validate
+  script:
+    - pnpm install --frozen-lockfile
+    - pnpm lint
+  allow_failure: true
+
+# ============ Stage 2: build ============
+
+build:antd:
+  stage: build
+  script:
+    - pnpm install --frozen-lockfile
+    - pnpm build:antd
+  artifacts:
+    paths:
+      - apps/web-antd/dist/
+    expire_in: 1 week

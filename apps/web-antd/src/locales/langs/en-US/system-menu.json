@@ -1,0 +1,41 @@
+{
+  "system": {
+    "menu": {
+      "name": "Menu",
+      "menuTitle": "Menu Title",
+      "menuName": "Menu Name",
+      "type": "Type",
+      "typeCatalog": "Catalog",
+      "typeMenu": "Menu",
+      "typeButton": "Button",
+      "typeEmbedded": "Embedded",
+      "typeLink": "Link",
+      "authCode": "Auth Code",
+      "path": "Route Path",
+      "component": "Component",
+      "status": "Status",
+      "operation": "Operation",
+      "parent": "Parent Menu",
+      "activePath": "Active Path",
+      "activePathHelp": "Used for route activation, the menu path that needs to be activated",
+      "activePathMustExist": "Active path must exist",
+      "icon": "Menu Icon",
+      "activeIcon": "Active Icon",
+      "linkSrc": "Link URL",
+      "badge": "Badge Content",
+      "badgeType": {
+        "title": "Badge Type",
+        "dot": "Dot",
+        "normal": "Normal"
+      },
+      "badgeVariants": "Badge Color",
+      "advancedSettings": "Advanced Settings",
+      "keepAlive": "Keep Alive",
+      "affixTab": "Affix Tab",
+      "hideInMenu": "Hide In Menu",
+      "hideChildrenInMenu": "Hide Children In Menu",
+      "hideInBreadcrumb": "Hide In Breadcrumb",
+      "hideInTab": "Hide In Tab"
+    }
+  }
+}
