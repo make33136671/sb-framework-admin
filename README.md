@@ -16,10 +16,10 @@
 
 ```bash
 # 派生应用初始建仓时
-git clone git@192.168.10.241:saibo/framework/sb-framework-admin.git sb-apps-<app>-admin
+git clone git@gitlab.saibo.club:saibo/framework/sb-framework-admin.git sb-apps-<app>-admin
 cd sb-apps-<app>-admin
 git remote rename origin upstream
-git remote add origin git@192.168.10.241:saibo/apps/sb-apps-<app>-admin.git
+git remote add origin git@gitlab.saibo.club:saibo/apps/sb-apps-<app>-admin.git
 git push -u origin main
 
 # 后续保持跟上游同步
@@ -32,7 +32,7 @@ git merge upstream/main
 ## 本地开发
 
 ```bash
-git clone git@192.168.10.241:saibo/framework/sb-framework-admin.git
+git clone git@gitlab.saibo.club:saibo/framework/sb-framework-admin.git
 cd sb-framework-admin
 pnpm install
 pnpm dev:antd          # 启动 Ant Design Vue 版本（默认端口 5173）
@@ -50,7 +50,7 @@ pnpm build:antd        # 生产构建
 - 不写硬编码品牌文案，走 `__APP_INFO__` 配置
 - commit message 中文 + Conventional Commits
 
-完整命名规范见 [sb-framework/docs/naming-conventions.md](http://192.168.10.241/saibo/framework/sb-framework/-/blob/main/docs/naming-conventions.md)。
+完整命名规范见 [sb-framework/docs/naming-conventions.md](https://gitlab.saibo.club/saibo/framework/sb-framework/-/blob/main/docs/naming-conventions.md)。
 
 ## 文档
 
