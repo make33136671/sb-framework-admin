@@ -16,3 +16,7 @@ CODEOWNERS
 public
 .npmrc
 *-lock.yaml
+
+# pnpm store dir（CI 在 $CI_PROJECT_DIR/.pnpm-cache，prettier 扫到里面 .d.ts 抛 SyntaxError）
+.pnpm-cache
+**/.pnpm-cache
