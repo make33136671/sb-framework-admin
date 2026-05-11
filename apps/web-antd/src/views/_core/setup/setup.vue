@@ -8,6 +8,7 @@ import {
   Alert,
   Button,
   Card,
+  Checkbox,
   Descriptions,
   DescriptionsItem,
   Divider,
@@ -128,10 +129,13 @@ const sitePaths = ref([
 ]);
 
 // 云端中心地址（授权 / 备份等所有云端功能共用）
-const cloudServerUrl = ref('');
+const cloudServerUrl = ref('https://cloud.saibo.club');
 
 // 密码
 const passwordStorageMode = ref('Encrypted');
+
+// MasterKey（万能密钥，X-Master-Key 头可绕过 JWT；生产环境建议关闭，测试环境启用）
+const enableMasterKey = ref(false);
 
 // 管理员
 const adminUsername = ref('admin');
@@ -370,6 +374,7 @@ async function doInstall() {
           : null,
       wipeDatabase: wipeDatabase.value,
       passwordStorageMode: passwordStorageMode.value,
+      enableMasterKey: enableMasterKey.value,
       productCn: productCn.value || '管理系统',
       timeZone: timeZone.value || 'Asia/Shanghai',
       corsAllowAll: corsAllowAll.value,
@@ -612,7 +617,7 @@ function fillFormFromConfig(config: any) {
             <template #subTitle>
               <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
                 <template v-if="serverReady">
-                  <span style="color: #52c41a;">&#10003;</span> 系统初始化完成
+                  <span style="color: var(--ant-color-success);">&#10003;</span> 系统初始化完成
                 </template>
                 <template v-else>
                   <Spin size="small" /> 系统正在启动...
@@ -629,7 +634,7 @@ function fillFormFromConfig(config: any) {
               </div>
               <Space>
                 <Button type="primary" :disabled="!serverReady" @click="goHome">前往首页</Button>
-                <Button v-if="installResult.data?.licenseEnabled" :disabled="!serverReady" @click="goLicense">前往授权</Button>
+                <Button :disabled="!serverReady" @click="goLicense">前往授权</Button>
               </Space>
             </template>
           </Result>
@@ -728,7 +733,7 @@ function fillFormFromConfig(config: any) {
                 </div>
               </template>
               <template #description>
-                <span v-if="wipeDatabase" style="color: #ff4d4f;">
+                <span v-if="wipeDatabase" style="color: var(--ant-color-error);">
                   将删除数据库中所有现有表和数据，此操作不可逆！
                 </span>
                 <span v-else>
@@ -864,7 +869,7 @@ function fillFormFromConfig(config: any) {
           </div>
 
           <div class="form-item">
-            <label>产品英文名称 <span style="color: #ff4d4f;">*</span></label>
+            <label>产品英文名称 <span style="color: var(--ant-color-error);">*</span></label>
             <Input v-model:value="productEn" placeholder="小写字母+数字，如 sb" @change="onProductEnChange" />
             <div class="form-hint">默认从主域名提取。用于数据库名、路径前缀、缓存前缀、授权标识。仅小写字母和数字，字母开头，2-20 字符</div>
           </div>
@@ -887,7 +892,7 @@ function fillFormFromConfig(config: any) {
 
           <div class="form-item">
             <label>系统时区</label>
-            <select v-model="timeZone" style="width: 100%; padding: 6px 8px; border: 1px solid #d9d9d9; border-radius: 6px; background: transparent; color: inherit;">
+            <select v-model="timeZone" style="width: 100%; padding: 6px 8px; border: 1px solid var(--ant-color-border); border-radius: 6px; background: var(--ant-color-bg-container); color: var(--ant-color-text);">
               <option v-for="tz in commonTimeZones" :key="tz" :value="tz">{{ tz }}</option>
             </select>
             <div class="form-hint">系统业务时间基准时区，影响日期显示和时间计算</div>
@@ -928,6 +933,20 @@ function fillFormFromConfig(config: any) {
               <Radio value="Encrypted">加密（推荐）</Radio>
               <Radio value="PlainText">明文</Radio>
             </RadioGroup>
+          </div>
+
+          <Divider />
+
+          <div class="form-item">
+            <label>
+              <Checkbox v-model:checked="enableMasterKey">启用 MasterKey（万能密钥）</Checkbox>
+            </label>
+            <div class="form-hint">
+              启用后生成一次性 GUID 写入 appsettings，可通过 <code>X-Master-Key</code> 请求头绕过 JWT
+              鉴权，主要用于数据库备份恢复等高权限运维操作。
+              <strong style="color: var(--ant-color-warning-text);">生产环境建议关闭</strong>，
+              测试 / 内部环境可启用。
+            </div>
           </div>
 
           <Divider />
@@ -1003,8 +1022,20 @@ function fillFormFromConfig(config: any) {
               {{ primaryDomain || defaultDomain }}
             </DescriptionsItem>
             <DescriptionsItem label="产品 Logo">
-              <span v-if="logoPreviewUrl">已上传</span>
-              <span v-else style="color: #999;">使用默认 Logo</span>
+              <img
+                v-if="logoPreviewUrl"
+                :src="logoPreviewUrl"
+                alt="Logo 预览"
+                style="
+                  max-height: 40px;
+                  max-width: 120px;
+                  vertical-align: middle;
+                  border: 1px solid var(--ant-color-border);
+                  border-radius: 4px;
+                  background: var(--ant-color-bg-container);
+                "
+              />
+              <span v-else style="color: var(--ant-color-text-tertiary);">使用默认 Logo</span>
             </DescriptionsItem>
             <DescriptionsItem label="系统时区">
               {{ timeZone }}
@@ -1017,6 +1048,10 @@ function fillFormFromConfig(config: any) {
             </DescriptionsItem>
             <DescriptionsItem label="密码存储方式">
               {{ passwordStorageMode === 'Encrypted' ? '加密' : '明文' }}
+            </DescriptionsItem>
+            <DescriptionsItem label="MasterKey">
+              <span v-if="enableMasterKey" style="color: var(--ant-color-warning-text);">启用（高权限，仅测试 / 内部环境）</span>
+              <span v-else style="color: var(--ant-color-text-tertiary);">未启用</span>
             </DescriptionsItem>
             <DescriptionsItem label="管理员账号">
               {{ adminUsername }}
@@ -1031,7 +1066,7 @@ function fillFormFromConfig(config: any) {
               <div v-for="site in sitePaths.filter(s => s.type && s.path)" :key="site.type">
                 {{ site.type }}: {{ site.path }}
               </div>
-              <span v-if="!sitePaths.some(s => s.type && s.path)" style="color: #999;">未配置</span>
+              <span v-if="!sitePaths.some(s => s.type && s.path)" style="color: var(--ant-color-text-tertiary);">未配置</span>
             </DescriptionsItem>
           </Descriptions>
 
@@ -1049,11 +1084,17 @@ function fillFormFromConfig(config: any) {
 <style scoped>
 .setup-page {
   min-height: 100vh;
-  background: #f0f2f5;
+  background: var(--ant-color-bg-layout);
 }
 
+/* 头部用主色 + 深变体渐变，亮暗模式下都是深底白字 */
 .setup-header {
-  background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+  background: linear-gradient(
+    135deg,
+    var(--ant-color-primary-active) 0%,
+    var(--ant-color-primary) 50%,
+    var(--ant-color-primary-hover) 100%
+  );
   color: #fff;
   padding: 40px 20px 50px;
   text-align: center;
@@ -1090,7 +1131,7 @@ function fillFormFromConfig(config: any) {
 }
 
 .step-desc {
-  color: #888;
+  color: var(--ant-color-text-tertiary);
   font-size: 13px;
   margin-bottom: 24px;
 }
@@ -1104,7 +1145,7 @@ function fillFormFromConfig(config: any) {
   font-size: 13px;
   font-weight: 500;
   margin-bottom: 6px;
-  color: #555;
+  color: var(--ant-color-text-secondary);
 }
 
 .form-row {
@@ -1155,12 +1196,12 @@ function fillFormFromConfig(config: any) {
 }
 
 .install-loading p {
-  color: #888;
+  color: var(--ant-color-text-tertiary);
   font-size: 14px;
 }
 
 .form-hint {
-  color: #999;
+  color: var(--ant-color-text-tertiary);
   font-size: 12px;
   margin-top: 4px;
 }
@@ -1168,7 +1209,7 @@ function fillFormFromConfig(config: any) {
 .logo-preview {
   width: 64px;
   height: 64px;
-  border: 1px solid #d9d9d9;
+  border: 1px solid var(--ant-color-border);
   border-radius: 8px;
   overflow: hidden;
   display: flex;
