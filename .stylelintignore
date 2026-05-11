@@ -2,3 +2,9 @@ dist
 public
 __tests__
 coverage
+
+# pnpm store / 依赖目录（CI 跑 stylelint 时这些会被 glob 抓到，扫几万文件挂死）
+node_modules
+.pnpm-cache
+**/node_modules
+**/.pnpm-cache
