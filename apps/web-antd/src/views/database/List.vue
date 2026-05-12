@@ -40,8 +40,14 @@ const dbInfo = ref<{
   database: string;
   dbType?: string;
   dialect?: string;
+  // 新字段(framework preview.17+):工具名按 DbType 动态返回(mysqldump / pg_dump、mysql / psql)
+  dumpToolAvailable?: boolean;
+  dumpToolName?: string;
+  dumpToolVersion?: string;
   lastBackupTime?: null | string;
   mysqlClientAvailable?: boolean;
+  restoreToolAvailable?: boolean;
+  restoreToolName?: string;
   server: string;
   serverVersion?: string;
   tableCount?: number;
@@ -341,15 +347,19 @@ onMounted(() => {
             </Descriptions.Item>
             <Descriptions.Item label="备份工具">
               <Tag v-if="dbInfo.available" color="success">
-                mysqldump 可用
+                {{ dbInfo.dumpToolName || 'mysqldump' }} 可用
               </Tag>
-              <Tag v-else color="error">mysqldump 不可用</Tag>
+              <Tag v-else color="error">
+                {{ dbInfo.dumpToolName || 'mysqldump' }} 不可用
+              </Tag>
             </Descriptions.Item>
             <Descriptions.Item label="恢复工具">
               <Tag v-if="dbInfo.mysqlClientAvailable" color="success">
-                mysql 可用
+                {{ dbInfo.restoreToolName || 'mysql' }} 可用
               </Tag>
-              <Tag v-else color="error">mysql 不可用</Tag>
+              <Tag v-else color="error">
+                {{ dbInfo.restoreToolName || 'mysql' }} 不可用
+              </Tag>
             </Descriptions.Item>
           </Descriptions>
 
