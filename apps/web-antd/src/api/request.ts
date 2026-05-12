@@ -63,8 +63,10 @@ _client.addRequestInterceptor({
   fulfilled: async (config) => {
     // 默认 JSON：framework controller 普遍用 [FromBody](AppSettings/Save/Diff/Rollback、Setup/* 等),
     // 之前硬编码 application/x-www-form-urlencoded 会让后端报 415。
-    // 文件上传等 form 接口由 caller 传 FormData → axios 自动设 multipart/form-data,这里跳过覆盖。
-    if (!config.headers['Content-Type']) {
+    // 文件上传(FormData)由 axios 自带 transformRequest 检测后自动设 multipart/form-data
+    // 带 boundary,我们这里**必须跳过**对 FormData 的覆盖,否则后端 IFormFile 解不出文件(看似 11 MB 却报"文件不能为空"就是这种)。
+    const isFormData = config.data instanceof FormData;
+    if (!config.headers['Content-Type'] && !isFormData) {
       config.headers['Content-Type'] = 'application/json;charset=utf-8';
     }
     const accessStore = useAccessStore();
