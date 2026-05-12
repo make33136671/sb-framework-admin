@@ -6,6 +6,10 @@ import { useAppConfig } from '@vben/hooks';
 
 const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
 
+// Setup 接口在新版 SB.Framework 挂在 /api/ 下（业务接口在 /admin/），
+// 业务 baseURL 末尾的 /admin 替换成 /api 给 Setup 用，兼容 prod 同 host 反代
+const setupApiURL = apiURL.replace(/\/admin\/?$/, '/api');
+
 interface ApiResult<T = any> {
   code: number;
   data: T;
@@ -16,7 +20,7 @@ async function setupFetch<T = any>(
   url: string,
   data?: Record<string, any>,
 ): Promise<ApiResult<T>> {
-  const res = await fetch(`${apiURL}${url}`, {
+  const res = await fetch(`${setupApiURL}${url}`, {
     method: data !== undefined ? 'POST' : 'GET',
     headers: { 'Content-Type': 'application/json' },
     body: data !== undefined ? JSON.stringify(data) : undefined,
