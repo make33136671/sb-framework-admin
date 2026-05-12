@@ -6,6 +6,7 @@ import { Page } from '@vben/common-ui';
 
 import { Tabs } from 'ant-design-vue';
 
+import AppSettingsView from '../app-settings/index.vue';
 import CacheList from '../cache/List.vue';
 import DatabaseList from '../database/List.vue';
 import SqlList from '../sql/List.vue';
@@ -14,7 +15,7 @@ const route = useRoute();
 const router = useRouter();
 
 /** 合法 tab key 列表，URL ?tab= 校验用 */
-const TAB_KEYS = ['backup', 'cache', 'sql'] as const;
+const TAB_KEYS = ['backup', 'cache', 'sql', 'app-settings'] as const;
 type TabKey = (typeof TAB_KEYS)[number];
 
 const initialTab = computed<TabKey>(() => {
@@ -52,6 +53,9 @@ watch(
       </Tabs.TabPane>
       <Tabs.TabPane key="sql" tab="SQL 执行">
         <SqlList />
+      </Tabs.TabPane>
+      <Tabs.TabPane key="app-settings" tab="配置文件">
+        <AppSettingsView />
       </Tabs.TabPane>
     </Tabs>
   </Page>
