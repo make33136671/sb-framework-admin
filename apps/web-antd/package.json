@@ -43,6 +43,7 @@
     "@vben/types": "workspace:*",
     "@vben/utils": "workspace:*",
     "@vueuse/core": "catalog:",
+    "md-editor-v3": "^6.4.1",
     "ant-design-vue": "catalog:",
     "dayjs": "catalog:",
     "monaco-editor": "^0.55.1",
