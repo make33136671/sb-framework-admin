@@ -62,11 +62,14 @@ const _client = new RequestClient({
 _client.addRequestInterceptor({
   fulfilled: async (config) => {
     // 接口源约定:framework controller 全部 [FromForm](见 docs/AI_Conventions.md "接口源约定" 一节)。
-    // 默认 Content-Type=form-urlencoded → axios v1 自动把 plain object 序列化为 form 串
-    // (username=admin&password=111111),后端 [FromForm] 解出 username/password。
-    // FormData 文件上传跳过 Content-Type 设置,让浏览器自动设 multipart/form-data + boundary,
-    // 后端 IFormFile 才能解出文件(否则 11 MB 上传仍报"文件不能为空")。
-    if (!(config.data instanceof FormData)) {
+    // vben RequestClient 在 axios.create({ headers: { 'Content-Type': 'application/json...' } })
+    // 烤进了实例默认 header,这里必须**显式**处理两条路径,不能只"跳过覆盖":
+    //   - plain object → 设 form-urlencoded,axios v1 自动序列化为 username=admin&password=111111
+    //   - FormData → **delete** Content-Type,让浏览器在发请求时自动加 multipart/form-data + boundary
+    //     (只跳过覆盖不够,因为 axios 默认已经把 application/json 写进 config.headers,后端会拿到错误的 JSON Content-Type)
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    } else {
       config.headers['Content-Type'] =
         'application/x-www-form-urlencoded;charset=utf-8';
     }
