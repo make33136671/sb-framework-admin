@@ -19,12 +19,11 @@ cd "$(dirname "$0")/.."
 UPSTREAM_REF="${1:-upstream/main}"
 
 if ! git rev-parse --verify "$UPSTREAM_REF" >/dev/null 2>&1; then
-    echo "❌ 找不到 ref: $UPSTREAM_REF"
-    echo ""
-    echo "确认你 fork 后加了 upstream remote:"
-    echo "  git remote add upstream git@gitlab.saibo.club:saibo/framework/sb-framework-admin.git"
-    echo "  git fetch upstream"
-    exit 1
+    # 没有 upstream remote = 当前是 upstream 本身(framework/admin),不是派生项目。静默退出,不报错。
+    # 派生项目应该有 upstream remote;如果你期望有但没有:
+    #   git remote add upstream git@gitlab.saibo.club:saibo/framework/sb-framework-admin.git
+    #   git fetch upstream
+    exit 0
 fi
 
 echo "=== Fork 漂移审计 — HEAD vs $UPSTREAM_REF ==="

@@ -42,11 +42,15 @@ This file provides guidance to Claude Code when working with the **sb-admin** re
 - 中文 + Conventional Commit
 - 不跳 hooks，不强推 main
 
-### 6. 派生项目漂移审计（必跑）
+### 6. 派生项目漂移审计（lefthook 自动触发）
 
 这是 fork-style 派生模式 — 派生项目改了 upstream 文件 git 不会提醒,长期累积变成"基座漏回流"债务(pm 加的 Monaco/JsonFieldEditor 拖到 nexus 缺漏才发现就是这种)。
 
-**在派生项目里完成一波功能 / 准备 release 前,必跑漂移审计**:
+**自动**:`lefthook.yml` 的 `pre-commit` 已配 `fork-drift-audit` 任务,**每次 git commit 自动跑** `scripts/check-fork-drift.sh`,报告打到 stdout。不阻塞 commit,只警告 — 看到 MODIFIED 非空时主动 review + 上沉。
+
+framework/admin 本仓库自身没 upstream,脚本会静默跳过(无害)。
+
+**手动跑**(任何时候想审计):
 
 ```bash
 cd <派生项目 admin 仓库>

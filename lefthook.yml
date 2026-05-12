@@ -46,6 +46,11 @@ pre-commit:
   commands:
     code-workspace:
       run: pnpm vsh code-workspace --auto-commit
+    # Fork 漂移审计 — 派生项目改了 upstream 文件就提醒回流,避免基座漏沉淀债务。
+    # 脚本内部判断:没 upstream remote 直接静默成功(framework/admin 自己 push 时无害)。
+    # 失败也不阻塞 commit(报告输出到 stdout),警告而已。
+    fork-drift-audit:
+      run: ./scripts/check-fork-drift.sh || true
 
 post-merge:
   commands:
