@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import type { UploadProps } from 'ant-design-vue';
 
-import { computed, onMounted, ref } from 'vue';
+import { computed, nextTick, onMounted, ref, watch } from 'vue';
 
 import { Page } from '@vben/common-ui';
 
@@ -15,13 +15,17 @@ import {
   Empty,
   message,
   Modal,
+  RadioButton,
+  RadioGroup,
   Space,
   Spin,
   Switch,
   Tag,
-  Textarea,
   Upload,
 } from 'ant-design-vue';
+
+import { JsonEditor } from '#/components/JsonEditor';
+import { JsonFieldEditor } from '#/components/JsonFieldEditor';
 
 import {
   diffAppSettings,
@@ -38,6 +42,64 @@ import {
 } from './api';
 
 defineOptions({ name: 'AppSettings' });
+
+// 已知枚举字段 — key 是 path,数组项不带 index(详见 JsonFieldEditor 注释)
+// 末尾 '.*' 通配:'Logging.LogLevel.*' 覆盖 LogLevel 下所有任意命名空间字段
+const APP_SETTINGS_ENUMS: Record<string, string[]> = {
+  // === framework AppSettings.cs 字段 ===
+  'CacheConfig.Provider': ['Memory', 'Redis'],
+  'DbConfig.DbType': ['MySql', 'PostgreSql'],
+  'PasswordConfig.StorageMode': ['Encrypted', 'PlainText'],
+
+  // === .NET 标准 Logging.LogLevel(枚举 Microsoft.Extensions.Logging.LogLevel) ===
+  'Logging.LogLevel.*': [
+    'Trace',
+    'Debug',
+    'Information',
+    'Warning',
+    'Error',
+    'Critical',
+    'None',
+  ],
+
+  // === Serilog MinimumLevel(枚举 Serilog.Events.LogEventLevel)===
+  'Serilog.MinimumLevel.Default': [
+    'Verbose',
+    'Debug',
+    'Information',
+    'Warning',
+    'Error',
+    'Fatal',
+  ],
+  'Serilog.MinimumLevel.Override.*': [
+    'Verbose',
+    'Debug',
+    'Information',
+    'Warning',
+    'Error',
+    'Fatal',
+  ],
+
+  // === 常见 IANA 时区(用户可在 Select 里搜索)===
+  TimeZone: [
+    'UTC',
+    'Asia/Shanghai',
+    'Asia/Ho_Chi_Minh',
+    'Asia/Phnom_Penh',
+    'Asia/Tokyo',
+    'Asia/Hong_Kong',
+    'Asia/Singapore',
+    'Asia/Bangkok',
+    'Asia/Seoul',
+    'Asia/Dubai',
+    'Europe/London',
+    'Europe/Paris',
+    'Europe/Berlin',
+    'America/New_York',
+    'America/Los_Angeles',
+    'Australia/Sydney',
+  ],
+};
 
 // ---- 服务器信息卡片 ----
 const serverInfo = ref<Record<string, any>>({});
@@ -58,6 +120,44 @@ const autoRestart = ref(true);
 
 const isDirty = computed(() => editText.value.trim() !== originalText.value.trim());
 
+// ---- 编辑器模式切换 ----
+// 'editor' = Monaco JSON 文本编辑
+// 'visual' = 字段递归编辑(antd 组件:Switch / InputNumber / Input)
+type EditorMode = 'editor' | 'visual';
+const editorMode = ref<EditorMode>('editor');
+// 可视化模式下的解析对象。editor 模式下不读,只在切到 visual 时从 editText 解析。
+const parsedObject = ref<any>(null);
+const jsonEditorRef = ref<{ format: () => void } | null>(null);
+
+// visual 模式下,parsedObject 改 → 序列化回 editText(让保存逻辑统一走 editText)
+watch(
+  parsedObject,
+  (newVal) => {
+    if (editorMode.value !== 'visual') return;
+    if (newVal === null || newVal === undefined) return;
+    editText.value = JSON.stringify(newVal, null, 2);
+  },
+  { deep: true },
+);
+
+// 切换模式 — RadioGroup v-model 直接改 editorMode,在 watch 里做 round-trip
+// (不能用 @change handler — antd RadioGroup 的 @change 在 v-model 更新之后才触发,
+//  handler 里检查 target===editorMode 会直接 return,parsedObject 不会被更新)
+watch(editorMode, (newMode, oldMode) => {
+  if (newMode === 'visual' && oldMode === 'editor') {
+    try {
+      parsedObject.value = JSON.parse(editText.value);
+    } catch (err: any) {
+      message.error(`JSON 格式错误,无法切换可视化模式: ${err.message}`);
+      // 回滚 mode(nextTick 避免 watch 内部同步改自己触发的副作用)
+      nextTick(() => {
+        editorMode.value = 'editor';
+      });
+    }
+  }
+  // visual → editor:无需处理(editText 已经被 watch(parsedObject) 同步)
+});
+
 async function loadAppSettings() {
   loading.value = true;
   try {
@@ -69,6 +169,16 @@ async function loadAppSettings() {
       size: res?.size,
       lastModified: res?.lastModified,
     };
+    // 如果当前在 visual 模式,同步刷新 parsedObject
+    if (editorMode.value === 'visual') {
+      try {
+        parsedObject.value = JSON.parse(editText.value);
+      } catch {
+        // 解析失败时退回 editor 模式让用户手动修
+        editorMode.value = 'editor';
+        message.warning('配置文件不是合法 JSON,已切回编辑器模式');
+      }
+    }
   } finally {
     loading.value = false;
   }
@@ -76,10 +186,23 @@ async function loadAppSettings() {
 
 function resetChanges() {
   editText.value = originalText.value;
+  if (editorMode.value === 'visual') {
+    try {
+      parsedObject.value = JSON.parse(originalText.value);
+    } catch {
+      /* 原内容非法 JSON 时无视 */
+    }
+  }
   message.info('已还原');
 }
 
 function beautify() {
+  // editor 模式优先用 Monaco 内置 formatter(快捷键 Shift+Alt+F 也能触发)
+  if (editorMode.value === 'editor' && jsonEditorRef.value) {
+    jsonEditorRef.value.format();
+    return;
+  }
+  // 兜底:本地 JSON.parse + stringify
   try {
     const parsed = JSON.parse(editText.value);
     editText.value = JSON.stringify(parsed, null, 2);
@@ -323,13 +446,32 @@ onMounted(() => {
     </Card>
 
     <!-- JSON 编辑器 -->
-    <Card title="appsettings.json" class="editor-card">
+    <Card class="editor-card">
+      <template #title>
+        <Space>
+          <span>appsettings.json</span>
+          <RadioGroup
+            v-model:value="editorMode"
+            button-style="solid"
+            size="small"
+          >
+            <RadioButton value="editor">编辑器模式</RadioButton>
+            <RadioButton value="visual">可视化模式</RadioButton>
+          </RadioGroup>
+        </Space>
+      </template>
       <Spin :spinning="loading || restartWaiting" :tip="restartWaiting ? '等待应用重启...' : '加载中...'">
-        <Textarea
-          v-model:value="editText"
-          :rows="28"
-          spellcheck="false"
-          class="json-editor"
+        <JsonEditor
+          v-if="editorMode === 'editor'"
+          ref="jsonEditorRef"
+          v-model="editText"
+          language="json"
+          :height="600"
+        />
+        <JsonFieldEditor
+          v-else
+          v-model="parsedObject"
+          :enum-options="APP_SETTINGS_ENUMS"
         />
       </Spin>
     </Card>

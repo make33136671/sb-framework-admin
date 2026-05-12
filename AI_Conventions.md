@@ -362,12 +362,16 @@ import { TimeTag } from '#/components/TimeTag';
 | **SmartUpload / DirectUpload / ChunkUpload** | 文件上传 | 三组件 props/emits/slots 一致；Smart 默认推荐自动选直传/分片，强制场景用 Direct/Chunk |
 | **LicenseExpiryReminder** | 授权到期弹窗 | 已挂 `basic.vue` `#extra`，业务页面不要重复挂载 |
 | **PermissionDescription** | 用户/角色的"我有什么权限"卡片 | 自动读 `usePermission()`，按 `userType` 渲染 |
+| **JsonEditor** | 任何 JSON / yaml / js 文本编辑(`appsettings.json` / 工作流配置 / API 调试...) | `v-model`(string)/ `language`(默认 `json`)/ `readonly` / `height`(默认 `400`)/ `theme`(默认 `auto` 跟 Vben 亮/暗);Monaco 包装,内置格式化(`ref.format()`)和 JSON 校验(`ref.validate()`) |
+| **JsonFieldEditor** | 把 JS 对象/数组按值类型映射成 antd 组件编辑(schema 不固定的字段编辑) | `v-model`(any);string→`<Input>`(多行自动 `<Textarea>`)/ number→`<InputNumber>` / boolean→`<Switch>` / array→`<Card>` 加删 / object→`<Card>` 不加删字段;**对象不允许加删 key**(字段集由后端 schema 决定) |
 
 **禁忌**（替换后看似工作但失去全系统统一）：
 - 写 `{{ row.createdTime }}` 直接展示时间 → 用 TimeTag
 - `{{ amount.toFixed(2) }} USDT` 拼字符串 → 用 AmountDisplay
 - 自己包 antd `<Upload>` → 用 SmartUpload（丢失分片/秒传能力）
 - if/else 判 `userType` 写权限说明文案 → 用 PermissionDescription
+- 想要"代码编辑器"风格 → 用 JsonEditor,不要直接 `<Textarea>`(失去高亮/格式化/折叠)
+- schema 不固定的 JSON 字段编辑 → 用 JsonFieldEditor,不要手写一个个 `<Form>` 字段
 
 ---
 
