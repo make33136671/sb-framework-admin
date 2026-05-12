@@ -160,9 +160,14 @@ const delAdmin = (id: number) => {
   <Page auto-content-height>
     <Grid>
       <template #toolbar-tools>
-        <Button v-if="canAdd" type="primary" @click="handleAdd">
-          新增管理员
-        </Button>
+        <Space>
+          <Button @click="router.push({ name: 'LoginLog' })">
+            登录日志
+          </Button>
+          <Button v-if="canAdd" type="primary" @click="handleAdd">
+            新增管理员
+          </Button>
+        </Space>
       </template>
 
       <template #status="{ row }">
