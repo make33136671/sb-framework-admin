@@ -30,23 +30,28 @@ echo "=== Fork 漂移审计 — HEAD vs $UPSTREAM_REF ==="
 echo ""
 
 # 过滤:派生项目特有的、不需要 review 的文件
+# 用 ** glob 匹配任意层级(``.env.development`` 在 apps/web-antd/ 下,top-level 路径不会命中)。
 EXCLUDE_GLOBS=(
-    ':!pnpm-lock.yaml'
-    ':!.env.development'
-    ':!.env.production'
-    ':!CHANGELOG.md'
-    ':!README.md'
-    ':!CLAUDE.md'
-    ':!apps/web-antd/vite.config.mts'
+    ':(exclude)pnpm-lock.yaml'
+    ':(exclude,glob)**/.env.development'
+    ':(exclude,glob)**/.env.production'
+    ':(exclude)CHANGELOG.md'
+    ':(exclude)README.md'
+    ':(exclude)CLAUDE.md'
+    ':(exclude,glob)**/vite.config.mts'
 )
 
-MOD=$(git diff --name-only --diff-filter=M "$UPSTREAM_REF" HEAD -- "${EXCLUDE_GLOBS[@]}" 2>/dev/null)
-ADD=$(git diff --name-only --diff-filter=A "$UPSTREAM_REF" HEAD -- "${EXCLUDE_GLOBS[@]}" 2>/dev/null)
-DEL=$(git diff --name-only --diff-filter=D "$UPSTREAM_REF" HEAD -- "${EXCLUDE_GLOBS[@]}" 2>/dev/null)
+MOD=$(git diff --name-only --diff-filter=M "$UPSTREAM_REF" HEAD -- "${EXCLUDE_GLOBS[@]}" 2>/dev/null || true)
+ADD=$(git diff --name-only --diff-filter=A "$UPSTREAM_REF" HEAD -- "${EXCLUDE_GLOBS[@]}" 2>/dev/null || true)
+DEL=$(git diff --name-only --diff-filter=D "$UPSTREAM_REF" HEAD -- "${EXCLUDE_GLOBS[@]}" 2>/dev/null || true)
 
-MOD_COUNT=$(echo -n "$MOD" | grep -c '^' || echo 0)
-ADD_COUNT=$(echo -n "$ADD" | grep -c '^' || echo 0)
-DEL_COUNT=$(echo -n "$DEL" | grep -c '^' || echo 0)
+# 行数计算:空字符串视为 0;非空时用 wc -l。
+# 之前用 `grep -c '^' || echo 0` 在空输入时 stdout="0" + exitcode=1,
+# 经 || echo 0 后输出变成 "0\n0",触发后续 [ ... ] 报 integer expression expected。
+count_lines() { [ -z "$1" ] && echo 0 || printf '%s\n' "$1" | wc -l | tr -d ' '; }
+MOD_COUNT=$(count_lines "$MOD")
+ADD_COUNT=$(count_lines "$ADD")
+DEL_COUNT=$(count_lines "$DEL")
 
 echo "📊 概览"
 echo "  Modified : $MOD_COUNT  ← ⚠ 回流候选(改了 upstream 文件)"
