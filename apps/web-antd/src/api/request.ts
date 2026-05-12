@@ -61,8 +61,12 @@ const _client = new RequestClient({
 
 _client.addRequestInterceptor({
   fulfilled: async (config) => {
-    config.headers['Content-Type'] =
-      'application/x-www-form-urlencoded;charset=utf-8';
+    // 默认 JSON：framework controller 普遍用 [FromBody](AppSettings/Save/Diff/Rollback、Setup/* 等),
+    // 之前硬编码 application/x-www-form-urlencoded 会让后端报 415。
+    // 文件上传等 form 接口由 caller 传 FormData → axios 自动设 multipart/form-data,这里跳过覆盖。
+    if (!config.headers['Content-Type']) {
+      config.headers['Content-Type'] = 'application/json;charset=utf-8';
+    }
     const accessStore = useAccessStore();
     config.headers.Authorization = formatToken(accessStore.accessToken);
     config.headers['Accept-Language'] = preferences.app.locale;
