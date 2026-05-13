@@ -19,6 +19,7 @@ import {
   Tag,
 } from 'ant-design-vue';
 
+import { AppVersion } from '#/components/AppVersion';
 import { TimeTag } from '#/components/TimeTag';
 import { TimezoneDisplay } from '#/components/TimezoneDisplay';
 import { ChunkUpload, type UploadDetail } from '#/components/Upload';
@@ -466,7 +467,7 @@ onUnmounted(() => {
           size="small"
         >
           <Descriptions.Item label="版本">
-            {{ appInfo.version }}
+            <AppVersion :value="appInfo.version" />
           </Descriptions.Item>
           <Descriptions.Item label="环境">
             {{ appInfo.environment }}
