@@ -199,12 +199,15 @@ const apiDeploying = ref(false);
 
 /** API 部署可选项：勾选后部署成功时一并清空缓存 */
 const clearCacheOnDeploy = ref(false);
+/** API 部署可选项：保护配置文件（默认开,即使误上传 appsettings*.json 也跳过） */
+const keepConfigOnDeploy = ref(true);
 
 /** API zip 上传成功 → 走确认弹窗（防呆） */
 async function onApiZipUploaded(d: UploadDetail | UploadDetail[]) {
   const detail = Array.isArray(d) ? d[0] : d;
   if (!detail) return;
   clearCacheOnDeploy.value = false;
+  keepConfigOnDeploy.value = true;
   await openDeployConfirm({
     target: 'api',
     detail,
@@ -214,6 +217,7 @@ async function onApiZipUploaded(d: UploadDetail | UploadDetail[]) {
         detail.name,
         detail.size,
         clearCacheOnDeploy.value,
+        keepConfigOnDeploy.value,
       );
       // toast 由 axios 拦截器弹后端 message（后端 Result.Success 文案带"重启"信息更准）
       apiUploadPath.value = '';
@@ -724,7 +728,13 @@ onUnmounted(() => {
             v-if="confirmPreview.target === 'api' && confirmPreview.valid"
             class="confirm-options"
           >
-            <Checkbox v-model:checked="clearCacheOnDeploy">
+            <Checkbox v-model:checked="keepConfigOnDeploy">
+              保护配置文件（推荐）
+            </Checkbox>
+            <div class="confirm-options__hint">
+              即使误打包了 appsettings.json / appsettings.*.json,部署时也会跳过覆盖,保留服务器现有配置
+            </div>
+            <Checkbox v-model:checked="clearCacheOnDeploy" style="margin-top: 8px">
               部署后清空所有缓存
             </Checkbox>
             <div class="confirm-options__hint">

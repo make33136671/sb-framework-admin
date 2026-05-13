@@ -46,12 +46,14 @@ export async function postDeployApiByPath(
   fileName: string,
   fileSize: number,
   clearCache = false,
+  keepConfig = true,
 ) {
   const formData = new FormData();
   formData.append('filePath', filePath);
   formData.append('fileName', fileName);
   formData.append('fileSize', String(fileSize));
   formData.append('clearCache', String(clearCache));
+  formData.append('keepConfig', String(keepConfig));
   return api.post('/App/DeployApiByPath', formData, { silent: true });
 }
 
