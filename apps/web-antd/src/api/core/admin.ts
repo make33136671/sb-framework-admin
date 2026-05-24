@@ -1,6 +1,10 @@
 import type { OpenImInfo, UserInfo } from '@vben/types';
 
 import { api } from '#/api/request';
+import { directUploadApi } from '#/api/core/upload';
+
+/** 兼容旧业务 import { uploadFileApi } from '#/api/core/admin' */
+export const uploadFileApi = directUploadApi;
 
 export namespace AdminApi {
   export interface LoginParams {
