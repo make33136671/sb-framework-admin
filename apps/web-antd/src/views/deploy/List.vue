@@ -17,6 +17,7 @@ import {
   Spin,
   Table,
   Tag,
+  Tooltip,
 } from 'ant-design-vue';
 
 import { AppVersion } from '#/components/AppVersion';
@@ -29,7 +30,9 @@ import {
   getDeployTargets,
   getInfo,
   getPreviewDeploy,
+  getUploadRecords,
   postCancelUpload,
+  postDeploy,
   postDeployApiByPath,
   postDeployProjectByPath,
   postRestart,
@@ -149,6 +152,7 @@ function startRestartPolling() {
         // getInfo 走 silent 不弹 toast，这里轮询确认重启完成是真业务事件，保留 message
         message.success('程序重启成功');
         loadDeployRecords();
+        loadUploadRecords();
         setTimeout(() => {
           restartModalVisible.value = false;
         }, 1500);
@@ -367,12 +371,84 @@ async function onProjectZipUploaded(
       // toast 由 axios 拦截器弹后端 message
       projectUploadPaths[key] = '';
       loadDeployRecords();
+      loadUploadRecords();
     },
     onCancel: () => {
       projectUploadPaths[key] = '';
     },
     setBusy: (v) => (projectDeployingMap[key] = v),
   });
+}
+
+// ============ 上传记录（UploadRecord：status 追踪 + 重试） ============
+const uploadRecordsLoading = ref(false);
+const uploadRecordsData = ref<any[]>([]);
+const uploadRecordsTotal = ref(0);
+const uploadRecordsPage = ref(1);
+const uploadRecordsPageSize = ref(10);
+const uploadRecordsTargetFilter = ref<string | undefined>(undefined);
+const uploadRecordsStatusFilter = ref<string | undefined>(undefined);
+const retryingId = ref(0);
+
+const uploadRecordColumns = [
+  { title: 'ID', dataIndex: 'id', width: 60 },
+  { title: '目标', dataIndex: 'targetName', width: 120 },
+  { title: '文件名', dataIndex: 'fileName', ellipsis: true },
+  { title: '大小', dataIndex: 'fileSize', width: 90, customRender: ({ text }: any) => formatSize(text) },
+  { title: '状态', key: 'uploadStatus', width: 100 },
+  { title: '上传人', dataIndex: 'uploadedBy', width: 90 },
+  { title: '上传时间', dataIndex: 'uploadTime', width: 160 },
+  { title: '操作', key: 'uploadAction', width: 80 },
+];
+
+async function loadUploadRecords() {
+  uploadRecordsLoading.value = true;
+  try {
+    const res: any = await getUploadRecords({
+      target: uploadRecordsTargetFilter.value,
+      status: uploadRecordsStatusFilter.value,
+      page: uploadRecordsPage.value,
+      pageSize: uploadRecordsPageSize.value,
+    });
+    uploadRecordsData.value = res?.items || [];
+    uploadRecordsTotal.value = res?.total || 0;
+  } catch {
+    uploadRecordsData.value = [];
+  } finally {
+    uploadRecordsLoading.value = false;
+  }
+}
+
+function handleUploadRecordsPageChange(page: number, pageSize: number) {
+  uploadRecordsPage.value = page;
+  uploadRecordsPageSize.value = pageSize;
+  loadUploadRecords();
+}
+
+function handleUploadTargetFilter(target?: string) {
+  uploadRecordsTargetFilter.value = target;
+  uploadRecordsPage.value = 1;
+  loadUploadRecords();
+}
+
+function handleUploadStatusFilter(status?: string) {
+  uploadRecordsStatusFilter.value = status;
+  uploadRecordsPage.value = 1;
+  loadUploadRecords();
+}
+
+async function handleRetryDeploy(record: any) {
+  retryingId.value = record.id;
+  try {
+    await postDeploy(record.id);
+    if (record.target === 'api') {
+      startRestartPolling();
+    } else {
+      loadUploadRecords();
+    }
+  } finally {
+    retryingId.value = 0;
+  }
 }
 
 // ============ 部署记录 ============
@@ -448,6 +524,7 @@ async function handleRollback(record: any) {
 onMounted(() => {
   loadInfo();
   loadDeployTargets();
+  loadUploadRecords();
   loadDeployRecords();
 });
 
@@ -602,6 +679,67 @@ onUnmounted(() => {
             </div>
           </Card>
         </div>
+      </Card>
+
+      <!-- 上传记录 -->
+      <Card title="上传记录">
+        <div style="margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+          <div style="display: flex; gap: 4px; flex-wrap: wrap">
+            <Button :type="!uploadRecordsTargetFilter ? 'primary' : 'default'" size="small" @click="handleUploadTargetFilter(undefined)">全部</Button>
+            <Button :type="uploadRecordsTargetFilter === 'api' ? 'primary' : 'default'" size="small" @click="handleUploadTargetFilter('api')">API</Button>
+            <Button
+              v-for="t in deployTargets"
+              :key="t.key"
+              :type="uploadRecordsTargetFilter === t.key ? 'primary' : 'default'"
+              size="small"
+              @click="handleUploadTargetFilter(t.key)"
+            >{{ t.name }}</Button>
+          </div>
+          <span style="color: var(--ant-color-border)">|</span>
+          <div style="display: flex; gap: 4px">
+            <Button :type="!uploadRecordsStatusFilter ? 'primary' : 'default'" size="small" @click="handleUploadStatusFilter(undefined)">全部状态</Button>
+            <Button :type="uploadRecordsStatusFilter === 'Pending' ? 'primary' : 'default'" size="small" @click="handleUploadStatusFilter('Pending')">待部署</Button>
+            <Button :type="uploadRecordsStatusFilter === 'Deployed' ? 'primary' : 'default'" size="small" @click="handleUploadStatusFilter('Deployed')">已部署</Button>
+            <Button :type="uploadRecordsStatusFilter === 'Failed' ? 'primary' : 'default'" size="small" @click="handleUploadStatusFilter('Failed')">失败</Button>
+          </div>
+        </div>
+        <Table
+          :columns="uploadRecordColumns"
+          :data-source="uploadRecordsData"
+          :loading="uploadRecordsLoading"
+          :pagination="{
+            current: uploadRecordsPage,
+            pageSize: uploadRecordsPageSize,
+            total: uploadRecordsTotal,
+            showSizeChanger: true,
+            showTotal: (total: number) => `共 ${total} 条`,
+            onChange: handleUploadRecordsPageChange,
+          }"
+          row-key="id"
+          size="small"
+        >
+          <template #bodyCell="{ column, record }">
+            <template v-if="column.key === 'uploadStatus'">
+              <Tag v-if="record.status === 'Deployed'" color="success">已部署</Tag>
+              <Tag v-else-if="record.status === 'Failed'" color="error">
+                <Tooltip v-if="record.deployError" :title="record.deployError">失败 ⓘ</Tooltip>
+                <template v-else>失败</template>
+              </Tag>
+              <Tag v-else color="warning">待部署</Tag>
+            </template>
+            <template v-if="column.key === 'uploadAction'">
+              <Popconfirm
+                v-if="record.status !== 'Deployed'"
+                :title="`${record.status === 'Failed' ? '重新' : ''}部署此上传包？${record.target === 'api' ? '（API 将自动重启）' : ''}`"
+                @confirm="handleRetryDeploy(record)"
+              >
+                <Button size="small" type="primary" ghost :loading="retryingId === record.id">
+                  {{ record.status === 'Failed' ? '重试' : '部署' }}
+                </Button>
+              </Popconfirm>
+            </template>
+          </template>
+        </Table>
       </Card>
 
       <!-- 部署记录 -->

@@ -75,3 +75,20 @@ export async function postRollback(id: number) {
   formData.append('id', String(id));
   return api.post('/App/Rollback', formData);
 }
+
+export async function postDeploy(uploadId: number, keepConfig = true, clearCache = false) {
+  const formData = new FormData();
+  formData.append('uploadId', String(uploadId));
+  formData.append('keepConfig', String(keepConfig));
+  formData.append('clearCache', String(clearCache));
+  return api.post('/App/Deploy', formData, { silent: true });
+}
+
+export async function getUploadRecords(params: {
+  target?: string;
+  status?: string;
+  page?: number;
+  pageSize?: number;
+}) {
+  return api.get('/App/UploadRecords', { params });
+}
