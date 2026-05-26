@@ -21,6 +21,7 @@ import {
 } from 'ant-design-vue';
 
 import { AppVersion } from '#/components/AppVersion';
+import { RestartWaiter } from '#/components/RestartWaiter';
 import { TimeTag } from '#/components/TimeTag';
 import { TimezoneDisplay } from '#/components/TimezoneDisplay';
 import { ChunkUpload, type UploadDetail } from '#/components/Upload';
@@ -127,56 +128,19 @@ async function loadInfo() {
   }
 }
 
-// ============ 重启等待 ============
+// ============ 重启等待(共享组件 RestartWaiter) ============
 const restartModalVisible = ref(false);
-const restartStatus = ref<'error' | 'polling' | 'success'>('polling');
-
-let pollingTimer: ReturnType<typeof setInterval> | null = null;
-let timeoutTimer: ReturnType<typeof setTimeout> | null = null;
 
 function startRestartPolling() {
   restartModalVisible.value = true;
-  restartStatus.value = 'polling';
-
-  const maxWait = 60000;
-  const interval = 2000;
-
-  pollingTimer = setInterval(async () => {
-    try {
-      const info: any = await getInfo({ silent: true });
-      if (info) {
-        clearTimers();
-        restartStatus.value = 'success';
-        appInfo.value = info;
-        resetTimers(info);
-        // getInfo 走 silent 不弹 toast，这里轮询确认重启完成是真业务事件，保留 message
-        message.success('程序重启成功');
-        loadDeployRecords();
-        loadUploadRecords();
-        setTimeout(() => {
-          restartModalVisible.value = false;
-        }, 1500);
-      }
-    } catch {
-      // 还在重启中，继续轮询
-    }
-  }, interval);
-
-  timeoutTimer = setTimeout(() => {
-    clearTimers();
-    restartStatus.value = 'error';
-  }, maxWait);
 }
 
-function clearTimers() {
-  if (pollingTimer) {
-    clearInterval(pollingTimer);
-    pollingTimer = null;
-  }
-  if (timeoutTimer) {
-    clearTimeout(timeoutTimer);
-    timeoutTimer = null;
-  }
+function onRestartSuccess(info: any) {
+  appInfo.value = info;
+  resetTimers(info);
+  message.success('程序重启成功');
+  loadDeployRecords();
+  loadUploadRecords();
 }
 
 // ============ 重启操作 ============
@@ -898,50 +862,11 @@ onUnmounted(() => {
       </Spin>
     </Modal>
 
-    <!-- 重启等待弹窗 -->
-    <Modal
+    <!-- 重启等待弹窗(共享 RestartWaiter 组件) -->
+    <RestartWaiter
       v-model:open="restartModalVisible"
-      :closable="restartStatus !== 'polling'"
-      :mask-closable="false"
-      :footer="null"
-      title="程序重启"
-      width="420px"
-    >
-      <div style="text-align: center; padding: 24px 0">
-        <div v-if="restartStatus === 'polling'">
-          <div class="restart-pulse">
-            <div class="restart-pulse-ring" />
-            <div class="restart-pulse-icon">
-              <Spin size="large" />
-            </div>
-          </div>
-          <div style="margin-top: 20px; color: #666; font-size: 15px">
-            程序正在重启<span class="restart-dots" />
-          </div>
-          <div style="margin-top: 8px; color: #999; font-size: 13px">
-            服务恢复后将自动刷新
-          </div>
-        </div>
-
-        <div v-else-if="restartStatus === 'success'">
-          <Progress type="circle" :percent="100" status="success" />
-          <div style="margin-top: 16px; color: #52c41a">重启成功</div>
-        </div>
-
-        <div v-else>
-          <Progress type="circle" :percent="100" status="exception" />
-          <div style="margin-top: 16px; color: #ff4d4f">
-            重启超时，请登录服务器查看错误日志
-          </div>
-          <Space style="margin-top: 16px">
-            <Button @click="restartModalVisible = false">关闭</Button>
-            <Button type="primary" @click="startRestartPolling">
-              重试
-            </Button>
-          </Space>
-        </div>
-      </div>
-    </Modal>
+      @success="onRestartSuccess"
+    />
   </Page>
 </template>
 
@@ -1062,57 +987,4 @@ onUnmounted(() => {
   line-height: 1.5;
 }
 
-.restart-pulse {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 80px;
-  height: 80px;
-}
-
-.restart-pulse-ring {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 2px solid #1890ff;
-  animation: restart-ripple 1.8s ease-out infinite;
-}
-
-.restart-pulse-ring::after {
-  content: '';
-  position: absolute;
-  inset: -8px;
-  border-radius: 50%;
-  border: 1px solid #1890ff;
-  animation: restart-ripple 1.8s ease-out 0.6s infinite;
-}
-
-.restart-pulse-icon {
-  position: relative;
-  z-index: 1;
-}
-
-@keyframes restart-ripple {
-  0% {
-    transform: scale(0.8);
-    opacity: 0.6;
-  }
-  100% {
-    transform: scale(1.6);
-    opacity: 0;
-  }
-}
-
-.restart-dots::after {
-  content: '';
-  animation: restart-dots-anim 1.5s steps(3, end) infinite;
-}
-
-@keyframes restart-dots-anim {
-  0%   { content: ''; }
-  33%  { content: '.'; }
-  66%  { content: '..'; }
-  100% { content: '...'; }
-}
 </style>

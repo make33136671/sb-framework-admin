@@ -26,6 +26,7 @@ import {
 
 import { JsonEditor } from '#/components/JsonEditor';
 import { JsonFieldEditor } from '#/components/JsonFieldEditor';
+import { RestartWaiter } from '#/components/RestartWaiter';
 
 import {
   diffAppSettings,
@@ -252,26 +253,17 @@ async function confirmSave() {
 }
 
 const restartWaiting = ref(false);
-async function waitForRestart() {
+const restartBaseline = ref('');
+
+function waitForRestart() {
+  restartBaseline.value = serverInfo.value.startTime || '';
   restartWaiting.value = true;
-  // 等 service 优雅退出 + systemd 拉起（最多 30s）
-  for (let i = 0; i < 30; i++) {
-    await sleep(2000);
-    try {
-      const info = await getAppInfo();
-      // startTime 变了说明已经是新进程
-      if (info?.startTime && info.startTime !== serverInfo.value.startTime) {
-        serverInfo.value = info;
-        await loadAppSettings();
-        message.success('应用已重启，配置生效');
-        break;
-      }
-    } catch {}
-  }
-  restartWaiting.value = false;
 }
-function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
+
+async function onRestartSuccess(info: any) {
+  serverInfo.value = info;
+  await loadAppSettings();
+  message.success('应用已重启，配置生效');
 }
 
 // ---- 立即重启（不改文件，纯触发 GracefulStop）----
@@ -542,6 +534,12 @@ onMounted(() => {
         <pre class="diff-pre">{{ previewingHistory.rawText }}</pre>
       </Modal>
     </Drawer>
+
+    <RestartWaiter
+      v-model:open="restartWaiting"
+      :baseline-start-time="restartBaseline"
+      @success="onRestartSuccess"
+    />
   </Page>
 </template>
 
