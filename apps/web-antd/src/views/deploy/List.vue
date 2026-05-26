@@ -1,22 +1,23 @@
 <script lang="ts" setup>
-import { onMounted, onUnmounted, reactive, ref } from 'vue';
+import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
 
 import {
-  Alert,
   Button,
   Card,
-  Checkbox,
+  Collapse,
+  CollapsePanel,
   Descriptions,
+  Empty,
   message,
   Modal,
   Popconfirm,
-  Progress,
   Space,
   Spin,
-  Table,
   Tag,
+  Timeline,
+  TimelineItem,
   Tooltip,
 } from 'ant-design-vue';
 
@@ -27,7 +28,6 @@ import { TimezoneDisplay } from '#/components/TimezoneDisplay';
 import { ChunkUpload, type UploadDetail } from '#/components/Upload';
 
 import {
-  getDeployRecords,
   getDeployTargets,
   getInfo,
   getPreviewDeploy,
@@ -40,7 +40,7 @@ import {
   postRollback,
 } from './api';
 
-// ============ 应用信息 ============
+// ============ 类型 ============
 interface AppInfo {
   version: string;
   environment: string;
@@ -54,6 +54,48 @@ interface AppInfo {
   installPath: string;
 }
 
+interface DeployTarget {
+  key: string;
+  name: string;
+  path: string;
+}
+
+interface DeployJob {
+  id: number;
+  target: string;
+  targetName: string;
+  fileName: string;
+  fileSize: number;
+  storagePath: string;
+  status: 'Deployed' | 'Deploying' | 'Failed' | 'RolledBack' | 'Uploaded';
+  errorMessage?: string;
+  uploadedBy: string;
+  uploadedAt: string;
+  deployedBy?: string;
+  deployStartedAt?: string;
+  deployFinishedAt?: string;
+  previousJobId?: null | number;
+  rollbackOfJobId?: null | number;
+  rolledBackBy?: string;
+  rolledBackAt?: string;
+  remark?: string;
+}
+
+interface TargetItem extends DeployTarget {
+  isApi: boolean;
+}
+
+interface DeployPreview {
+  target: string;
+  targetName: string;
+  targetPath: string;
+  fileName: string;
+  fileSize: number;
+  filePath: string;
+  entries: string[];
+}
+
+// ============ 应用信息 ============
 const appInfo = ref<AppInfo | null>(null);
 const infoLoading = ref(false);
 const liveUptime = ref('');
@@ -62,98 +104,95 @@ const liveServerTime = ref('');
 let uptimeBaseMs = 0;
 let serverTimeBase = 0;
 let uptimeLoadedAt = 0;
-let uptimeTimer: ReturnType<typeof setInterval> | null = null;
-let serverTimeTimer: ReturnType<typeof setInterval> | null = null;
+let uptimeTimer: null | ReturnType<typeof setInterval> = null;
+let serverTimeTimer: null | ReturnType<typeof setInterval> = null;
 
 function parseUptimeToMs(uptime: string): number {
   const match = /^(?:(\d+)\.)?(\d{2}):(\d{2}):(\d{2})$/.exec(uptime);
   if (!match) return 0;
   const [, days, hours, minutes, seconds] = match;
   return (
-    (Number(days || 0) * 86400 + Number(hours) * 3600 + Number(minutes) * 60 + Number(seconds)) *
+    (Number(days || 0) * 86_400 +
+      Number(hours) * 3600 +
+      Number(minutes) * 60 +
+      Number(seconds)) *
     1000
   );
 }
 
 function formatUptimeLive(ms: number): string {
-  const totalSeconds = Math.floor(ms / 1000);
-  const centis = Math.floor((ms % 1000) / 10);
-  const days = Math.floor(totalSeconds / 86400);
-  const hours = Math.floor((totalSeconds % 86400) / 3600);
-  const minutes = Math.floor((totalSeconds % 3600) / 60);
-  const seconds = totalSeconds % 60;
-  const pad = (n: number, len = 2) => String(n).padStart(len, '0');
-  let result = `${pad(hours)}:${pad(minutes)}:${pad(seconds)}.${pad(centis)}`;
-  if (days > 0) result = `${days}天 ${result}`;
-  return result;
+  const total = Math.floor(ms / 1000);
+  const d = Math.floor(total / 86_400);
+  const h = Math.floor((total % 86_400) / 3600);
+  const m = Math.floor((total % 3600) / 60);
+  const s = total % 60;
+  if (d > 0) return `${d}天 ${h}小时 ${m}分 ${s}秒`;
+  if (h > 0) return `${h}小时 ${m}分 ${s}秒`;
+  if (m > 0) return `${m}分 ${s}秒`;
+  return `${s}秒`;
 }
 
 function formatDateTime(ts: number): string {
   const d = new Date(ts);
-  const pad = (n: number) => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  const p = (n: number) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
 }
 
 function resetTimers(info: AppInfo) {
-  uptimeBaseMs = parseUptimeToMs(info.uptime);
-  serverTimeBase = new Date(info.serverTime.replace(' ', 'T')).getTime();
-  uptimeLoadedAt = Date.now();
   stopTimers();
+  uptimeBaseMs = parseUptimeToMs(info.uptime);
+  uptimeLoadedAt = Date.now();
+  serverTimeBase = new Date(info.serverTime).getTime();
+  liveUptime.value = formatUptimeLive(uptimeBaseMs);
+  liveServerTime.value = formatDateTime(serverTimeBase);
   uptimeTimer = setInterval(() => {
-    const elapsed = Date.now() - uptimeLoadedAt;
-    liveUptime.value = formatUptimeLive(uptimeBaseMs + elapsed);
-  }, 43);
+    liveUptime.value = formatUptimeLive(
+      uptimeBaseMs + (Date.now() - uptimeLoadedAt),
+    );
+  }, 1000);
   serverTimeTimer = setInterval(() => {
-    const elapsed = Date.now() - uptimeLoadedAt;
-    liveServerTime.value = formatDateTime(serverTimeBase + elapsed);
+    serverTimeBase += 1000;
+    liveServerTime.value = formatDateTime(serverTimeBase);
   }, 1000);
 }
 
 function stopTimers() {
-  if (uptimeTimer) { clearInterval(uptimeTimer); uptimeTimer = null; }
-  if (serverTimeTimer) { clearInterval(serverTimeTimer); serverTimeTimer = null; }
+  if (uptimeTimer) clearInterval(uptimeTimer);
+  if (serverTimeTimer) clearInterval(serverTimeTimer);
+  uptimeTimer = null;
+  serverTimeTimer = null;
 }
 
 async function loadInfo() {
   infoLoading.value = true;
   try {
-    appInfo.value = await getInfo();
-    if (appInfo.value) {
-      resetTimers(appInfo.value);
-    }
-  } catch {
-    appInfo.value = null;
+    const data: any = await getInfo();
+    appInfo.value = data;
+    if (data) resetTimers(data);
   } finally {
     infoLoading.value = false;
   }
 }
 
-// ============ 重启等待(共享组件 RestartWaiter) ============
+// ============ 重启 ============
 const restartModalVisible = ref(false);
-
-function startRestartPolling() {
-  restartModalVisible.value = true;
-}
-
 function onRestartSuccess(info: any) {
   appInfo.value = info;
   resetTimers(info);
   message.success('程序重启成功');
-  loadDeployRecords();
-  loadUploadRecords();
+  loadAllJobs();
 }
 
-// ============ 重启操作 ============
 async function handleRestart() {
   Modal.confirm({
     title: '确认重启',
-    content: '确定要重启 API 程序吗？重启期间服务将短暂不可用。',
+    content: '确定要重启 API 程序吗?重启期间服务将短暂不可用。',
     okText: '确定',
     cancelText: '取消',
     async onOk() {
       try {
         await postRestart();
-        startRestartPolling();
+        restartModalVisible.value = true;
       } catch {
         message.error('发送重启指令失败');
       }
@@ -161,378 +200,284 @@ async function handleRestart() {
   });
 }
 
-// ============ 切片上传：API 程序 zip ============
-const apiUploadPath = ref<string>('');
-const apiDeploying = ref(false);
-
-/** API 部署可选项：勾选后部署成功时一并清空缓存 */
-const clearCacheOnDeploy = ref(false);
-/** API 部署可选项：保护配置文件（默认开,即使误上传 appsettings*.json 也跳过） */
-const keepConfigOnDeploy = ref(true);
-
-/** API zip 上传成功 → 走确认弹窗（防呆） */
-async function onApiZipUploaded(d: UploadDetail | UploadDetail[]) {
-  const detail = Array.isArray(d) ? d[0] : d;
-  if (!detail) return;
-  clearCacheOnDeploy.value = false;
-  keepConfigOnDeploy.value = true;
-  await openDeployConfirm({
-    target: 'api',
-    detail,
-    onConfirm: async () => {
-      await postDeployApiByPath(
-        detail.fileName,
-        detail.name,
-        detail.size,
-        clearCacheOnDeploy.value,
-        keepConfigOnDeploy.value,
-      );
-      // toast 由 axios 拦截器弹后端 message（后端 Result.Success 文案带"重启"信息更准）
-      apiUploadPath.value = '';
-      startRestartPolling();
-    },
-    onCancel: () => {
-      apiUploadPath.value = '';
-    },
-    setBusy: (v) => (apiDeploying.value = v),
-  });
-}
-
-// ============ 部署确认弹窗（防呆） ============
-interface DeployPreview {
-  valid: boolean;
-  error?: string;
-  target: string;
-  targetName: string;
-  targetPath: string;
-  requiredMarker: string;
-  fileName: string;
-  fileSize: number;
-  entries: string[];
-}
-
-const confirmVisible = ref(false);
-const confirmLoading = ref(false);
-const confirmDeploying = ref(false);
-const confirmPreview = ref<DeployPreview | null>(null);
-let pendingConfirm: (() => Promise<void>) | null = null;
-let pendingCancel: (() => void) | null = null;
-let pendingFilePath: string = '';
-
-/**
- * 拉 PreviewDeploy → 展示弹窗 → 等用户确认 / 取消
- */
-async function openDeployConfirm(opts: {
-  target: string;
-  detail: UploadDetail;
-  onConfirm: () => Promise<void>;
-  onCancel: () => void;
-  setBusy: (v: boolean) => void;
-}) {
-  opts.setBusy(true);
-  confirmLoading.value = true;
-  confirmVisible.value = true;
-  confirmPreview.value = null;
-  pendingFilePath = opts.detail.fileName;
-
-  try {
-    const preview = (await getPreviewDeploy(
-      opts.target,
-      opts.detail.fileName,
-      opts.detail.name,
-    )) as DeployPreview;
-    confirmPreview.value = preview;
-  } catch {
-    // 失败 toast 由 axios 拦截器统一弹
-    confirmVisible.value = false;
-    opts.setBusy(false);
-    opts.onCancel();
-    await silentCancelUpload(pendingFilePath);
-    return;
-  } finally {
-    confirmLoading.value = false;
-  }
-
-  pendingConfirm = async () => {
-    confirmDeploying.value = true;
-    try {
-      // 失败 toast 由 axios 拦截器统一弹
-      await opts.onConfirm();
-      confirmVisible.value = false;
-    } finally {
-      confirmDeploying.value = false;
-      opts.setBusy(false);
-    }
-  };
-
-  pendingCancel = () => {
-    confirmVisible.value = false;
-    opts.setBusy(false);
-    opts.onCancel();
-    silentCancelUpload(pendingFilePath);
-  };
-}
-
-async function silentCancelUpload(filePath: string) {
-  if (!filePath) return;
-  try {
-    await postCancelUpload(filePath);
-  } catch {
-    /* 取消失败也无所谓，文件由系统过期清理 */
-  }
-}
-
-function handleConfirmDeploy() {
-  if (pendingConfirm) pendingConfirm();
-}
-
-function handleCancelDeploy() {
-  if (pendingCancel) pendingCancel();
-}
-
-// ============ 前端项目部署 ============
-interface DeployTarget {
-  name: string;
-  key: string;
-  path: string;
-}
-
+// ============ 部署目标列表 ============
 const deployTargets = ref<DeployTarget[]>([]);
 const targetsLoading = ref(false);
 
-/** 每个 target 独立的 v-model 与 deploying 状态 */
-const projectUploadPaths = reactive<Record<string, string>>({});
-const projectDeployingMap = reactive<Record<string, boolean>>({});
+const allTargets = computed<TargetItem[]>(() => [
+  { key: 'api', name: 'API 程序', path: appInfo.value?.installPath || '', isApi: true },
+  ...deployTargets.value.map((t) => ({ ...t, isApi: false })),
+]);
 
 async function loadDeployTargets() {
   targetsLoading.value = true;
   try {
     deployTargets.value = (await getDeployTargets()) || [];
-  } catch {
-    deployTargets.value = [];
   } finally {
     targetsLoading.value = false;
   }
 }
 
-/** 项目 zip 上传成功 → 走确认弹窗（防呆） */
-async function onProjectZipUploaded(
-  key: string,
-  d: UploadDetail | UploadDetail[],
-) {
+// ============ 每个 target 的 DeployJob 历史 ============
+const jobsByTarget = reactive<Record<string, DeployJob[]>>({});
+const jobsLoading = reactive<Record<string, boolean>>({});
+
+async function loadJobsForTarget(targetKey: string) {
+  jobsLoading[targetKey] = true;
+  try {
+    const res: any = await getUploadRecords({ target: targetKey, page: 1, pageSize: 10 });
+    jobsByTarget[targetKey] = res?.items ?? [];
+  } catch {
+    jobsByTarget[targetKey] = [];
+  } finally {
+    jobsLoading[targetKey] = false;
+  }
+}
+
+async function loadAllJobs() {
+  await Promise.all(allTargets.value.map((t) => loadJobsForTarget(t.key)));
+}
+
+// 当前活动的 job(每 target 最近 Deployed 一个)
+function currentJob(targetKey: string): DeployJob | null {
+  const list = jobsByTarget[targetKey] ?? [];
+  return list.find((j) => j.status === 'Deployed') ?? null;
+}
+
+// 部署中标志
+const deployingMap = reactive<Record<string, boolean>>({});
+
+// ============ 上传 + 部署 ============
+const uploadPaths = reactive<Record<string, string>>({});
+const keepConfigOnDeploy = ref(true);
+const clearCacheOnDeploy = ref(false);
+
+const confirmVisible = ref(false);
+const confirmLoading = ref(false);
+const confirmDeploying = ref(false);
+const confirmPreview = ref<DeployPreview | null>(null);
+let pendingConfirmAction: (() => Promise<void>) | null = null;
+let pendingFilePath: null | string = null;
+
+async function openDeployConfirm(opts: {
+  target: string;
+  targetName: string;
+  filePath: string;
+  fileName: string;
+  fileSize: number;
+  onConfirm: () => Promise<void>;
+}) {
+  confirmLoading.value = true;
+  confirmVisible.value = true;
+  pendingFilePath = opts.filePath;
+  try {
+    const preview = (await getPreviewDeploy(
+      opts.target,
+      opts.filePath,
+      opts.fileName,
+    )) as DeployPreview | null;
+    confirmPreview.value = preview;
+    pendingConfirmAction = opts.onConfirm;
+  } catch {
+    message.error('预览部署失败');
+    confirmVisible.value = false;
+    pendingFilePath = null;
+  } finally {
+    confirmLoading.value = false;
+  }
+}
+
+async function silentCancelUpload(filePath: string) {
+  try {
+    await postCancelUpload(filePath);
+  } catch {
+    /* 忽略,临时文件由后端 OnUploadStart 兜底清理 */
+  }
+}
+
+function handleConfirmDeploy() {
+  if (!pendingConfirmAction) return;
+  confirmDeploying.value = true;
+  pendingConfirmAction()
+    .finally(() => {
+      confirmDeploying.value = false;
+      confirmVisible.value = false;
+      pendingConfirmAction = null;
+      pendingFilePath = null;
+    });
+}
+
+function handleCancelDeploy() {
+  if (pendingFilePath) silentCancelUpload(pendingFilePath);
+  confirmVisible.value = false;
+  pendingConfirmAction = null;
+  pendingFilePath = null;
+  confirmPreview.value = null;
+}
+
+async function onZipUploaded(targetKey: string, d: UploadDetail | UploadDetail[]) {
   const detail = Array.isArray(d) ? d[0] : d;
   if (!detail) return;
+  const target = allTargets.value.find((t) => t.key === targetKey);
+  if (!target) return;
+
   await openDeployConfirm({
-    target: key,
-    detail,
+    target: targetKey,
+    targetName: target.name,
+    filePath: detail.path,
+    fileName: detail.name,
+    fileSize: detail.size,
     onConfirm: async () => {
-      await postDeployProjectByPath(
-        key,
-        detail.fileName,
-        detail.name,
-        detail.size,
-      );
-      // toast 由 axios 拦截器弹后端 message
-      projectUploadPaths[key] = '';
-      loadDeployRecords();
-      loadUploadRecords();
+      deployingMap[targetKey] = true;
+      try {
+        if (target.isApi) {
+          await postDeployApiByPath(
+            detail.path,
+            detail.name,
+            detail.size,
+            clearCacheOnDeploy.value,
+            keepConfigOnDeploy.value,
+          );
+          // API 部署会触发 GracefulStop,弹重启等待
+          uploadPaths[targetKey] = '';
+          restartModalVisible.value = true;
+        } else {
+          await postDeployProjectByPath(
+            targetKey,
+            detail.path,
+            detail.name,
+            detail.size,
+          );
+          uploadPaths[targetKey] = '';
+          message.success(`${target.name} 已部署`);
+          await loadJobsForTarget(targetKey);
+        }
+      } catch {
+        uploadPaths[targetKey] = '';
+      } finally {
+        deployingMap[targetKey] = false;
+      }
     },
-    onCancel: () => {
-      projectUploadPaths[key] = '';
-    },
-    setBusy: (v) => (projectDeployingMap[key] = v),
   });
 }
 
-// ============ 上传记录（UploadRecord：status 追踪 + 重试） ============
-const uploadRecordsLoading = ref(false);
-const uploadRecordsData = ref<any[]>([]);
-const uploadRecordsTotal = ref(0);
-const uploadRecordsPage = ref(1);
-const uploadRecordsPageSize = ref(10);
-const uploadRecordsTargetFilter = ref<string | undefined>(undefined);
-const uploadRecordsStatusFilter = ref<string | undefined>(undefined);
-const retryingId = ref(0);
+// ============ 重试 / 回滚 ============
+const operatingJobId = ref(0);
 
-const uploadRecordColumns = [
-  { title: 'ID', dataIndex: 'id', width: 60 },
-  { title: '目标', dataIndex: 'targetName', width: 120 },
-  { title: '文件名', dataIndex: 'fileName', ellipsis: true },
-  { title: '大小', dataIndex: 'fileSize', width: 90, customRender: ({ text }: any) => formatSize(text) },
-  { title: '状态', key: 'uploadStatus', width: 100 },
-  { title: '上传人', dataIndex: 'uploadedBy', width: 90 },
-  { title: '上传时间', dataIndex: 'uploadTime', width: 160 },
-  { title: '操作', key: 'uploadAction', width: 80 },
-];
-
-async function loadUploadRecords() {
-  uploadRecordsLoading.value = true;
+async function handleRetryDeploy(job: DeployJob) {
+  operatingJobId.value = job.id;
   try {
-    const res: any = await getUploadRecords({
-      target: uploadRecordsTargetFilter.value,
-      status: uploadRecordsStatusFilter.value,
-      page: uploadRecordsPage.value,
-      pageSize: uploadRecordsPageSize.value,
-    });
-    uploadRecordsData.value = res?.items || [];
-    uploadRecordsTotal.value = res?.total || 0;
-  } catch {
-    uploadRecordsData.value = [];
-  } finally {
-    uploadRecordsLoading.value = false;
-  }
-}
-
-function handleUploadRecordsPageChange(page: number, pageSize: number) {
-  uploadRecordsPage.value = page;
-  uploadRecordsPageSize.value = pageSize;
-  loadUploadRecords();
-}
-
-function handleUploadTargetFilter(target?: string) {
-  uploadRecordsTargetFilter.value = target;
-  uploadRecordsPage.value = 1;
-  loadUploadRecords();
-}
-
-function handleUploadStatusFilter(status?: string) {
-  uploadRecordsStatusFilter.value = status;
-  uploadRecordsPage.value = 1;
-  loadUploadRecords();
-}
-
-async function handleRetryDeploy(record: any) {
-  retryingId.value = record.id;
-  try {
-    await postDeploy(record.id);
-    if (record.target === 'api') {
-      startRestartPolling();
+    if (job.target === 'api') {
+      await postDeploy(job.id, keepConfigOnDeploy.value, clearCacheOnDeploy.value);
+      restartModalVisible.value = true;
     } else {
-      loadUploadRecords();
+      await postDeploy(job.id);
+      message.success(`${job.targetName} 已重新部署`);
+      await loadJobsForTarget(job.target);
     }
   } finally {
-    retryingId.value = 0;
+    operatingJobId.value = 0;
   }
 }
 
-// ============ 部署记录 ============
-const recordsLoading = ref(false);
-const recordsData = ref<any[]>([]);
-const recordsTotal = ref(0);
-const recordsPage = ref(1);
-const recordsPageSize = ref(10);
-const recordsFilter = ref<string | undefined>(undefined);
-const rollingBackId = ref(0);
-
-const recordColumns = [
-  { title: 'Id', dataIndex: 'id', width: 60 },
-  { title: '目标', dataIndex: 'targetName', width: 140 },
-  { title: '文件名', dataIndex: 'fileName', width: 200 },
-  { title: '文件大小', dataIndex: 'fileSize', width: 100, customRender: ({ text }: any) => formatSize(text) },
-  { title: '操作人', dataIndex: 'operator', width: 100 },
-  { title: '上传时间', dataIndex: 'createdTime', width: 180 },
-  { title: '操作', key: 'action', width: 100 },
-];
-
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return bytes + ' B';
-  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-  return (bytes / 1024 / 1024).toFixed(1) + ' MB';
-}
-
-async function loadDeployRecords() {
-  recordsLoading.value = true;
+async function handleRollback(job: DeployJob) {
+  operatingJobId.value = job.id;
   try {
-    const res: any = await getDeployRecords({
-      target: recordsFilter.value,
-      page: recordsPage.value,
-      pageSize: recordsPageSize.value,
-    });
-    recordsData.value = res?.items || [];
-    recordsTotal.value = res?.total || 0;
-  } catch {
-    recordsData.value = [];
-  } finally {
-    recordsLoading.value = false;
-  }
-}
-
-function handleRecordsPageChange(page: number, pageSize: number) {
-  recordsPage.value = page;
-  recordsPageSize.value = pageSize;
-  loadDeployRecords();
-}
-
-function handleFilterChange(target?: string) {
-  recordsFilter.value = target;
-  recordsPage.value = 1;
-  loadDeployRecords();
-}
-
-async function handleRollback(record: any) {
-  rollingBackId.value = record.id;
-  try {
-    await postRollback(record.id);
-    // toast 由 axios 拦截器弹后端 message
-    if (record.target === 'api') {
-      startRestartPolling();
+    await postRollback(job.id);
+    if (job.target === 'api') {
+      restartModalVisible.value = true;
     } else {
-      loadDeployRecords();
+      message.success(`${job.targetName} 已回滚到 #${job.id}`);
+      await loadJobsForTarget(job.target);
     }
   } finally {
-    rollingBackId.value = 0;
+    operatingJobId.value = 0;
   }
 }
 
-// ============ 生命周期 ============
-onMounted(() => {
-  loadInfo();
-  loadDeployTargets();
-  loadUploadRecords();
-  loadDeployRecords();
+// ============ 工具 ============
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
+}
+
+const STATUS_COLOR: Record<string, string> = {
+  Deployed: 'success',
+  Deploying: 'processing',
+  Failed: 'error',
+  RolledBack: 'default',
+  Uploaded: 'warning',
+};
+
+const STATUS_LABEL: Record<string, string> = {
+  Deployed: '已部署',
+  Deploying: '部署中',
+  Failed: '失败',
+  RolledBack: '已回滚',
+  Uploaded: '等待部署',
+};
+
+const TIMELINE_COLOR: Record<string, string> = {
+  Deployed: 'green',
+  Deploying: 'blue',
+  Failed: 'red',
+  RolledBack: 'gray',
+  Uploaded: 'orange',
+};
+
+function jobPrimaryTime(job: DeployJob): string {
+  return (
+    job.deployFinishedAt ||
+    job.deployStartedAt ||
+    job.uploadedAt
+  );
+}
+
+onMounted(async () => {
+  await loadInfo();
+  await loadDeployTargets();
+  await loadAllJobs();
 });
 
-onUnmounted(() => {
-  clearTimers();
-  stopTimers();
-});
+onUnmounted(stopTimers);
 </script>
 
 <template>
   <Page auto-content-height>
     <div style="display: flex; flex-direction: column; gap: 16px">
-      <!-- API 程序管理 -->
-      <Card title="API 程序管理" :loading="infoLoading">
+      <!-- 应用信息 -->
+      <Card title="应用信息" :loading="infoLoading">
+        <template #extra>
+          <Space>
+            <Button @click="loadInfo">刷新</Button>
+            <Button danger @click="handleRestart">重启程序</Button>
+          </Space>
+        </template>
         <Descriptions
           v-if="appInfo"
-          class="api-info"
-          :column="{ xs: 1, sm: 2, md: 2, lg: 2, xl: 3, xxl: 3 }"
-          :label-style="{ width: '110px' }"
+          :column="{ xs: 1, sm: 2, lg: 3, xl: 4 }"
           bordered
           size="small"
+          class="api-info"
         >
           <Descriptions.Item label="版本">
-            <AppVersion :value="appInfo.version" />
+            <AppVersion :version="appInfo.version" />
           </Descriptions.Item>
           <Descriptions.Item label="环境">
-            {{ appInfo.environment }}
-          </Descriptions.Item>
-          <Descriptions.Item label="编译时间">
-            <TimeTag
-              color="blue"
-              :time="appInfo.buildTime"
-              :timezone="appInfo.timeZone"
-            />
+            <Tag :color="appInfo.environment === 'Production' ? 'red' : 'blue'">
+              {{ appInfo.environment }}
+            </Tag>
           </Descriptions.Item>
           <Descriptions.Item label="启动时间">
-            <TimeTag
-              color="cyan"
-              :time="appInfo.startTime"
-              :timezone="appInfo.timeZone"
-            />
+            <TimeTag :time="appInfo.startTime" :timezone="appInfo.timeZone" />
           </Descriptions.Item>
           <Descriptions.Item label="运行时长">
-            <TimeTag color="green" :time="liveUptime" />
+            <Tag color="green">{{ liveUptime }}</Tag>
+          </Descriptions.Item>
+          <Descriptions.Item label="构建时间">
+            <TimeTag :time="appInfo.buildTime" :timezone="appInfo.timeZone" />
           </Descriptions.Item>
           <Descriptions.Item label="服务器">
             {{ appInfo.machineName }}
@@ -543,326 +488,287 @@ onUnmounted(() => {
           <Descriptions.Item label="时区">
             <TimezoneDisplay :timezone="appInfo.timeZone" />
           </Descriptions.Item>
-          <Descriptions.Item label="服务器时间">
-            <TimeTag
-              color="purple"
-              :time="liveServerTime"
-              :timezone="appInfo.timeZone"
-            />
-          </Descriptions.Item>
         </Descriptions>
+      </Card>
 
-        <div
-          v-else
-          style="text-align: center; padding: 16px; color: #999"
-        >
-          无法获取应用信息
-        </div>
+      <!-- 部署目标卡片网格 -->
+      <Spin :spinning="targetsLoading">
+        <div class="deploy-grid">
+          <Card
+            v-for="target in allTargets"
+            :key="target.key"
+            class="deploy-card"
+            :title="target.name"
+          >
+            <template #extra>
+              <Tag :color="target.isApi ? 'volcano' : 'cyan'">
+                {{ target.key }}
+              </Tag>
+            </template>
 
-        <!-- API 程序更新：与前端项目卡片样式一致 -->
-        <Card size="small" style="margin-top: 16px">
-          <div class="deploy-row">
-            <div class="deploy-row__info">
-              <div class="deploy-row__title">API 程序</div>
-              <div class="deploy-row__meta">
-                <span class="deploy-row__meta-key">标识: api</span>
-                <span>路径: {{ appInfo?.installPath || '--' }}</span>
+            <!-- 当前活动版本 -->
+            <div v-if="currentJob(target.key)" class="deploy-card__current">
+              <div class="deploy-card__row">
+                <span class="deploy-card__label">当前版本</span>
+                <Tag :color="STATUS_COLOR[currentJob(target.key)!.status]">
+                  #{{ currentJob(target.key)!.id }}
+                  {{ STATUS_LABEL[currentJob(target.key)!.status] }}
+                </Tag>
               </div>
-              <div
-                v-if="apiDeploying"
-                class="deploy-row__hint"
-              >
-                部署中，请稍候...
+              <div class="deploy-card__row">
+                <span class="deploy-card__label">文件</span>
+                <Tooltip :title="currentJob(target.key)!.fileName">
+                  <span class="deploy-card__file">
+                    {{ currentJob(target.key)!.fileName }}
+                    ({{ formatBytes(currentJob(target.key)!.fileSize) }})
+                  </span>
+                </Tooltip>
+              </div>
+              <div class="deploy-card__row">
+                <span class="deploy-card__label">部署时间</span>
+                <TimeTag
+                  v-if="currentJob(target.key)!.deployFinishedAt"
+                  :time="currentJob(target.key)!.deployFinishedAt!"
+                  :timezone="appInfo?.timeZone"
+                />
+                <span v-else style="color: var(--ant-color-text-tertiary)">—</span>
+              </div>
+              <div class="deploy-card__row">
+                <span class="deploy-card__label">部署人</span>
+                <span>{{ currentJob(target.key)!.deployedBy || '—' }}</span>
               </div>
             </div>
-            <div class="deploy-row__upload">
+            <Empty
+              v-else
+              description="还未部署"
+              :image="undefined"
+              style="padding: 12px 0"
+            />
+
+            <!-- 路径 -->
+            <div class="deploy-card__path">
+              <Tooltip :title="target.path">
+                <span class="deploy-card__file">📁 {{ target.path || '—' }}</span>
+              </Tooltip>
+            </div>
+
+            <!-- API 专用:keepConfig / clearCache 开关 -->
+            <div v-if="target.isApi" style="margin: 10px 0">
+              <Space size="middle">
+                <label
+                  style="
+                    cursor: pointer;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                  "
+                >
+                  <input
+                    v-model="keepConfigOnDeploy"
+                    type="checkbox"
+                    :disabled="deployingMap[target.key]"
+                  />
+                  <span style="font-size: 13px">保留 appsettings</span>
+                </label>
+                <label
+                  style="
+                    cursor: pointer;
+                    display: inline-flex;
+                    align-items: center;
+                    gap: 4px;
+                  "
+                >
+                  <input
+                    v-model="clearCacheOnDeploy"
+                    type="checkbox"
+                    :disabled="deployingMap[target.key]"
+                  />
+                  <span style="font-size: 13px">清空缓存</span>
+                </label>
+              </Space>
+            </div>
+
+            <!-- 上传 -->
+            <div class="deploy-card__upload">
               <ChunkUpload
                 type="file"
-                v-model:value="apiUploadPath"
+                :value="uploadPaths[target.key] ?? ''"
                 accept=".zip"
-                :disabled="apiDeploying"
-                @success="onApiZipUploaded"
+                :disabled="deployingMap[target.key]"
+                @update:value="(v: any) => (uploadPaths[target.key] = v)"
+                @success="(d: any) => onZipUploaded(target.key, d)"
               />
-            </div>
-          </div>
-        </Card>
-
-        <div style="margin-top: 16px; display: flex; gap: 12px">
-          <Button danger @click="handleRestart">重启程序</Button>
-          <Button @click="loadInfo">刷新信息</Button>
-        </div>
-      </Card>
-
-      <!-- 前端项目部署 -->
-      <Card
-        title="前端项目部署"
-        :loading="targetsLoading"
-      >
-        <div
-          v-if="deployTargets.length === 0"
-          style="text-align: center; padding: 16px; color: #999"
-        >
-          暂无部署项目配置，请在 appsettings.json 的 DeployConfig.Projects 中添加
-        </div>
-
-        <div
-          v-else
-          style="display: flex; flex-direction: column; gap: 12px"
-        >
-          <Card
-            v-for="target in deployTargets"
-            :key="target.key"
-            size="small"
-          >
-            <div class="deploy-row">
-              <div class="deploy-row__info">
-                <div class="deploy-row__title">{{ target.name }}</div>
-                <div class="deploy-row__meta">
-                  <span class="deploy-row__meta-key">
-                    标识: {{ target.key }}
-                  </span>
-                  <span>路径: {{ target.path }}</span>
-                </div>
-                <div
-                  v-if="projectDeployingMap[target.key]"
-                  class="deploy-row__hint"
-                >
-                  部署中，请稍候...
-                </div>
-              </div>
-              <div class="deploy-row__upload">
-                <ChunkUpload
-                  type="file"
-                  :value="projectUploadPaths[target.key] ?? ''"
-                  accept=".zip"
-                  :disabled="projectDeployingMap[target.key]"
-                  @update:value="(v: any) => (projectUploadPaths[target.key] = v)"
-                  @success="(d: any) => onProjectZipUploaded(target.key, d)"
-                />
+              <div
+                v-if="deployingMap[target.key]"
+                class="deploy-card__hint"
+              >
+                部署中,请稍候...
               </div>
             </div>
+
+            <!-- 历史(折叠)-->
+            <Collapse
+              v-if="(jobsByTarget[target.key]?.length ?? 0) > 0"
+              :bordered="false"
+              ghost
+              style="margin-top: 8px"
+            >
+              <CollapsePanel
+                :key="target.key"
+                :header="`历史 (${jobsByTarget[target.key]?.length ?? 0})`"
+              >
+                <Timeline mode="left">
+                  <TimelineItem
+                    v-for="job in jobsByTarget[target.key]"
+                    :key="job.id"
+                    :color="TIMELINE_COLOR[job.status]"
+                  >
+                    <template #label>
+                      <TimeTag
+                        :time="jobPrimaryTime(job)"
+                        :timezone="appInfo?.timeZone"
+                      />
+                    </template>
+                    <div style="display: flex; flex-direction: column; gap: 4px">
+                      <div>
+                        <Tag :color="STATUS_COLOR[job.status]">
+                          #{{ job.id }} {{ STATUS_LABEL[job.status] }}
+                        </Tag>
+                        <Tag v-if="job.rollbackOfJobId">
+                          回滚自 #{{ job.rollbackOfJobId }}
+                        </Tag>
+                      </div>
+                      <Tooltip :title="job.fileName">
+                        <span class="deploy-card__file" style="font-size: 12px">
+                          {{ job.fileName }} ({{ formatBytes(job.fileSize) }})
+                        </span>
+                      </Tooltip>
+                      <div
+                        style="
+                          font-size: 12px;
+                          color: var(--ant-color-text-tertiary);
+                        "
+                      >
+                        {{ job.uploadedBy }}
+                        <span v-if="job.deployedBy && job.deployedBy !== job.uploadedBy">
+                          / 部署:{{ job.deployedBy }}
+                        </span>
+                      </div>
+                      <div
+                        v-if="job.errorMessage"
+                        style="
+                          font-size: 12px;
+                          color: var(--ant-color-error);
+                          word-break: break-all;
+                        "
+                      >
+                        错误: {{ job.errorMessage }}
+                      </div>
+                      <Space size="small">
+                        <Popconfirm
+                          v-if="job.status === 'Failed' || job.status === 'Uploaded'"
+                          title="重新部署?"
+                          @confirm="handleRetryDeploy(job)"
+                        >
+                          <Button
+                            size="small"
+                            type="primary"
+                            :loading="operatingJobId === job.id"
+                          >
+                            重试部署
+                          </Button>
+                        </Popconfirm>
+                        <Popconfirm
+                          v-else-if="
+                            job.status === 'Deployed' || job.status === 'RolledBack'
+                          "
+                          :title="
+                            job.status === 'Deployed'
+                              ? '回滚到上一个版本?'
+                              : '恢复到该版本(部署该 job 的文件)?'
+                          "
+                          @confirm="handleRollback(job)"
+                        >
+                          <Button
+                            size="small"
+                            danger
+                            :loading="operatingJobId === job.id"
+                            :disabled="
+                              job.status === 'Deployed' && !job.previousJobId
+                            "
+                          >
+                            {{ job.status === 'Deployed' ? '回滚' : '恢复' }}
+                          </Button>
+                        </Popconfirm>
+                      </Space>
+                    </div>
+                  </TimelineItem>
+                </Timeline>
+              </CollapsePanel>
+            </Collapse>
           </Card>
         </div>
-      </Card>
-
-      <!-- 上传记录 -->
-      <Card title="上传记录">
-        <div style="margin-bottom: 12px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
-          <div style="display: flex; gap: 4px; flex-wrap: wrap">
-            <Button :type="!uploadRecordsTargetFilter ? 'primary' : 'default'" size="small" @click="handleUploadTargetFilter(undefined)">全部</Button>
-            <Button :type="uploadRecordsTargetFilter === 'api' ? 'primary' : 'default'" size="small" @click="handleUploadTargetFilter('api')">API</Button>
-            <Button
-              v-for="t in deployTargets"
-              :key="t.key"
-              :type="uploadRecordsTargetFilter === t.key ? 'primary' : 'default'"
-              size="small"
-              @click="handleUploadTargetFilter(t.key)"
-            >{{ t.name }}</Button>
-          </div>
-          <span style="color: var(--ant-color-border)">|</span>
-          <div style="display: flex; gap: 4px">
-            <Button :type="!uploadRecordsStatusFilter ? 'primary' : 'default'" size="small" @click="handleUploadStatusFilter(undefined)">全部状态</Button>
-            <Button :type="uploadRecordsStatusFilter === 'Pending' ? 'primary' : 'default'" size="small" @click="handleUploadStatusFilter('Pending')">待部署</Button>
-            <Button :type="uploadRecordsStatusFilter === 'Deployed' ? 'primary' : 'default'" size="small" @click="handleUploadStatusFilter('Deployed')">已部署</Button>
-            <Button :type="uploadRecordsStatusFilter === 'Failed' ? 'primary' : 'default'" size="small" @click="handleUploadStatusFilter('Failed')">失败</Button>
-          </div>
-        </div>
-        <Table
-          :columns="uploadRecordColumns"
-          :data-source="uploadRecordsData"
-          :loading="uploadRecordsLoading"
-          :pagination="{
-            current: uploadRecordsPage,
-            pageSize: uploadRecordsPageSize,
-            total: uploadRecordsTotal,
-            showSizeChanger: true,
-            showTotal: (total: number) => `共 ${total} 条`,
-            onChange: handleUploadRecordsPageChange,
-          }"
-          row-key="id"
-          size="small"
-        >
-          <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'uploadStatus'">
-              <Tag v-if="record.status === 'Deployed'" color="success">已部署</Tag>
-              <Tag v-else-if="record.status === 'Failed'" color="error">
-                <Tooltip v-if="record.deployError" :title="record.deployError">失败 ⓘ</Tooltip>
-                <template v-else>失败</template>
-              </Tag>
-              <Tag v-else color="warning">待部署</Tag>
-            </template>
-            <template v-if="column.key === 'uploadAction'">
-              <Popconfirm
-                v-if="record.status !== 'Deployed'"
-                :title="`${record.status === 'Failed' ? '重新' : ''}部署此上传包？${record.target === 'api' ? '（API 将自动重启）' : ''}`"
-                @confirm="handleRetryDeploy(record)"
-              >
-                <Button size="small" type="primary" ghost :loading="retryingId === record.id">
-                  {{ record.status === 'Failed' ? '重试' : '部署' }}
-                </Button>
-              </Popconfirm>
-            </template>
-          </template>
-        </Table>
-      </Card>
-
-      <!-- 部署记录 -->
-      <Card title="部署记录">
-        <div style="margin-bottom: 12px; display: flex; gap: 8px;">
-          <Button :type="!recordsFilter ? 'primary' : 'default'" size="small" @click="handleFilterChange(undefined)">全部</Button>
-          <Button :type="recordsFilter === 'api' ? 'primary' : 'default'" size="small" @click="handleFilterChange('api')">API</Button>
-          <Button
-            v-for="target in deployTargets"
-            :key="target.key"
-            :type="recordsFilter === target.key ? 'primary' : 'default'"
-            size="small"
-            @click="handleFilterChange(target.key)"
-          >
-            {{ target.name }}
-          </Button>
-        </div>
-
-        <Table
-          :columns="recordColumns"
-          :data-source="recordsData"
-          :loading="recordsLoading"
-          :pagination="{
-            current: recordsPage,
-            pageSize: recordsPageSize,
-            total: recordsTotal,
-            showSizeChanger: true,
-            showTotal: (total: number) => `共 ${total} 条`,
-            onChange: handleRecordsPageChange,
-          }"
-          row-key="id"
-          size="small"
-        >
-          <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'action'">
-              <Popconfirm
-                :title="`确定回滚到此版本吗？${record.target === 'api' ? '（API将自动重启）' : ''}`"
-                @confirm="handleRollback(record)"
-              >
-                <Button size="small" type="primary" ghost :loading="rollingBackId === record.id">
-                  回滚
-                </Button>
-              </Popconfirm>
-            </template>
-          </template>
-        </Table>
-      </Card>
+      </Spin>
     </div>
 
-    <!-- 部署确认弹窗（防呆：传错文件不让过） -->
+    <!-- 部署确认弹窗 -->
     <Modal
       v-model:open="confirmVisible"
-      :title="
-        confirmPreview?.target === 'api' ? '部署 API 程序确认' : '部署项目确认'
-      "
+      :footer="null"
       :closable="!confirmDeploying"
       :mask-closable="false"
-      :footer="null"
-      width="540px"
-      destroy-on-close
+      title="确认部署"
+      width="520px"
+      @cancel="handleCancelDeploy"
     >
-      <Spin :spinning="confirmLoading || confirmDeploying" tip="处理中...">
-        <div v-if="confirmPreview" class="deploy-confirm">
-          <Alert
-            v-if="!confirmPreview.valid"
-            type="error"
-            show-icon
-            :message="`文件校验未通过：${confirmPreview.error}`"
-            :description="`目标 ${confirmPreview.targetName} 的 zip 包需包含 ${confirmPreview.requiredMarker}，请检查上传的文件`"
-            style="margin-bottom: 16px"
-          />
-          <Alert
-            v-else-if="confirmPreview.target === 'api'"
-            type="warning"
-            show-icon
-            message="确认后将立即重启 API"
-            description="重启期间 API 服务短暂不可用，重启失败需登录服务器排查"
-            style="margin-bottom: 16px"
-          />
-
-          <Descriptions
-            :column="1"
-            size="small"
-            bordered
-            :label-style="{ width: '90px' }"
-            style="margin-bottom: 12px"
-          >
-            <Descriptions.Item label="部署目标">
-              <span class="confirm-target">{{
-                confirmPreview.targetName
-              }}</span>
+      <Spin :spinning="confirmLoading || confirmDeploying">
+        <div v-if="confirmPreview">
+          <Descriptions :column="1" size="small" bordered>
+            <Descriptions.Item label="目标">
+              {{ confirmPreview.targetName }}
               <Tag style="margin-left: 8px">{{ confirmPreview.target }}</Tag>
             </Descriptions.Item>
-            <Descriptions.Item label="部署路径">
-              <code class="confirm-path">{{ confirmPreview.targetPath }}</code>
+            <Descriptions.Item label="路径">
+              <span class="deploy-card__file">{{ confirmPreview.targetPath }}</span>
             </Descriptions.Item>
-            <Descriptions.Item label="文件名">
+            <Descriptions.Item label="文件">
               {{ confirmPreview.fileName }}
+              ({{ formatBytes(confirmPreview.fileSize) }})
             </Descriptions.Item>
-            <Descriptions.Item label="文件大小">
-              {{ formatSize(confirmPreview.fileSize) }}
-            </Descriptions.Item>
-            <Descriptions.Item label="zip 内容">
-              <div class="confirm-entries">
-                <div
-                  v-for="(e, i) in confirmPreview.entries"
-                  :key="i"
-                  class="confirm-entries__row"
-                >
-                  {{ e }}
-                </div>
-                <div
-                  v-if="confirmPreview.entries.length === 0"
-                  class="confirm-entries__row confirm-entries__row--empty"
-                >
-                  （空）
-                </div>
+            <Descriptions.Item label="zip 入口前 10 项">
+              <div
+                style="
+                  font-family: monospace;
+                  font-size: 12px;
+                  max-height: 160px;
+                  overflow: auto;
+                "
+              >
+                <div v-for="e in confirmPreview.entries" :key="e">{{ e }}</div>
               </div>
             </Descriptions.Item>
           </Descriptions>
 
-          <!-- API 部署专属选项：清空缓存 -->
-          <div
-            v-if="confirmPreview.target === 'api' && confirmPreview.valid"
-            class="confirm-options"
-          >
-            <Checkbox v-model:checked="keepConfigOnDeploy">
-              保护配置文件（推荐）
-            </Checkbox>
-            <div class="confirm-options__hint">
-              即使误打包了 appsettings.json / appsettings.*.json,部署时也会跳过覆盖,保留服务器现有配置
-            </div>
-            <Checkbox v-model:checked="clearCacheOnDeploy" style="margin-top: 8px">
-              部署后清空所有缓存
-            </Checkbox>
-            <div class="confirm-options__hint">
-              新代码可能引入了缓存结构变化，勾选可避免读到旧缓存
-            </div>
+          <div style="margin-top: 16px; text-align: right">
+            <Space>
+              <Button :disabled="confirmDeploying" @click="handleCancelDeploy">
+                取消
+              </Button>
+              <Button
+                type="primary"
+                danger
+                :loading="confirmDeploying"
+                @click="handleConfirmDeploy"
+              >
+                {{ confirmPreview.target === 'api' ? '确认部署并重启' : '确认部署' }}
+              </Button>
+            </Space>
           </div>
-        </div>
-
-        <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px">
-          <Button :disabled="confirmDeploying" @click="handleCancelDeploy">
-            取消
-          </Button>
-          <Button
-            type="primary"
-            :danger="confirmPreview?.target === 'api'"
-            :disabled="!confirmPreview?.valid"
-            :loading="confirmDeploying"
-            @click="handleConfirmDeploy"
-          >
-            {{ confirmPreview?.target === 'api' ? '确认部署并重启' : '确认部署' }}
-          </Button>
         </div>
       </Spin>
     </Modal>
 
-    <!-- 重启等待弹窗(共享 RestartWaiter 组件) -->
+    <!-- 重启等待 -->
     <RestartWaiter
       v-model:open="restartModalVisible"
       @success="onRestartSuccess"
@@ -871,7 +777,6 @@ onUnmounted(() => {
 </template>
 
 <style scoped>
-/* 应用信息表格：强制各列等宽，避免 label/value 两边宽度不一致看着别扭 */
 .api-info :deep(.ant-descriptions-view) > table {
   table-layout: fixed;
 }
@@ -880,111 +785,63 @@ onUnmounted(() => {
   word-break: break-all;
 }
 
-/* 部署上传行：左侧标识/路径，右侧上传区（API 与前端项目共用） */
-.deploy-row {
+.deploy-grid {
   display: flex;
+  flex-wrap: wrap;
   gap: 16px;
-  align-items: flex-start;
-  justify-content: space-between;
 }
 
-.deploy-row__info {
-  flex: 1;
+.deploy-card {
+  flex: 1 1 360px;
   min-width: 0;
+  max-width: 560px;
 }
 
-.deploy-row__title {
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--ant-color-text);
+.deploy-card__current {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  background: var(--ant-color-fill-quaternary);
+  border-radius: 4px;
 }
 
-.deploy-row__meta {
-  margin-top: 4px;
+.deploy-card__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
   font-size: 13px;
-  color: var(--ant-color-text-secondary);
-  word-break: break-all;
 }
 
-.deploy-row__meta-key {
-  margin-right: 16px;
-}
-
-.deploy-row__hint {
-  margin-top: 8px;
-  font-size: 12px;
+.deploy-card__label {
+  flex: 0 0 64px;
   color: var(--ant-color-text-tertiary);
 }
 
-.deploy-row__upload {
-  flex: 0 0 360px;
-  max-width: 360px;
-}
-
-@media (max-width: 768px) {
-  .deploy-row {
-    flex-direction: column;
-  }
-
-  .deploy-row__upload {
-    flex: 1 1 auto;
-    width: 100%;
-    max-width: none;
-  }
-}
-
-/* 部署确认弹窗 */
-.deploy-confirm .confirm-target {
-  font-weight: 500;
-}
-
-.deploy-confirm .confirm-path {
+.deploy-card__file {
   display: inline-block;
-  padding: 2px 6px;
-  font-family:
-    ui-monospace, 'SF Mono', 'Cascadia Mono', 'Roboto Mono', Menlo, Consolas,
-    monospace;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-family: monospace;
   font-size: 12px;
-  background: var(--ant-color-fill-tertiary);
-  border-radius: 4px;
-  word-break: break-all;
 }
 
-.deploy-confirm .confirm-entries {
-  max-height: 140px;
+.deploy-card__path {
+  margin-top: 10px;
   padding: 6px 8px;
-  overflow-y: auto;
-  font-family:
-    ui-monospace, 'SF Mono', 'Cascadia Mono', 'Roboto Mono', Menlo, Consolas,
-    monospace;
-  font-size: 12px;
-  line-height: 1.7;
   background: var(--ant-color-fill-tertiary);
   border-radius: 4px;
 }
 
-.deploy-confirm .confirm-entries__row {
-  color: var(--ant-color-text-secondary);
-  word-break: break-all;
+.deploy-card__upload {
+  margin-top: 12px;
 }
 
-.deploy-confirm .confirm-entries__row--empty {
-  color: var(--ant-color-text-tertiary);
-  font-style: italic;
-}
-
-.deploy-confirm .confirm-options {
-  padding: 10px 12px;
-  background: var(--ant-color-fill-tertiary);
-  border-radius: 4px;
-}
-
-.deploy-confirm .confirm-options__hint {
-  margin-top: 4px;
-  margin-left: 22px;
+.deploy-card__hint {
+  margin-top: 6px;
   font-size: 12px;
-  color: var(--ant-color-text-tertiary);
-  line-height: 1.5;
+  color: var(--ant-color-warning);
 }
-
 </style>
