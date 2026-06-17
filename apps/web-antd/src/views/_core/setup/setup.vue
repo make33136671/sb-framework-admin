@@ -134,9 +134,6 @@ const cloudServerUrl = ref('https://cloud.saibo.club');
 // 密码
 const passwordStorageMode = ref('Encrypted');
 
-// MasterKey（万能密钥，X-Master-Key 头可绕过 JWT；生产环境建议关闭，测试环境启用）
-const enableMasterKey = ref(false);
-
 // 管理员
 const adminUsername = ref('admin');
 const adminPassword = ref('');
@@ -374,7 +371,6 @@ async function doInstall() {
           : null,
       wipeDatabase: wipeDatabase.value,
       passwordStorageMode: passwordStorageMode.value,
-      enableMasterKey: enableMasterKey.value,
       productCn: productCn.value || '管理系统',
       timeZone: timeZone.value || 'Asia/Shanghai',
       corsAllowAll: corsAllowAll.value,
@@ -451,15 +447,6 @@ function goHome() {
 
 function goLicense() {
   router.push('/auth/license');
-}
-
-async function copyMasterKey() {
-  try {
-    await navigator.clipboard.writeText(installResult.value?.data?.masterKey || '');
-    message.success('MasterKey 已复制');
-  } catch {
-    message.error('复制失败，请手动选择文本复制');
-  }
 }
 
 // === 配置导入导出 ===
@@ -625,13 +612,6 @@ function fillFormFromConfig(config: any) {
               </div>
             </template>
             <template #extra>
-              <div v-if="installResult.data?.masterKey" style="margin-bottom: 20px; text-align: center;">
-                <p style="color: var(--ant-color-text-secondary); margin-bottom: 8px;">MasterKey（请妥善保管，用于数据库备份等高权限操作）</p>
-                <div style="display: inline-flex; align-items: center; gap: 8px;">
-                  <code style="font-size: 15px; padding: 8px 16px; background: var(--ant-color-bg-container); border: 1px solid var(--ant-color-border); border-radius: 6px; user-select: all;">{{ installResult.data.masterKey }}</code>
-                  <Button size="small" @click="copyMasterKey">复制</Button>
-                </div>
-              </div>
               <Space>
                 <Button type="primary" :disabled="!serverReady" @click="goHome">前往首页</Button>
                 <Button :disabled="!serverReady" @click="goLicense">前往授权</Button>
@@ -936,20 +916,6 @@ function fillFormFromConfig(config: any) {
           </div>
 
           <Divider />
-
-          <div class="form-item">
-            <label>
-              <Checkbox v-model:checked="enableMasterKey">启用 MasterKey（万能密钥）</Checkbox>
-            </label>
-            <div class="form-hint">
-              启用后生成一次性 GUID 写入 appsettings，可通过 <code>X-Master-Key</code> 请求头绕过 JWT
-              鉴权，主要用于数据库备份恢复等高权限运维操作。
-              <strong style="color: var(--ant-color-warning-text);">生产环境建议关闭</strong>，
-              测试 / 内部环境可启用。
-            </div>
-          </div>
-
-          <Divider />
           <div class="step-actions">
             <Button @click="prevStep">上一步</Button>
             <Button type="primary" @click="nextStep">下一步</Button>
@@ -1048,10 +1014,6 @@ function fillFormFromConfig(config: any) {
             </DescriptionsItem>
             <DescriptionsItem label="密码存储方式">
               {{ passwordStorageMode === 'Encrypted' ? '加密' : '明文' }}
-            </DescriptionsItem>
-            <DescriptionsItem label="MasterKey">
-              <span v-if="enableMasterKey" style="color: var(--ant-color-warning-text);">启用（高权限，仅测试 / 内部环境）</span>
-              <span v-else style="color: var(--ant-color-text-tertiary);">未启用</span>
             </DescriptionsItem>
             <DescriptionsItem label="管理员账号">
               {{ adminUsername }}
