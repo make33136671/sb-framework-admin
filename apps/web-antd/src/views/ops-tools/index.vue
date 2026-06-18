@@ -44,7 +44,7 @@ watch(
 
 <template>
   <Page auto-content-height>
-    <Tabs v-model:active-key="activeKey" class="ops-tabs" destroy-inactive-tab-pane>
+    <Tabs v-model:active-key="activeKey" class="ops-tabs" :animated="false">
       <Tabs.TabPane key="backup" tab="数据库备份">
         <DatabaseList />
       </Tabs.TabPane>

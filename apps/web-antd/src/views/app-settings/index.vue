@@ -9,6 +9,8 @@ import {
   Alert,
   Button,
   Card,
+  Collapse,
+  CollapsePanel,
   Descriptions,
   DescriptionsItem,
   Drawer,
@@ -367,9 +369,10 @@ onMounted(() => {
 
 <template>
   <Page>
-    <!-- 顶部服务器信息 -->
-    <Card title="服务器信息" :body-style="{ padding: '16px 20px' }" class="info-card">
-      <Descriptions :column="4" size="small">
+    <!-- 顶部服务器信息(默认折叠,给编辑器留足空间) -->
+    <Collapse class="info-collapse" :bordered="false">
+      <CollapsePanel key="server-info" header="服务器信息">
+        <Descriptions :column="4" size="small">
         <DescriptionsItem label="版本">{{ serverInfo.version || '-' }}</DescriptionsItem>
         <DescriptionsItem label="环境">{{ serverInfo.environment || '-' }}</DescriptionsItem>
         <DescriptionsItem label=".NET">{{ serverInfo.dotnetVersion || '-' }}</DescriptionsItem>
@@ -395,12 +398,13 @@ onMounted(() => {
           <Tag color="success">{{ serverInfo.listeningUrls || '(未识别)' }}</Tag>
           <span class="hint">由 appsettings.json 的 <code>Urls</code> 字段决定（启动命令不传 --urls 时）</span>
         </DescriptionsItem>
-      </Descriptions>
-    </Card>
+        </Descriptions>
+      </CollapsePanel>
+    </Collapse>
 
-    <!-- 操作栏 -->
+    <!-- 操作栏 + 文件元数据(路径/大小/修改时间合并到这一行) -->
     <Card class="action-card" :body-style="{ padding: '12px 20px' }">
-      <Space>
+      <Space wrap>
         <Button @click="loadAppSettings" :loading="loading">刷新</Button>
         <Button @click="beautify">JSON 格式化</Button>
         <Button @click="resetChanges" :disabled="!isDirty">还原</Button>
@@ -425,16 +429,12 @@ onMounted(() => {
           保存（预览差异）
         </Button>
       </div>
-    </Card>
-
-    <!-- 元数据 -->
-    <Card class="meta-card" :body-style="{ padding: '8px 20px' }">
-      <Space size="large">
+      <div class="meta-row">
         <span>路径：<code>{{ meta.path || '-' }}</code></span>
         <span>大小：{{ fmtSize(meta.size) }}</span>
         <span>最后修改：{{ fmtTime(meta.lastModified) }}</span>
         <Tag v-if="isDirty" color="warning">已修改未保存</Tag>
-      </Space>
+      </div>
     </Card>
 
     <!-- JSON 编辑器 -->
@@ -544,11 +544,19 @@ onMounted(() => {
 </template>
 
 <style scoped>
-.info-card,
+.info-collapse,
 .action-card,
-.meta-card,
 .editor-card {
   margin-bottom: 12px;
+}
+
+/* 服务器信息折叠面板:去掉内层多余留白,收起时几乎不占高度 */
+.info-collapse {
+  background: var(--ant-color-bg-container);
+}
+
+.info-collapse :deep(.ant-collapse-content-box) {
+  padding: 12px 16px;
 }
 
 .action-card :deep(.ant-card-body) {
@@ -563,6 +571,19 @@ onMounted(() => {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+/* 文件元数据行:占满操作栏整行,放在按钮行下方 */
+.meta-row {
+  flex: 1 1 100%;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding-top: 8px;
+  border-top: 1px solid var(--ant-color-split);
+  font-size: 12px;
+  color: var(--ant-color-text-secondary);
 }
 
 .hint {

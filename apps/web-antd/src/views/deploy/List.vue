@@ -247,6 +247,7 @@ const deployingMap = reactive<Record<string, boolean>>({});
 // ============ 上传 + 部署 ============
 const uploadPaths = reactive<Record<string, string>>({});
 const keepConfigOnDeploy = ref(true);
+const keepLockOnDeploy = ref(true);
 const clearCacheOnDeploy = ref(false);
 
 const confirmVisible = ref(false);
@@ -333,6 +334,7 @@ async function onZipUploaded(targetKey: string, d: UploadDetail | UploadDetail[]
             detail.size,
             clearCacheOnDeploy.value,
             keepConfigOnDeploy.value,
+            keepLockOnDeploy.value,
           );
           uploadPaths[targetKey] = '';
           restartModalVisible.value = true;
@@ -398,7 +400,12 @@ async function handleRetryDeploy(job: DeployJob) {
   retryingId.value = job.id;
   try {
     if (job.target === 'api') {
-      await postDeploy(job.id, keepConfigOnDeploy.value, clearCacheOnDeploy.value);
+      await postDeploy(
+        job.id,
+        keepConfigOnDeploy.value,
+        clearCacheOnDeploy.value,
+        keepLockOnDeploy.value,
+      );
       restartModalVisible.value = true;
     } else {
       await postDeploy(job.id);
@@ -490,24 +497,14 @@ const STATUS_LABEL: Record<string, string> = {
 
 // ============ 表格列 ============
 const uploadColumns = [
-  { title: '#', dataIndex: 'id', width: 70 },
-  { title: '目标', dataIndex: 'targetName', width: 130 },
-  { title: '文件', dataIndex: 'fileName', ellipsis: true },
-  { title: '大小', dataIndex: 'fileSize', width: 90 },
-  { title: '状态', dataIndex: 'status', width: 110 },
-  { title: '上传时间', dataIndex: 'uploadedAt', width: 180 },
-  { title: '上传人', dataIndex: 'uploadedBy', width: 100 },
+  { title: '目标 / 文件 / 大小', dataIndex: 'fileInfo', ellipsis: true },
+  { title: '状态 / 上传时间 / 上传人', dataIndex: 'meta', width: 240 },
   { title: '操作', dataIndex: 'op', width: 110, fixed: 'right' },
 ];
 
 const deployColumns = [
-  { title: '#', dataIndex: 'id', width: 70 },
-  { title: '目标', dataIndex: 'targetName', width: 130 },
-  { title: '文件', dataIndex: 'fileName', ellipsis: true },
-  { title: '大小', dataIndex: 'fileSize', width: 90 },
-  { title: '状态', dataIndex: 'status', width: 110 },
-  { title: '部署时间', dataIndex: 'deployFinishedAt', width: 180 },
-  { title: '部署人', dataIndex: 'deployedBy', width: 100 },
+  { title: '目标 / 文件 / 大小', dataIndex: 'fileInfo', ellipsis: true },
+  { title: '状态 / 部署时间 / 部署人', dataIndex: 'meta', width: 240 },
   { title: '操作', dataIndex: 'op', width: 110, fixed: 'right' },
 ];
 
@@ -544,6 +541,7 @@ onUnmounted(stopTimers);
         <Descriptions
           v-if="appInfo"
           :column="{ xs: 1, sm: 2, lg: 3, xl: 4 }"
+          :label-style="{ width: '80px' }"
           bordered
           size="small"
           class="api-info"
@@ -638,16 +636,24 @@ onUnmounted(stopTimers);
               </Tooltip>
             </div>
 
-            <!-- API 专用:keepConfig / clearCache 开关 -->
+            <!-- API 专用:keepConfig / keepLock / clearCache 开关 -->
             <div v-if="target.isApi" style="margin: 10px 0">
-              <Space size="middle">
+              <Space size="middle" wrap>
                 <label class="checkbox-label">
                   <input
                     v-model="keepConfigOnDeploy"
                     type="checkbox"
                     :disabled="deployingMap[target.key]"
                   />
-                  <span style="font-size: 13px">保留 appsettings</span>
+                  <span style="font-size: 13px">不更新 appsettings</span>
+                </label>
+                <label class="checkbox-label">
+                  <input
+                    v-model="keepLockOnDeploy"
+                    type="checkbox"
+                    :disabled="deployingMap[target.key]"
+                  />
+                  <span style="font-size: 13px">不删除 installed.lock</span>
                 </label>
                 <label class="checkbox-label">
                   <input
@@ -719,27 +725,43 @@ onUnmounted(stopTimers);
               }"
               size="small"
               row-key="id"
-              :scroll="{ x: 1100 }"
+              :scroll="{ x: 700 }"
             >
               <template #bodyCell="{ column, record }">
-                <template v-if="column.dataIndex === 'fileSize'">
-                  {{ formatBytes(record.fileSize) }}
+                <template v-if="column.dataIndex === 'fileInfo'">
+                  <div class="cell-stack">
+                    <div class="cell-stack__main">
+                      <Tag color="blue">{{ record.targetName }}</Tag>
+                      <Tooltip :title="record.fileName">
+                        <span class="deploy-card__file">{{ record.fileName }}</span>
+                      </Tooltip>
+                    </div>
+                    <div class="cell-stack__sub">
+                      {{ formatBytes(record.fileSize) }}
+                    </div>
+                  </div>
                 </template>
-                <template v-else-if="column.dataIndex === 'status'">
-                  <Tag :color="STATUS_COLOR[record.status]">
-                    {{ STATUS_LABEL[record.status] }}
-                  </Tag>
-                  <Tooltip v-if="record.errorMessage" :title="record.errorMessage">
-                    <Tag color="red" style="margin-left: 4px; cursor: help">!</Tag>
-                  </Tooltip>
-                </template>
-                <template v-else-if="column.dataIndex === 'uploadedAt'">
-                  <TimeTag :time="record.uploadedAt" :timezone="appInfo?.timeZone" />
-                </template>
-                <template v-else-if="column.dataIndex === 'fileName'">
-                  <Tooltip :title="record.fileName">
-                    <span class="deploy-card__file">{{ record.fileName }}</span>
-                  </Tooltip>
+                <template v-else-if="column.dataIndex === 'meta'">
+                  <div class="cell-stack">
+                    <div class="cell-stack__main">
+                      <Tag :color="STATUS_COLOR[record.status]">
+                        {{ STATUS_LABEL[record.status] }}
+                      </Tag>
+                      <Tooltip
+                        v-if="record.errorMessage"
+                        :title="record.errorMessage"
+                      >
+                        <Tag color="red" style="cursor: help">!</Tag>
+                      </Tooltip>
+                    </div>
+                    <div class="cell-stack__sub">
+                      <TimeTag
+                        :time="record.uploadedAt"
+                        :timezone="appInfo?.timeZone"
+                      />
+                      <span class="cell-stack__by">{{ record.uploadedBy }}</span>
+                    </div>
+                  </div>
                 </template>
                 <template v-else-if="column.dataIndex === 'op'">
                   <Popconfirm
@@ -794,32 +816,44 @@ onUnmounted(stopTimers);
               }"
               size="small"
               row-key="id"
-              :scroll="{ x: 1100 }"
+              :scroll="{ x: 700 }"
             >
               <template #bodyCell="{ column, record }">
-                <template v-if="column.dataIndex === 'fileSize'">
-                  {{ formatBytes(record.fileSize) }}
+                <template v-if="column.dataIndex === 'fileInfo'">
+                  <div class="cell-stack">
+                    <div class="cell-stack__main">
+                      <Tag color="blue">{{ record.targetName }}</Tag>
+                      <Tooltip :title="record.fileName">
+                        <span class="deploy-card__file">{{ record.fileName }}</span>
+                      </Tooltip>
+                    </div>
+                    <div class="cell-stack__sub">
+                      {{ formatBytes(record.fileSize) }}
+                    </div>
+                  </div>
                 </template>
-                <template v-else-if="column.dataIndex === 'status'">
-                  <Tag :color="STATUS_COLOR[record.status]">
-                    {{ STATUS_LABEL[record.status] }}
-                  </Tag>
-                  <Tag v-if="record.rollbackOfJobId" style="margin-left: 4px">
-                    回滚自 #{{ record.rollbackOfJobId }}
-                  </Tag>
-                </template>
-                <template v-else-if="column.dataIndex === 'deployFinishedAt'">
-                  <TimeTag
-                    v-if="record.deployFinishedAt"
-                    :time="record.deployFinishedAt"
-                    :timezone="appInfo?.timeZone"
-                  />
-                  <span v-else style="color: var(--ant-color-text-tertiary)">—</span>
-                </template>
-                <template v-else-if="column.dataIndex === 'fileName'">
-                  <Tooltip :title="record.fileName">
-                    <span class="deploy-card__file">{{ record.fileName }}</span>
-                  </Tooltip>
+                <template v-else-if="column.dataIndex === 'meta'">
+                  <div class="cell-stack">
+                    <div class="cell-stack__main">
+                      <Tag :color="STATUS_COLOR[record.status]">
+                        {{ STATUS_LABEL[record.status] }}
+                      </Tag>
+                      <Tag v-if="record.rollbackOfJobId">
+                        回滚自 #{{ record.rollbackOfJobId }}
+                      </Tag>
+                    </div>
+                    <div class="cell-stack__sub">
+                      <TimeTag
+                        v-if="record.deployFinishedAt"
+                        :time="record.deployFinishedAt"
+                        :timezone="appInfo?.timeZone"
+                      />
+                      <span v-else style="color: var(--ant-color-text-tertiary)">
+                        —
+                      </span>
+                      <span class="cell-stack__by">{{ record.deployedBy }}</span>
+                    </div>
+                  </div>
                 </template>
                 <template v-else-if="column.dataIndex === 'op'">
                   <Popconfirm
@@ -919,6 +953,11 @@ onUnmounted(stopTimers);
   table-layout: fixed;
 }
 
+.api-info :deep(.ant-descriptions-item-label) {
+  width: 80px;
+  white-space: nowrap;
+}
+
 .api-info :deep(.ant-descriptions-item-content) {
   word-break: break-all;
 }
@@ -930,9 +969,44 @@ onUnmounted(stopTimers);
 }
 
 .deploy-card {
-  flex: 1 1 360px;
-  min-width: 0;
+  /* 默认三列:basis 取 1/3 容器宽(扣 2 个 16px gap),窄屏靠 min-width 自然回落到两列/一列 */
+  flex: 1 1 calc((100% - 32px) / 3);
+  min-width: 300px;
   max-width: 560px;
+}
+
+/* 容器较窄时(如侧边栏展开后可用宽不足 ~960px)放不下三列,放宽 basis 为两列 */
+@media (max-width: 1100px) {
+  .deploy-card {
+    flex-basis: calc((100% - 16px) / 2);
+  }
+}
+
+/* 记录表合并列:主行(目标/状态) + 次行(大小/时间·人) 上下堆叠 */
+.cell-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.cell-stack__main {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.cell-stack__sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary);
+}
+
+.cell-stack__by {
+  color: var(--ant-color-text-secondary);
 }
 
 .deploy-card__current {

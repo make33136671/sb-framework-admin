@@ -64,7 +64,8 @@ export async function updateMenu(id: any, field: string, value: string) {
 }
 
 export async function getMenuTreeList() {
-  return api.get('/Menu/TreeList');
+  // 树形视图需返回全部顶级菜单(后端默认 pageSize=10 会截断顶级菜单导致显示不全)
+  return api.get('/Menu/TreeList', { params: { page: 1, pageSize: 9999 } });
 }
 
 export async function getMenuList() {

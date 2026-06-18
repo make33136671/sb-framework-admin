@@ -47,6 +47,7 @@ export async function postDeployApiByPath(
   fileSize: number,
   clearCache = false,
   keepConfig = true,
+  keepLock = true,
 ) {
   const formData = new FormData();
   formData.append('filePath', filePath);
@@ -54,6 +55,7 @@ export async function postDeployApiByPath(
   formData.append('fileSize', String(fileSize));
   formData.append('clearCache', String(clearCache));
   formData.append('keepConfig', String(keepConfig));
+  formData.append('keepLock', String(keepLock));
   return api.post('/App/DeployApiByPath', formData, { silent: true });
 }
 
@@ -76,11 +78,17 @@ export async function postRollback(id: number) {
   return api.post('/App/Rollback', formData);
 }
 
-export async function postDeploy(uploadId: number, keepConfig = true, clearCache = false) {
+export async function postDeploy(
+  uploadId: number,
+  keepConfig = true,
+  clearCache = false,
+  keepLock = true,
+) {
   const formData = new FormData();
   formData.append('uploadId', String(uploadId));
   formData.append('keepConfig', String(keepConfig));
   formData.append('clearCache', String(clearCache));
+  formData.append('keepLock', String(keepLock));
   return api.post('/App/Deploy', formData, { silent: true });
 }
 
