@@ -496,16 +496,18 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 // ============ 表格列 ============
+// table-layout:fixed 下,未写 width 的两列按比例分剩余宽度，内容靠 CSS 换行
+// 不撑爆容器；操作列给固定窄宽。整体随容器自适应，窄屏不溢出。
 const uploadColumns = [
-  { title: '目标 / 文件 / 大小', dataIndex: 'fileInfo', ellipsis: true },
-  { title: '状态 / 上传时间 / 上传人', dataIndex: 'meta', width: 240 },
-  { title: '操作', dataIndex: 'op', width: 110, fixed: 'right' },
+  { title: '目标 / 文件 / 大小', dataIndex: 'fileInfo' },
+  { title: '状态 / 上传时间 / 上传人', dataIndex: 'meta' },
+  { title: '操作', dataIndex: 'op', width: 88 },
 ];
 
 const deployColumns = [
-  { title: '目标 / 文件 / 大小', dataIndex: 'fileInfo', ellipsis: true },
-  { title: '状态 / 部署时间 / 部署人', dataIndex: 'meta', width: 240 },
-  { title: '操作', dataIndex: 'op', width: 110, fixed: 'right' },
+  { title: '目标 / 文件 / 大小', dataIndex: 'fileInfo' },
+  { title: '状态 / 部署时间 / 部署人', dataIndex: 'meta' },
+  { title: '操作', dataIndex: 'op', width: 88 },
 ];
 
 const targetFilterOptions = computed(() =>
@@ -538,41 +540,57 @@ onUnmounted(stopTimers);
             <Button danger @click="handleRestart">重启程序</Button>
           </Space>
         </template>
-        <Descriptions
-          v-if="appInfo"
-          :column="{ xs: 1, sm: 2, lg: 3, xl: 4 }"
-          :label-style="{ width: '80px' }"
-          bordered
-          size="small"
-          class="api-info"
-        >
-          <Descriptions.Item label="版本">
-            <AppVersion :version="appInfo.version" />
-          </Descriptions.Item>
-          <Descriptions.Item label="环境">
-            <Tag :color="appInfo.environment === 'Production' ? 'red' : 'blue'">
-              {{ appInfo.environment }}
-            </Tag>
-          </Descriptions.Item>
-          <Descriptions.Item label="启动时间">
-            <TimeTag :time="appInfo.startTime" :timezone="appInfo.timeZone" />
-          </Descriptions.Item>
-          <Descriptions.Item label="运行时长">
-            <Tag color="green">{{ liveUptime }}</Tag>
-          </Descriptions.Item>
-          <Descriptions.Item label="构建时间">
-            <TimeTag :time="appInfo.buildTime" :timezone="appInfo.timeZone" />
-          </Descriptions.Item>
-          <Descriptions.Item label="服务器">
-            {{ appInfo.machineName }}
-          </Descriptions.Item>
-          <Descriptions.Item label=".NET 版本">
-            {{ appInfo.dotnetVersion }}
-          </Descriptions.Item>
-          <Descriptions.Item label="时区">
-            <TimezoneDisplay :timezone="appInfo.timeZone" />
-          </Descriptions.Item>
-        </Descriptions>
+        <!-- 响应式信息网格:auto-fit + minmax 让列数随容器宽度自动增减,
+             任何分辨率都不挤压换行;每项 label 在上、value 在下,长值(如
+             64 位版本号)自然占满本格宽度,不受相邻短字段牵连 -->
+        <div v-if="appInfo" class="info-grid">
+          <div class="info-cell">
+            <span class="info-cell__label">版本</span>
+            <span class="info-cell__value">
+              <AppVersion :value="appInfo.version" />
+            </span>
+          </div>
+          <div class="info-cell">
+            <span class="info-cell__label">环境</span>
+            <span class="info-cell__value">
+              <Tag :color="appInfo.environment === 'Production' ? 'red' : 'blue'">
+                {{ appInfo.environment }}
+              </Tag>
+            </span>
+          </div>
+          <div class="info-cell">
+            <span class="info-cell__label">启动时间</span>
+            <span class="info-cell__value">
+              <TimeTag :time="appInfo.startTime" :timezone="appInfo.timeZone" />
+            </span>
+          </div>
+          <div class="info-cell">
+            <span class="info-cell__label">运行时长</span>
+            <span class="info-cell__value">
+              <Tag color="green">{{ liveUptime }}</Tag>
+            </span>
+          </div>
+          <div class="info-cell">
+            <span class="info-cell__label">构建时间</span>
+            <span class="info-cell__value">
+              <TimeTag :time="appInfo.buildTime" :timezone="appInfo.timeZone" />
+            </span>
+          </div>
+          <div class="info-cell">
+            <span class="info-cell__label">服务器</span>
+            <span class="info-cell__value">{{ appInfo.machineName }}</span>
+          </div>
+          <div class="info-cell">
+            <span class="info-cell__label">.NET 版本</span>
+            <span class="info-cell__value">{{ appInfo.dotnetVersion }}</span>
+          </div>
+          <div class="info-cell">
+            <span class="info-cell__label">时区</span>
+            <span class="info-cell__value">
+              <TimezoneDisplay :timezone="appInfo.timeZone" />
+            </span>
+          </div>
+        </div>
       </Card>
 
       <!-- 部署目标卡片网格 -->
@@ -709,6 +727,7 @@ onUnmounted(stopTimers);
               <Button size="small" @click="loadUploadRecords">刷新</Button>
             </div>
             <Table
+              class="records-table"
               :columns="uploadColumns"
               :data-source="uploadRecordsData"
               :loading="uploadRecordsLoading"
@@ -725,25 +744,26 @@ onUnmounted(stopTimers);
               }"
               size="small"
               row-key="id"
-              :scroll="{ x: 700 }"
             >
               <template #bodyCell="{ column, record }">
                 <template v-if="column.dataIndex === 'fileInfo'">
                   <div class="cell-stack">
-                    <div class="cell-stack__main">
+                    <div class="cell-stack__line">
                       <Tag color="blue">{{ record.targetName }}</Tag>
+                    </div>
+                    <div class="cell-stack__line">
                       <Tooltip :title="record.fileName">
                         <span class="deploy-card__file">{{ record.fileName }}</span>
                       </Tooltip>
                     </div>
-                    <div class="cell-stack__sub">
+                    <div class="cell-stack__line cell-stack__sub">
                       {{ formatBytes(record.fileSize) }}
                     </div>
                   </div>
                 </template>
                 <template v-else-if="column.dataIndex === 'meta'">
                   <div class="cell-stack">
-                    <div class="cell-stack__main">
+                    <div class="cell-stack__line">
                       <Tag :color="STATUS_COLOR[record.status]">
                         {{ STATUS_LABEL[record.status] }}
                       </Tag>
@@ -754,28 +774,33 @@ onUnmounted(stopTimers);
                         <Tag color="red" style="cursor: help">!</Tag>
                       </Tooltip>
                     </div>
-                    <div class="cell-stack__sub">
+                    <div class="cell-stack__line cell-stack__sub">
                       <TimeTag
                         :time="record.uploadedAt"
                         :timezone="appInfo?.timeZone"
                       />
-                      <span class="cell-stack__by">{{ record.uploadedBy }}</span>
+                    </div>
+                    <div class="cell-stack__line cell-stack__sub">
+                      <span class="cell-stack__by">
+                        上传人：{{ record.uploadedBy || '—' }}
+                      </span>
                     </div>
                   </div>
                 </template>
                 <template v-else-if="column.dataIndex === 'op'">
-                  <Popconfirm
-                    :title="`重新部署 #${record.id}?`"
-                    @confirm="handleRetryDeploy(record)"
-                  >
-                    <Button
-                      size="small"
-                      type="primary"
-                      :loading="retryingId === record.id"
+                  <Space wrap>
+                    <Popconfirm
+                      :title="`重新部署 #${record.id}?`"
+                      @confirm="handleRetryDeploy(record)"
                     >
-                      {{ record.status === 'Failed' ? '重试' : '部署' }}
-                    </Button>
-                  </Popconfirm>
+                      <Button
+                        type="primary"
+                        :loading="retryingId === record.id"
+                      >
+                        {{ record.status === 'Failed' ? '重试' : '部署' }}
+                      </Button>
+                    </Popconfirm>
+                  </Space>
                 </template>
               </template>
             </Table>
@@ -800,6 +825,7 @@ onUnmounted(stopTimers);
               <Button size="small" @click="loadDeployRecords">刷新</Button>
             </div>
             <Table
+              class="records-table"
               :columns="deployColumns"
               :data-source="deployRecordsData"
               :loading="deployRecordsLoading"
@@ -816,33 +842,34 @@ onUnmounted(stopTimers);
               }"
               size="small"
               row-key="id"
-              :scroll="{ x: 700 }"
             >
               <template #bodyCell="{ column, record }">
                 <template v-if="column.dataIndex === 'fileInfo'">
                   <div class="cell-stack">
-                    <div class="cell-stack__main">
+                    <div class="cell-stack__line">
                       <Tag color="blue">{{ record.targetName }}</Tag>
+                    </div>
+                    <div class="cell-stack__line">
                       <Tooltip :title="record.fileName">
                         <span class="deploy-card__file">{{ record.fileName }}</span>
                       </Tooltip>
                     </div>
-                    <div class="cell-stack__sub">
+                    <div class="cell-stack__line cell-stack__sub">
                       {{ formatBytes(record.fileSize) }}
                     </div>
                   </div>
                 </template>
                 <template v-else-if="column.dataIndex === 'meta'">
                   <div class="cell-stack">
-                    <div class="cell-stack__main">
+                    <div class="cell-stack__line">
                       <Tag :color="STATUS_COLOR[record.status]">
                         {{ STATUS_LABEL[record.status] }}
                       </Tag>
-                      <Tag v-if="record.rollbackOfJobId">
-                        回滚自 #{{ record.rollbackOfJobId }}
-                      </Tag>
                     </div>
-                    <div class="cell-stack__sub">
+                    <div v-if="record.rollbackOfJobId" class="cell-stack__line">
+                      <Tag>回滚自 #{{ record.rollbackOfJobId }}</Tag>
+                    </div>
+                    <div class="cell-stack__line cell-stack__sub">
                       <TimeTag
                         v-if="record.deployFinishedAt"
                         :time="record.deployFinishedAt"
@@ -851,30 +878,35 @@ onUnmounted(stopTimers);
                       <span v-else style="color: var(--ant-color-text-tertiary)">
                         —
                       </span>
-                      <span class="cell-stack__by">{{ record.deployedBy }}</span>
+                    </div>
+                    <div class="cell-stack__line cell-stack__sub">
+                      <span class="cell-stack__by">
+                        部署人：{{ record.deployedBy || '—' }}
+                      </span>
                     </div>
                   </div>
                 </template>
                 <template v-else-if="column.dataIndex === 'op'">
-                  <Popconfirm
-                    :title="
-                      record.status === 'Deployed'
-                        ? '回滚到上一个版本?'
-                        : '恢复到该版本(再次部署该 job 的文件)?'
-                    "
-                    @confirm="handleRollback(record)"
-                  >
-                    <Button
-                      size="small"
-                      danger
-                      :loading="rollingBackId === record.id"
-                      :disabled="
-                        record.status === 'Deployed' && !record.previousJobId
+                  <Space wrap>
+                    <Popconfirm
+                      :title="
+                        record.status === 'Deployed'
+                          ? '回滚到上一个版本?'
+                          : '恢复到该版本(再次部署该 job 的文件)?'
                       "
+                      @confirm="handleRollback(record)"
                     >
-                      {{ record.status === 'Deployed' ? '回滚' : '恢复' }}
-                    </Button>
-                  </Popconfirm>
+                      <Button
+                        danger
+                        :loading="rollingBackId === record.id"
+                        :disabled="
+                          record.status === 'Deployed' && !record.previousJobId
+                        "
+                      >
+                        {{ record.status === 'Deployed' ? '回滚' : '恢复' }}
+                      </Button>
+                    </Popconfirm>
+                  </Space>
                 </template>
               </template>
             </Table>
@@ -949,16 +981,67 @@ onUnmounted(stopTimers);
 </template>
 
 <style scoped>
-.api-info :deep(.ant-descriptions-view) > table {
+/* 应用信息:响应式网格。auto-fit + minmax 让列数随容器宽度自动增减,
+ * 窄屏自动回落到更少列直至单列,任何分辨率都不会挤压换行。 */
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 12px;
+}
+
+.info-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 12px;
+  background: var(--ant-color-fill-quaternary);
+  border-radius: 6px;
+}
+
+.info-cell__label {
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary);
+}
+
+.info-cell__value {
+  font-size: 13px;
+  color: var(--ant-color-text);
+  /* 长值(版本号 64 位 / 时区全名)在本格内自然换行,不溢出、不顶到相邻项 */
+  word-break: break-all;
+  line-height: 1.6;
+}
+
+/* 记录表:table-layout:fixed 让列宽按容器分配而非被内容撑宽,
+ * 配合单元格内容换行,任何窄屏都不会横向溢出、操作列不会被挤出边界。 */
+.records-table :deep(.ant-table) {
+  width: 100%;
+}
+
+.records-table :deep(.ant-table table) {
+  width: 100%;
   table-layout: fixed;
 }
 
-.api-info :deep(.ant-descriptions-item-label) {
-  width: 80px;
-  white-space: nowrap;
+/* 文件名在记录表内允许换行(组件默认 nowrap+ellipsis 会撑宽) */
+.records-table :deep(.deploy-card__file) {
+  white-space: normal;
+  word-break: break-all;
 }
 
-.api-info :deep(.ant-descriptions-item-content) {
+.records-table :deep(.ant-table-thead > tr > th),
+.records-table :deep(.ant-table-tbody > tr > td) {
+  white-space: normal;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+
+/* 时间标签(TimeTag 的 antd Tag)默认 inline-block 不换行会撑宽,
+ * 这里强制其在窄格内整体换行、内部长串也能断行 */
+.records-table :deep(.time-tag) {
+  display: inline-block;
+  max-width: 100%;
+  white-space: normal;
   word-break: break-all;
 }
 
@@ -969,28 +1052,31 @@ onUnmounted(stopTimers);
 }
 
 .deploy-card {
-  /* 默认三列:basis 取 1/3 容器宽(扣 2 个 16px gap),窄屏靠 min-width 自然回落到两列/一列 */
+  /* 默认基准取 1/3 容器宽(扣 2 个 16px gap),配合 flex-grow:1 让卡片把整行铺满:
+   * 目标只有 2 个时两卡各占 ~1/2 撑满(消除右侧留白),3 个时正好每个 1/3,
+   * 窄屏靠 min-width 自然回落到两列/一列。不设 max-width,避免卡片被卡死留白。 */
   flex: 1 1 calc((100% - 32px) / 3);
-  min-width: 300px;
-  max-width: 560px;
+  min-width: 280px;
 }
 
-/* 容器较窄时(如侧边栏展开后可用宽不足 ~960px)放不下三列,放宽 basis 为两列 */
-@media (max-width: 1100px) {
+/* 容器较窄时(侧边栏展开后可用宽不足 ~880px)放不下三列,放宽 basis 为两列。
+   断点取 880px:三列每列至少 280px + 2×16px gap = 872px,1440 屏侧边栏展开后内容区仍 > 880px,稳定三列 */
+@media (max-width: 880px) {
   .deploy-card {
     flex-basis: calc((100% - 16px) / 2);
   }
 }
 
-/* 记录表合并列:主行(目标/状态) + 次行(大小/时间·人) 上下堆叠 */
+/* 记录表合并列:每一项各占一行,上下堆叠 */
 .cell-stack {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
   min-width: 0;
 }
 
-.cell-stack__main {
+/* 单项行:左对齐,内部若有多个元素(如状态 Tag)横向排列 */
+.cell-stack__line {
   display: flex;
   align-items: center;
   gap: 6px;
@@ -998,9 +1084,6 @@ onUnmounted(stopTimers);
 }
 
 .cell-stack__sub {
-  display: flex;
-  align-items: center;
-  gap: 8px;
   font-size: 12px;
   color: var(--ant-color-text-tertiary);
 }

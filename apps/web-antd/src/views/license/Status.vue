@@ -249,6 +249,9 @@ onUnmounted(() => {
       <!-- 授权状态卡片: 3 行 4 列 -->
       <Col :span="24" style="margin-bottom: 24px">
         <Card title="授权状态">
+          <template v-if="statusData?.isEnabled === false" #extra>
+            <Tag color="error">授权验证未开启</Tag>
+          </template>
           <Descriptions
             bordered
             :column="2"
