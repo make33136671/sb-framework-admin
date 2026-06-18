@@ -42,6 +42,21 @@ const offsetText = computed(() => {
   }
 });
 
+/**
+ * 规整展示用时间串。仅当 time 是 ISO/完整日期时间形态
+ * （YYYY-MM-DD[T| ]HH:mm:ss[.ffffff][时区后缀]）时，去掉 T 分隔符与微秒小数，
+ * 统一成 "YYYY-MM-DD HH:mm:ss"。其它格式（运行时长 "00:01:23.45"、已格式化串、
+ * 占位符等）原样透传，避免误伤非日期值。
+ */
+const displayTime = computed(() => {
+  const raw = props.time;
+  if (!raw) return props.placeholder;
+  const m = String(raw).match(
+    /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})(?:\.\d+)?/,
+  );
+  return m ? `${m[1]} ${m[2]}` : raw;
+});
+
 // 时间为空或纯占位符（"-" / "--" / "暂无" 等不含数字的字符串）时不显示时区行
 // 真实时间至少含一位数字，用 /\d/ 区分
 const showTimezone = computed(() => {
@@ -58,7 +73,7 @@ const showTimezone = computed(() => {
       { 'time-tag--two-line': showTimezone, 'time-tag--tabular': tabular },
     ]"
   >
-    <div class="time-tag__time">{{ time || placeholder }}</div>
+    <div class="time-tag__time">{{ displayTime }}</div>
     <div v-if="showTimezone" class="time-tag__tz">
       <span class="time-tag__tz-iana">{{ timezone }}</span>
       <span v-if="offsetText" class="time-tag__tz-offset">{{ offsetText }}</span>

@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { computed, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { ref } from 'vue';
+import { useRoute } from 'vue-router';
 
 import { Page } from '@vben/common-ui';
 
@@ -12,39 +12,37 @@ import DatabaseList from '../database/List.vue';
 import SqlList from '../sql/List.vue';
 
 const route = useRoute();
-const router = useRouter();
 
-/** 合法 tab key 列表，URL ?tab= 校验用 */
+/** 合法 tab key 列表，URL ?tab= 仅用于进入时定位初始 Tab */
 const TAB_KEYS = ['backup', 'cache', 'sql', 'app-settings'] as const;
 type TabKey = (typeof TAB_KEYS)[number];
 
-const initialTab = computed<TabKey>(() => {
+/**
+ * activeKey 是纯组件内 UI 状态，不再与 URL query 双向联动。
+ *
+ * 之前的实现：切 Tab → router.replace 改 query，再用第二个 watch 把 query 写回
+ * activeKey，形成回环。query 变化会改变路由 fullPath，触发 RouterView keep-alive
+ * 缓存键 / 页面实例重建 → 整页重渲染 → 切 Tab 时肉眼可见的刷新闪烁。
+ *
+ * 现在：进入页面时一次性读取 ?tab= 作为初始 Tab（深链仍可用），之后切 Tab 只改
+ * 本地 state，完全不碰路由，从根上消除闪烁。
+ */
+function resolveInitialTab(): TabKey {
   const q = route.query.tab as string | undefined;
   return TAB_KEYS.includes(q as TabKey) ? (q as TabKey) : 'backup';
-});
+}
 
-const activeKey = ref<TabKey>(initialTab.value);
-
-// URL 同步：切 Tab 时更新 query；外部带 tab 参数进来也响应
-watch(activeKey, (val) => {
-  if (route.query.tab !== val) {
-    router.replace({ query: { ...route.query, tab: val } });
-  }
-});
-
-watch(
-  () => route.query.tab,
-  (val) => {
-    if (TAB_KEYS.includes(val as TabKey) && val !== activeKey.value) {
-      activeKey.value = val as TabKey;
-    }
-  },
-);
+const activeKey = ref<TabKey>(resolveInitialTab());
 </script>
 
 <template>
   <Page auto-content-height>
-    <Tabs v-model:active-key="activeKey" class="ops-tabs" :animated="false">
+    <Tabs
+      v-model:active-key="activeKey"
+      class="ops-tabs"
+      :animated="false"
+      :destroy-inactive-tab-pane="false"
+    >
       <Tabs.TabPane key="backup" tab="数据库备份">
         <DatabaseList />
       </Tabs.TabPane>

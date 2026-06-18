@@ -1,20 +1,24 @@
 <script lang="ts" setup>
 import type { UploadProps } from 'ant-design-vue';
 
-import { computed, nextTick, onMounted, ref, watch } from 'vue';
-
-import { Page } from '@vben/common-ui';
+import {
+  computed,
+  nextTick,
+  onBeforeUnmount,
+  onMounted,
+  ref,
+  watch,
+} from 'vue';
 
 import {
   Alert,
   Button,
   Card,
-  Collapse,
-  CollapsePanel,
   Descriptions,
   DescriptionsItem,
   Drawer,
   Empty,
+  FloatButton,
   message,
   Modal,
   RadioButton,
@@ -25,6 +29,8 @@ import {
   Tag,
   Upload,
 } from 'ant-design-vue';
+
+import { usePreferences } from '@vben/preferences';
 
 import { JsonEditor } from '#/components/JsonEditor';
 import { JsonFieldEditor } from '#/components/JsonFieldEditor';
@@ -104,7 +110,13 @@ const APP_SETTINGS_ENUMS: Record<string, string[]> = {
   ],
 };
 
-// ---- 服务器信息卡片 ----
+// ---- 响应式:移动端编辑器全宽,按钮区收进抽屉按需拉出 ----
+const { isMobile } = usePreferences();
+// 移动端的"操作"抽屉开关(桌面端不用,按钮区常驻右侧)
+const actionDrawerOpen = ref(false);
+
+// ---- 服务器信息(抽屉) ----
+const serverInfoOpen = ref(false);
 const serverInfo = ref<Record<string, any>>({});
 async function loadServerInfo() {
   try {
@@ -131,6 +143,30 @@ const editorMode = ref<EditorMode>('editor');
 // 可视化模式下的解析对象。editor 模式下不读,只在切到 visual 时从 editText 解析。
 const parsedObject = ref<any>(null);
 const jsonEditorRef = ref<{ format: () => void } | null>(null);
+
+// 高度方案(两段配合):
+//  1) 布局用纯 flex 撑满:content → wrap → settings-layout → editor-card → card-body
+//     → editor-body 每环 flex/stretch + min-height:0,两栏容器自然撑到内容区底部。
+//  2) Monaco 必须拿确定 px 才渲染(height:100% 在 flex 撑出的容器里解析不稳会塌 0、
+//     空白),所以 ResizeObserver 实测 editor-body 撑满后的真实像素高,传给编辑器。
+const editorBodyRef = ref<HTMLElement | null>(null);
+const editorPxHeight = ref(600);
+let editorRO: ResizeObserver | null = null;
+
+onMounted(() => {
+  if (editorBodyRef.value) {
+    editorRO = new ResizeObserver((entries) => {
+      const h = entries[0]?.contentRect.height ?? 0;
+      if (h > 0) editorPxHeight.value = Math.floor(h);
+    });
+    editorRO.observe(editorBodyRef.value);
+  }
+});
+
+onBeforeUnmount(() => {
+  editorRO?.disconnect();
+  editorRO = null;
+});
 
 // visual 模式下,parsedObject 改 → 序列化回 editText(让保存逻辑统一走 editText)
 watch(
@@ -368,11 +404,140 @@ onMounted(() => {
 </script>
 
 <template>
-  <Page>
-    <!-- 顶部服务器信息(默认折叠,给编辑器留足空间) -->
-    <Collapse class="info-collapse" :bordered="false">
-      <CollapsePanel key="server-info" header="服务器信息">
-        <Descriptions :column="4" size="small">
+  <!-- 不用 Vben <Page>(它的 min-h-full / h-full p-4 / header 占位 / auto-content
+       -height calc 这套结构和"编辑器精确撑满全高"天生冲突)。直接用普通 div 作根,
+       它是 ops-tools tabpane 的直接子(已被父级 flex:1+min-height:0 撑满全高),
+       内部纯 flex 两栏,编辑器自然撑到底。 -->
+  <div class="app-settings-page">
+    <!-- 左编辑器 + 右操作栏 -->
+    <div class="settings-layout">
+        <!-- 左:JSON 编辑器,占满两栏高度 -->
+        <Card class="editor-card" :body-style="{ padding: 0, height: '100%' }">
+          <template #title>
+            <Space>
+              <span>appsettings.json</span>
+              <RadioGroup
+                v-model:value="editorMode"
+                button-style="solid"
+                size="small"
+              >
+                <RadioButton value="editor">编辑器模式</RadioButton>
+                <RadioButton value="visual">可视化模式</RadioButton>
+              </RadioGroup>
+            </Space>
+          </template>
+          <div ref="editorBodyRef" class="editor-body">
+            <Spin
+              class="editor-spin"
+              :spinning="loading || restartWaiting"
+              :tip="restartWaiting ? '等待应用重启...' : '加载中...'"
+            >
+              <JsonEditor
+                v-if="editorMode === 'editor'"
+                ref="jsonEditorRef"
+                v-model="editText"
+                language="json"
+                :height="editorPxHeight"
+              />
+              <div
+                v-else
+                class="visual-scroll"
+                :style="{ height: `${editorPxHeight}px` }"
+              >
+                <JsonFieldEditor
+                  v-model="parsedObject"
+                  :enum-options="APP_SETTINGS_ENUMS"
+                />
+              </div>
+            </Spin>
+          </div>
+        </Card>
+
+      <!-- 操作按钮区:DOM 只写一份,始终在 layout 里。桌面端常驻右栏;移动端靠 CSS
+           变成固定在底部、由 actionDrawerOpen 控制滑入滑出的面板(纯 transform,
+           不用 Teleport/antd Drawer,避开 DOM 挂载时序导致的 __vnode null 报错)。 -->
+      <div
+        class="action-panel"
+        :class="{
+          'action-panel--mobile': isMobile,
+          'action-panel--open': actionDrawerOpen,
+        }"
+      >
+        <div v-if="isMobile" class="action-panel__handle">
+          <span>操作</span>
+          <Button size="small" @click="actionDrawerOpen = false">收起</Button>
+        </div>
+        <Button
+          type="primary"
+          block
+          :disabled="!isDirty"
+          :loading="saving"
+          @click="previewSave"
+        >
+          保存（预览差异）
+        </Button>
+        <div class="panel-auto-restart">
+          <span class="hint">保存后自动重启</span>
+          <Switch v-model:checked="autoRestart" size="small" />
+        </div>
+
+        <div class="panel-divider"></div>
+
+        <Button block @click="loadAppSettings" :loading="loading">刷新</Button>
+        <Button block @click="beautify">JSON 格式化</Button>
+        <Button block @click="resetChanges" :disabled="!isDirty">还原</Button>
+        <Button block @click="downloadFile">下载备份</Button>
+        <Upload
+          :before-upload="beforeUpload"
+          :show-upload-list="false"
+          accept=".json"
+          class="panel-upload"
+        >
+          <Button block :loading="uploading">上传替换</Button>
+        </Upload>
+        <Button block @click="openHistory">历史版本</Button>
+        <Button block @click="serverInfoOpen = true">服务器信息</Button>
+
+        <div class="panel-divider"></div>
+
+        <Button block danger @click="manualRestart">立即重启</Button>
+
+        <div class="panel-meta">
+          <Tag v-if="isDirty" color="warning">已修改未保存</Tag>
+          <div class="panel-meta__item" :title="meta.path">
+            路径：<code>{{ meta.path || '-' }}</code>
+          </div>
+          <div class="panel-meta__item">大小：{{ fmtSize(meta.size) }}</div>
+          <div class="panel-meta__item">
+            最后修改：{{ fmtTime(meta.lastModified) }}
+          </div>
+        </div>
+      </div>
+      <!-- /action-panel -->
+    </div>
+    <!-- /settings-layout -->
+
+    <!-- 移动端:浮动按钮拉出操作面板;遮罩点击收起 -->
+    <template v-if="isMobile">
+      <div
+        v-if="actionDrawerOpen"
+        class="action-mask"
+        @click="actionDrawerOpen = false"
+      ></div>
+      <FloatButton
+        type="primary"
+        tooltip="操作"
+        @click="actionDrawerOpen = true"
+      >
+        <template #icon>
+          <span style="font-size: 18px">⚙</span>
+        </template>
+      </FloatButton>
+    </template>
+
+    <!-- 服务器信息抽屉 -->
+    <Drawer v-model:open="serverInfoOpen" title="服务器信息" :width="560">
+      <Descriptions :column="2" size="small" bordered>
         <DescriptionsItem label="版本">{{ serverInfo.version || '-' }}</DescriptionsItem>
         <DescriptionsItem label="环境">{{ serverInfo.environment || '-' }}</DescriptionsItem>
         <DescriptionsItem label=".NET">{{ serverInfo.dotnetVersion || '-' }}</DescriptionsItem>
@@ -391,82 +556,15 @@ onMounted(() => {
         </DescriptionsItem>
         <DescriptionsItem label="CPU 核心">{{ serverInfo.processorCount ?? '-' }}</DescriptionsItem>
         <DescriptionsItem label="操作系统" :span="2">{{ serverInfo.osVersion || '-' }}</DescriptionsItem>
-        <DescriptionsItem label="安装路径" :span="4">
+        <DescriptionsItem label="安装路径" :span="2">
           <code>{{ serverInfo.installPath || '-' }}</code>
         </DescriptionsItem>
-        <DescriptionsItem label="监听地址" :span="4">
+        <DescriptionsItem label="监听地址" :span="2">
           <Tag color="success">{{ serverInfo.listeningUrls || '(未识别)' }}</Tag>
           <span class="hint">由 appsettings.json 的 <code>Urls</code> 字段决定（启动命令不传 --urls 时）</span>
         </DescriptionsItem>
-        </Descriptions>
-      </CollapsePanel>
-    </Collapse>
-
-    <!-- 操作栏 + 文件元数据(路径/大小/修改时间合并到这一行) -->
-    <Card class="action-card" :body-style="{ padding: '12px 20px' }">
-      <Space wrap>
-        <Button @click="loadAppSettings" :loading="loading">刷新</Button>
-        <Button @click="beautify">JSON 格式化</Button>
-        <Button @click="resetChanges" :disabled="!isDirty">还原</Button>
-        <Button @click="downloadFile">下载备份</Button>
-        <Upload :before-upload="beforeUpload" :show-upload-list="false" accept=".json">
-          <Button :loading="uploading">上传替换</Button>
-        </Upload>
-        <Button @click="openHistory">历史版本</Button>
-        <Button danger @click="manualRestart">立即重启</Button>
-      </Space>
-      <div class="save-row">
-        <span class="hint">
-          保存后自动重启
-          <Switch v-model:checked="autoRestart" size="small" />
-        </span>
-        <Button
-          type="primary"
-          :disabled="!isDirty"
-          :loading="saving"
-          @click="previewSave"
-        >
-          保存（预览差异）
-        </Button>
-      </div>
-      <div class="meta-row">
-        <span>路径：<code>{{ meta.path || '-' }}</code></span>
-        <span>大小：{{ fmtSize(meta.size) }}</span>
-        <span>最后修改：{{ fmtTime(meta.lastModified) }}</span>
-        <Tag v-if="isDirty" color="warning">已修改未保存</Tag>
-      </div>
-    </Card>
-
-    <!-- JSON 编辑器 -->
-    <Card class="editor-card">
-      <template #title>
-        <Space>
-          <span>appsettings.json</span>
-          <RadioGroup
-            v-model:value="editorMode"
-            button-style="solid"
-            size="small"
-          >
-            <RadioButton value="editor">编辑器模式</RadioButton>
-            <RadioButton value="visual">可视化模式</RadioButton>
-          </RadioGroup>
-        </Space>
-      </template>
-      <Spin :spinning="loading || restartWaiting" :tip="restartWaiting ? '等待应用重启...' : '加载中...'">
-        <JsonEditor
-          v-if="editorMode === 'editor'"
-          ref="jsonEditorRef"
-          v-model="editText"
-          language="json"
-          :height="600"
-        />
-        <JsonFieldEditor
-          v-else
-          v-model="parsedObject"
-          :enum-options="APP_SETTINGS_ENUMS"
-        />
-      </Spin>
-    </Card>
+      </Descriptions>
+    </Drawer>
 
     <!-- Diff 预览弹窗 -->
     <Modal
@@ -540,50 +638,158 @@ onMounted(() => {
       :baseline-start-time="restartBaseline"
       @success="onRestartSuccess"
     />
-  </Page>
+  </div>
 </template>
 
 <style scoped>
-.info-collapse,
-.action-card,
+/* 根:作为 ops-tools tabpane 的直接子,被父级 flex:1+min-height:0 撑满全高。
+ * 自身 flex column 占满,内部纯 flex 布局,无 Vben Page 的额外结构开销。 */
+.app-settings-page {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 12px;
+}
+
+/* 两栏容器:flex:1 撑满根的剩余高度(根无 header,即全高);两栏并排 */
+.settings-layout {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  gap: 12px;
+}
+
+/* 左:编辑器卡片,flex 行容器 align-items:stretch 默认垂直撑满 layout 高度 */
 .editor-card {
-  margin-bottom: 12px;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
-/* 服务器信息折叠面板:去掉内层多余留白,收起时几乎不占高度 */
-.info-collapse {
-  background: var(--ant-color-bg-container);
+/* card-body flex 撑满 editor-card,position:relative 作为 editor-body 的定位锚 */
+.editor-card :deep(.ant-card-body) {
+  flex: 1;
+  min-height: 0;
+  position: relative;
 }
 
-.info-collapse :deep(.ant-collapse-content-box) {
-  padding: 12px 16px;
+/* editor-body 用 absolute inset:0 填满 card-body:高度完全由 card-body 决定,
+ * 与 Monaco 内容彻底解耦 → 内容再多也不会反撑 editor-body,
+ * ResizeObserver 测到的是稳定的 card-body 高度,不会反馈放大导致编辑器超出。 */
+.editor-body {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
 }
 
-.action-card :deep(.ant-card-body) {
+.editor-spin,
+.editor-spin :deep(.ant-spin-nested-loading),
+.editor-spin :deep(.ant-spin-container) {
+  height: 100%;
+}
+
+/* 可视化模式内容较长时,滚动条落在这里(编辑器卡片内部),不外溢成整页滚动 */
+.visual-scroll {
+  height: 100%;
+  overflow: auto;
+  padding: 12px;
+}
+
+/* 右:操作按钮竖排面板,固定窄宽。
+ * 不强制等高、不自带滚动条:内容(一列按钮 + 几行元数据)本就不多,按内容自然
+ * 展开并顶部对齐。这样全页只有编辑器一个滚动区,鼠标滚轮不会在两个滚动条间冲突,
+ * 右栏底部的路径/大小/修改时间也永远完整可见,不会被裁掉。 */
+.action-panel {
+  flex: 0 0 auto;
+  width: 136px;
+  min-width: 0;
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* 移动端:固定在屏幕底部的滑出面板。默认 translateY(100%) 藏在屏幕外,
+ * --open 时滑入。纯 CSS transform,无 Teleport/Drawer 的 DOM 时序坑。 */
+.action-panel--mobile {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1001;
+  width: auto;
+  max-height: 80vh;
+  overflow-y: auto;
+  padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
+  /* 用 shadcn 的 :root token(挂在根元素,fixed 元素也能继承到;antd 的 --ant-* 变量
+   * 在这个脱离 ConfigProvider 容器的 fixed 面板上解析为空,会透明) */
+  background: hsl(var(--background));
+  border-top-left-radius: 12px;
+  border-top-right-radius: 12px;
+  box-shadow: 0 -4px 16px rgb(0 0 0 / 20%);
+  transform: translateY(100%);
+  transition: transform 0.25s ease;
+}
+
+.action-panel--mobile.action-panel--open {
+  transform: translateY(0);
+}
+
+/* 面板顶部把手:标题 + 收起按钮 */
+.action-panel__handle {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
+  margin-bottom: 4px;
+  font-weight: 500;
+  color: var(--ant-color-text);
 }
 
-.save-row {
-  display: flex;
-  align-items: center;
-  gap: 12px;
+/* 遮罩:点击收起 */
+.action-mask {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgb(0 0 0 / 45%);
 }
 
-/* 文件元数据行:占满操作栏整行,放在按钮行下方 */
-.meta-row {
-  flex: 1 1 100%;
+.panel-auto-restart {
   display: flex;
   align-items: center;
-  flex-wrap: wrap;
-  gap: 16px;
-  padding-top: 8px;
-  border-top: 1px solid var(--ant-color-split);
+  justify-content: space-between;
+  gap: 8px;
+  padding: 0 2px;
+}
+
+.panel-upload,
+.panel-upload :deep(.ant-upload) {
+  display: block;
+  width: 100%;
+}
+
+.panel-divider {
+  height: 1px;
+  margin: 4px 0;
+  background: var(--ant-color-split);
+}
+
+.panel-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 8px;
   font-size: 12px;
   color: var(--ant-color-text-secondary);
+}
+
+.panel-meta__item {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .hint {
