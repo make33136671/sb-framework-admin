@@ -540,57 +540,41 @@ onUnmounted(stopTimers);
             <Button danger @click="handleRestart">重启程序</Button>
           </Space>
         </template>
-        <!-- 响应式信息网格:auto-fit + minmax 让列数随容器宽度自动增减,
-             任何分辨率都不挤压换行;每项 label 在上、value 在下,长值(如
-             64 位版本号)自然占满本格宽度,不受相邻短字段牵连 -->
-        <div v-if="appInfo" class="info-grid">
-          <div class="info-cell">
-            <span class="info-cell__label">版本</span>
-            <span class="info-cell__value">
-              <AppVersion :value="appInfo.version" />
-            </span>
-          </div>
-          <div class="info-cell">
-            <span class="info-cell__label">环境</span>
-            <span class="info-cell__value">
-              <Tag :color="appInfo.environment === 'Production' ? 'red' : 'blue'">
-                {{ appInfo.environment }}
-              </Tag>
-            </span>
-          </div>
-          <div class="info-cell">
-            <span class="info-cell__label">启动时间</span>
-            <span class="info-cell__value">
-              <TimeTag :time="appInfo.startTime" :timezone="appInfo.timeZone" />
-            </span>
-          </div>
-          <div class="info-cell">
-            <span class="info-cell__label">运行时长</span>
-            <span class="info-cell__value">
-              <Tag color="green">{{ liveUptime }}</Tag>
-            </span>
-          </div>
-          <div class="info-cell">
-            <span class="info-cell__label">构建时间</span>
-            <span class="info-cell__value">
-              <TimeTag :time="appInfo.buildTime" :timezone="appInfo.timeZone" />
-            </span>
-          </div>
-          <div class="info-cell">
-            <span class="info-cell__label">服务器</span>
-            <span class="info-cell__value">{{ appInfo.machineName }}</span>
-          </div>
-          <div class="info-cell">
-            <span class="info-cell__label">.NET 版本</span>
-            <span class="info-cell__value">{{ appInfo.dotnetVersion }}</span>
-          </div>
-          <div class="info-cell">
-            <span class="info-cell__label">时区</span>
-            <span class="info-cell__value">
-              <TimezoneDisplay :timezone="appInfo.timeZone" />
-            </span>
-          </div>
-        </div>
+        <Descriptions
+          v-if="appInfo"
+          :column="{ xs: 1, sm: 2, lg: 3, xl: 4 }"
+          :label-style="{ width: '80px' }"
+          bordered
+          size="small"
+          class="api-info"
+        >
+          <Descriptions.Item label="版本">
+            <AppVersion :value="appInfo.version" />
+          </Descriptions.Item>
+          <Descriptions.Item label="环境">
+            <Tag :color="appInfo.environment === 'Production' ? 'red' : 'blue'">
+              {{ appInfo.environment }}
+            </Tag>
+          </Descriptions.Item>
+          <Descriptions.Item label="启动时间">
+            <TimeTag :time="appInfo.startTime" :timezone="appInfo.timeZone" />
+          </Descriptions.Item>
+          <Descriptions.Item label="运行时长">
+            <Tag color="green">{{ liveUptime }}</Tag>
+          </Descriptions.Item>
+          <Descriptions.Item label="构建时间">
+            <TimeTag :time="appInfo.buildTime" :timezone="appInfo.timeZone" />
+          </Descriptions.Item>
+          <Descriptions.Item label="服务器">
+            {{ appInfo.machineName }}
+          </Descriptions.Item>
+          <Descriptions.Item label=".NET 版本">
+            {{ appInfo.dotnetVersion }}
+          </Descriptions.Item>
+          <Descriptions.Item label="时区">
+            <TimezoneDisplay :timezone="appInfo.timeZone" />
+          </Descriptions.Item>
+        </Descriptions>
       </Card>
 
       <!-- 部署目标卡片网格 -->
@@ -981,35 +965,15 @@ onUnmounted(stopTimers);
 </template>
 
 <style scoped>
-/* 应用信息:响应式网格。auto-fit + minmax 让列数随容器宽度自动增减,
- * 窄屏自动回落到更少列直至单列,任何分辨率都不会挤压换行。 */
-.info-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 12px;
+/* 应用信息:antd Descriptions。label 固定窄宽,长值(版本号 64 位 / 时区全名)
+ * 在内容格内自然换行,不溢出、不顶到相邻项。 */
+.api-info :deep(.ant-descriptions-item-label) {
+  width: 80px;
+  white-space: nowrap;
 }
 
-.info-cell {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  min-width: 0;
-  padding: 10px 12px;
-  background: var(--ant-color-fill-quaternary);
-  border-radius: 6px;
-}
-
-.info-cell__label {
-  font-size: 12px;
-  color: var(--ant-color-text-tertiary);
-}
-
-.info-cell__value {
-  font-size: 13px;
-  color: var(--ant-color-text);
-  /* 长值(版本号 64 位 / 时区全名)在本格内自然换行,不溢出、不顶到相邻项 */
+.api-info :deep(.ant-descriptions-item-content) {
   word-break: break-all;
-  line-height: 1.6;
 }
 
 /* 记录表:table-layout:fixed 让列宽按容器分配而非被内容撑宽,
@@ -1046,25 +1010,27 @@ onUnmounted(stopTimers);
 }
 
 .deploy-grid {
-  display: flex;
-  flex-wrap: wrap;
+  /* CSS Grid 自适应等宽多列(推翻旧 flex 死宽方案)。
+   * auto-fill + minmax(min(320px,100%), 1fr):
+   *   - 容器能塞下几列就塞几列,所有列严格等宽(1fr 平分),无右侧留白 → 需求 #1 #2;
+   *   - 列宽下限 320px(决定挤几列):768→2 列、1024→3 列、1440→4 列 → 需求 #3;
+   *   - min(320px,100%) 让容器 <320px(375 屏)时单列不溢出 → 需求 #5。
+   * 超宽屏留白(需求 #4):用 max-width 把整个网格宽度钳住,左对齐(margin-inline:0 auto 改为 0 + auto 右留白)。
+   *   取值依据:列宽区间 320~480 + 16 gap。1440 屏内容区(去掉侧边栏/内边距后约 1100~1240px)
+   *   要能铺满 4 列(4×320 + 3×16 = 1328 触发 5 列前的临界),所以上限须 ≥1440 屏可用宽。
+   *   取 1600px:1440 及以下屏内容区不超过 ~1300px,远小于 1600 → 不触发钳制,完全铺满(满足 #1 #3);
+   *   2K(~1700px+)/4K 内容区超过 1600 → 网格被钳在 1600,卡片等宽排满后右侧留白(满足 #4)。
+   *   1600 ≈ 4 列×~380 + gap,是普通屏全铺满与超宽屏留白的分界点。 */
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
   gap: 16px;
+  max-width: 1600px;
 }
 
 .deploy-card {
-  /* 默认基准取 1/3 容器宽(扣 2 个 16px gap),配合 flex-grow:1 让卡片把整行铺满:
-   * 目标只有 2 个时两卡各占 ~1/2 撑满(消除右侧留白),3 个时正好每个 1/3,
-   * 窄屏靠 min-width 自然回落到两列/一列。不设 max-width,避免卡片被卡死留白。 */
-  flex: 1 1 calc((100% - 32px) / 3);
-  min-width: 280px;
-}
-
-/* 容器较窄时(侧边栏展开后可用宽不足 ~880px)放不下三列,放宽 basis 为两列。
-   断点取 880px:三列每列至少 280px + 2×16px gap = 872px,1440 屏侧边栏展开后内容区仍 > 880px,稳定三列 */
-@media (max-width: 880px) {
-  .deploy-card {
-    flex-basis: calc((100% - 16px) / 2);
-  }
+  /* Grid 子项默认撑满所在列(等宽由 grid-template-columns 的 1fr 保证),
+   * 无需 flex 死宽。min-width:0 防止内容长的卡(如 API 卡信息行)撑破列宽。 */
+  min-width: 0;
 }
 
 /* 记录表合并列:每一项各占一行,上下堆叠 */
@@ -1118,14 +1084,25 @@ onUnmounted(stopTimers);
   max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
-  white-space: nowrap;
   font-family: monospace;
   font-size: 12px;
+  white-space: nowrap;
+}
+
+/* 卡片内的安装路径 / 当前版本文件名是重要信息,必须完整显示:
+ * 用更具体的选择器只覆盖卡片内的 .deploy-card__file,改成换行完整展示,
+ * 不动全局基础规则(记录表 .records-table / 预览弹窗仍走 nowrap+ellipsis 紧凑显示)。 */
+.deploy-card__path .deploy-card__file,
+.deploy-card__current .deploy-card__file {
+  overflow: visible;
+  text-overflow: clip;
+  word-break: break-all;
+  white-space: normal;
 }
 
 .deploy-card__path {
-  margin-top: 10px;
   padding: 6px 8px;
+  margin-top: 10px;
   background: var(--ant-color-fill-tertiary);
   border-radius: 4px;
 }
