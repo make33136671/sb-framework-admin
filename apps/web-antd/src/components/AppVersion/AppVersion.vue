@@ -55,10 +55,11 @@ const commitPart = computed(() => {
   gap: 2px;
   line-height: 1.3;
 }
+
 .app-version__commit {
+  font-family: Menlo, Consolas, monospace;
   font-size: 12px;
   color: var(--ant-color-text-tertiary);
-  font-family: Menlo, Consolas, monospace;
   word-break: break-all;
 }
 </style>

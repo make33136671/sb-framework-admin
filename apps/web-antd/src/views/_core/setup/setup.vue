@@ -602,7 +602,7 @@ function fillFormFromConfig(config: any) {
             title="系统安装完成"
           >
             <template #subTitle>
-              <div style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+              <div style="display: flex; gap: 8px; align-items: center; justify-content: center;">
                 <template v-if="serverReady">
                   <span style="color: var(--ant-color-success);">&#10003;</span> 系统初始化完成
                 </template>
@@ -705,8 +705,8 @@ function fillFormFromConfig(config: any) {
               show-icon
             >
               <template #message>
-                <div style="display: flex; align-items: center; gap: 8px;">
-                  <label style="cursor: pointer; display: flex; align-items: center; gap: 6px; margin: 0;">
+                <div style="display: flex; gap: 8px; align-items: center;">
+                  <label style=" display: flex; gap: 6px; align-items: center; margin: 0;cursor: pointer;">
                     <input type="checkbox" :checked="wipeDatabase" @change="wipeDatabase = !wipeDatabase" />
                     <strong>抹除现有数据，重新安装</strong>
                   </label>
@@ -814,7 +814,7 @@ function fillFormFromConfig(config: any) {
           <div class="form-item">
             <label>站点路径配置</label>
             <div class="form-hint" style="margin-bottom: 8px;">配置前端站点部署路径，安装时自动创建 storage 软连接</div>
-            <div v-for="(site, idx) in sitePaths" :key="idx" style="display: flex; gap: 8px; margin-bottom: 8px; align-items: center;">
+            <div v-for="(site, idx) in sitePaths" :key="idx" style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
               <Input v-model:value="site.type" placeholder="类型 (admin/h5)" style="width: 120px;" />
               <Input v-model:value="site.path" placeholder="站点根目录路径" style="flex: 1;" />
               <Button danger size="small" @click="removeSitePath(idx)">删除</Button>
@@ -861,7 +861,7 @@ function fillFormFromConfig(config: any) {
 
           <div class="form-item">
             <label>产品 Logo</label>
-            <div style="display: flex; align-items: center; gap: 16px;">
+            <div style="display: flex; gap: 16px; align-items: center;">
               <div v-if="logoPreviewUrl" class="logo-preview">
                 <img :src="logoPreviewUrl" style="max-width: 100%; max-height: 100%;" />
               </div>
@@ -872,7 +872,7 @@ function fillFormFromConfig(config: any) {
 
           <div class="form-item">
             <label>系统时区</label>
-            <select v-model="timeZone" style="width: 100%; padding: 6px 8px; border: 1px solid var(--ant-color-border); border-radius: 6px; background: var(--ant-color-bg-container); color: var(--ant-color-text);">
+            <select v-model="timeZone" style="width: 100%; padding: 6px 8px; color: var(--ant-color-text); background: var(--ant-color-bg-container); border: 1px solid var(--ant-color-border); border-radius: 6px;">
               <option v-for="tz in commonTimeZones" :key="tz" :value="tz">{{ tz }}</option>
             </select>
             <div class="form-hint">系统业务时间基准时区，影响日期显示和时间计算</div>
@@ -993,12 +993,12 @@ function fillFormFromConfig(config: any) {
                 :src="logoPreviewUrl"
                 alt="Logo 预览"
                 style="
-                  max-height: 40px;
                   max-width: 120px;
+                  max-height: 40px;
                   vertical-align: middle;
+                  background: var(--ant-color-bg-container);
                   border: 1px solid var(--ant-color-border);
                   border-radius: 4px;
-                  background: var(--ant-color-bg-container);
                 "
               />
               <span v-else style="color: var(--ant-color-text-tertiary);">使用默认 Logo</span>
@@ -1051,31 +1051,31 @@ function fillFormFromConfig(config: any) {
 
 /* 头部用主色 + 深变体渐变，亮暗模式下都是深底白字 */
 .setup-header {
+  padding: 40px 20px 50px;
+  color: #fff;
+  text-align: center;
   background: linear-gradient(
     135deg,
     var(--ant-color-primary-active) 0%,
     var(--ant-color-primary) 50%,
     var(--ant-color-primary-hover) 100%
   );
-  color: #fff;
-  padding: 40px 20px 50px;
-  text-align: center;
 }
 
 .setup-header h1 {
-  font-size: 28px;
   margin-bottom: 8px;
+  font-size: 28px;
 }
 
 .setup-header p {
-  opacity: 0.7;
   font-size: 14px;
+  opacity: 0.7;
 }
 
 .setup-container {
   max-width: 700px;
-  margin: -20px auto 40px;
   padding: 0 16px;
+  margin: -20px auto 40px;
 }
 
 .setup-toolbar {
@@ -1093,9 +1093,9 @@ function fillFormFromConfig(config: any) {
 }
 
 .step-desc {
-  color: var(--ant-color-text-tertiary);
-  font-size: 13px;
   margin-bottom: 24px;
+  font-size: 13px;
+  color: var(--ant-color-text-tertiary);
 }
 
 .form-item {
@@ -1104,9 +1104,9 @@ function fillFormFromConfig(config: any) {
 
 .form-item label {
   display: block;
+  margin-bottom: 6px;
   font-size: 13px;
   font-weight: 500;
-  margin-bottom: 6px;
   color: var(--ant-color-text-secondary);
 }
 
@@ -1139,8 +1139,8 @@ function fillFormFromConfig(config: any) {
 }
 
 .warning-list {
-  margin: 4px 0 0;
   padding-left: 20px;
+  margin: 4px 0 0;
 }
 
 .warning-list li {
@@ -1148,8 +1148,8 @@ function fillFormFromConfig(config: any) {
 }
 
 .install-loading {
-  text-align: center;
   padding: 40px 0;
+  text-align: center;
 }
 
 .install-loading h3 {
@@ -1158,24 +1158,24 @@ function fillFormFromConfig(config: any) {
 }
 
 .install-loading p {
-  color: var(--ant-color-text-tertiary);
   font-size: 14px;
+  color: var(--ant-color-text-tertiary);
 }
 
 .form-hint {
-  color: var(--ant-color-text-tertiary);
-  font-size: 12px;
   margin-top: 4px;
+  font-size: 12px;
+  color: var(--ant-color-text-tertiary);
 }
 
 .logo-preview {
-  width: 64px;
-  height: 64px;
-  border: 1px solid var(--ant-color-border);
-  border-radius: 8px;
-  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 64px;
+  height: 64px;
+  overflow: hidden;
+  border: 1px solid var(--ant-color-border);
+  border-radius: 8px;
 }
 </style>

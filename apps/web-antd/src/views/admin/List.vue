@@ -176,7 +176,7 @@ const delAdmin = (id: number) => {
       </template>
 
       <template #userInfo="{ row }">
-        <div style="display: flex; flex-direction: column; align-items: center; gap: 8px;">
+        <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
           <Image
             :src="row.avatar"
             :style="{
@@ -187,9 +187,9 @@ const delAdmin = (id: number) => {
             }"
             :preview="{ mask: '查看' }"
           />
-          <div style="text-align: center; font-size: 13px;">
+          <div style=" font-size: 13px;text-align: center;">
             <div style="font-weight: 500;">{{ row.username }}</div>
-            <div style="color: #999; font-size: 12px;">{{ row.name }}</div>
+            <div style=" font-size: 12px;color: #999;">{{ row.name }}</div>
           </div>
         </div>
       </template>
@@ -197,11 +197,11 @@ const delAdmin = (id: number) => {
       <template #createdTime="{ row }">
         <div style="display: flex; flex-direction: column; gap: 4px;">
           <div>
-            <span style="color: #999; font-size: 12px;"></span>
+            <span style=" font-size: 12px;color: #999;"></span>
             {{ row.createdTime ? new Date(row.createdTime).toLocaleString('zh-CN') : '-' }}
           </div>
           <div>
-            <span style="color: #999; font-size: 12px;"></span>
+            <span style=" font-size: 12px;color: #999;"></span>
             {{ row.lastOnlineTime ? new Date(row.lastOnlineTime).toLocaleString('zh-CN') : '未登录' }}
           </div>
         </div>

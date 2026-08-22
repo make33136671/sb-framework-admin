@@ -186,8 +186,8 @@ onUnmounted(() => {
 
 .setting-control {
   display: flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
   padding-left: 8px;
 }
 </style>

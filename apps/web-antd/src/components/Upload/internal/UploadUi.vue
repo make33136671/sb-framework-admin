@@ -452,7 +452,7 @@ function formatSize(bytes?: number): string {
   width: 100px;
   height: 100px;
   overflow: hidden;
-  background: hsl(var(--muted) / 0.3);
+  background: hsl(var(--muted) / 30%);
   border: 1px dashed hsl(var(--border));
   border-radius: 4px;
 }
@@ -464,8 +464,9 @@ function formatSize(bytes?: number): string {
   justify-content: center;
   color: hsl(var(--muted-foreground));
   cursor: pointer;
+
   /* 用 currentColor 让边框跟随文字色，亮/暗模式下都有对比，hover 自动同步变 primary */
-  border-color: currentColor;
+  border-color: currentcolor;
   border-width: 1.5px;
 }
 
@@ -477,9 +478,8 @@ function formatSize(bytes?: number): string {
  * 看起来贴顶贴左；缩小后加号自然成为容器中心点）。多图保持 100x100 与缩略图同尺寸。 */
 .upload-ui--image .grid,
 .upload-ui--video .grid {
-  align-content: center;
+  place-content: center center;
   align-items: center;
-  justify-content: center;
 }
 
 .upload-ui--image .card--add,
@@ -531,7 +531,7 @@ function formatSize(bytes?: number): string {
   width: 32px;
   height: 32px;
   color: white;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgb(0 0 0 / 50%);
   border-radius: 50%;
   transform: translate(-50%, -50%);
 }
@@ -542,7 +542,7 @@ function formatSize(bytes?: number): string {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.45);
+  background: rgb(0 0 0 / 45%);
 }
 
 .overlay--error {
@@ -550,7 +550,7 @@ function formatSize(bytes?: number): string {
   font-size: 12px;
   color: white;
   text-align: center;
-  background: rgba(255, 77, 79, 0.85);
+  background: rgb(255 77 79 / 85%);
 }
 
 .error-text {
@@ -635,9 +635,9 @@ function formatSize(bytes?: number): string {
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  text-overflow: ellipsis;
   font-weight: 500;
   color: hsl(var(--foreground));
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -680,8 +680,8 @@ function formatSize(bytes?: number): string {
 .progress-center-content {
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 1px;
+  align-items: center;
 }
 
 .progress-center-content__label {
@@ -698,12 +698,12 @@ function formatSize(bytes?: number): string {
 
 .row-actions {
   display: flex;
-  flex-direction: column;
   flex-shrink: 0;
+  flex-direction: column;
   gap: 6px;
   align-items: stretch;
-  justify-content: center;
   align-self: stretch;
+  justify-content: center;
   min-width: 64px;
 }
 
@@ -724,22 +724,19 @@ function formatSize(bytes?: number): string {
 .hashing-spinner {
   position: relative;
   flex-shrink: 0;
+  border-color: rgb(24 144 255 / 15%);
   border-style: solid;
-  border-color: rgba(24, 144, 255, 0.15);
   border-top-color: hsl(var(--primary));
   border-radius: 50%;
-  animation: hashing-spin 1.1s linear infinite;
   filter: drop-shadow(0 0 16px hsl(var(--primary)));
+  animation: hashing-spin 1.1s linear infinite;
 }
 
 .hashing-spinner__inner {
   position: absolute;
-  top: 8%;
-  right: 8%;
-  bottom: 8%;
-  left: 8%;
-  border-style: dashed;
+  inset: 8%;
   border-color: hsl(var(--primary));
+  border-style: dashed;
   border-top-color: transparent;
   border-radius: 50%;
   opacity: 0.55;
@@ -764,13 +761,13 @@ function formatSize(bytes?: number): string {
 
 /* 缩略图遮罩内（深色半透明背景）：白色调 */
 .overlay--hashing .hashing-spinner {
-  border-color: rgba(255, 255, 255, 0.18);
-  border-top-color: rgba(255, 255, 255, 0.95);
-  filter: drop-shadow(0 0 12px rgba(255, 255, 255, 0.6));
+  border-color: rgb(255 255 255 / 18%);
+  border-top-color: rgb(255 255 255 / 95%);
+  filter: drop-shadow(0 0 12px rgb(255 255 255 / 60%));
 }
 
 .overlay--hashing .hashing-spinner__inner {
-  border-color: rgba(255, 255, 255, 0.7);
+  border-color: rgb(255 255 255 / 70%);
   border-top-color: transparent;
 }
 
@@ -784,6 +781,7 @@ function formatSize(bytes?: number): string {
   0%, 100% {
     opacity: 0.6;
   }
+
   50% {
     opacity: 1;
   }
@@ -819,11 +817,11 @@ function formatSize(bytes?: number): string {
 .thread-inner {
   position: relative;
   display: flex;
+  align-items: center;
+  justify-content: center;
   width: 100%;
   height: 100%;
   font-variant-numeric: tabular-nums;
-  align-items: center;
-  justify-content: center;
   line-height: 1;
 }
 

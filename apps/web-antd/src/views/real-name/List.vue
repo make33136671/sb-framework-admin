@@ -117,17 +117,17 @@ const handleReject = async () => {
   <Page auto-content-height>
     <Grid>
       <template #member="{ row }">
-        <div style="line-height: 1.4; font-size: 12px;">
+        <div style=" font-size: 12px;line-height: 1.4;">
           <div>{{ row.memberUsername }}</div>
           <div style="color: #999;">{{ row.memberName }}</div>
         </div>
       </template>
 
       <template #certInfo="{ row }">
-        <div style="line-height: 1.4; font-size: 12px;">
+        <div style=" font-size: 12px;line-height: 1.4;">
           <div>姓名: {{ row.realName }}</div>
           <div style="color: #999;">证件号: {{ row.idNumber }}</div>
-          <div v-if="row.rejectReason" style="color: #ff4d4f; margin-top: 2px;">
+          <div v-if="row.rejectReason" style=" margin-top: 2px;color: #ff4d4f;">
             拒绝原因: {{ row.rejectReason }}
           </div>
         </div>
@@ -145,7 +145,7 @@ const handleReject = async () => {
       </template>
 
       <template #time="{ row }">
-        <div style="line-height: 1.4; font-size: 12px;">
+        <div style=" font-size: 12px;line-height: 1.4;">
           <div>提交: {{ fmtTime(row.submitTime) }}</div>
           <div v-if="row.reviewTime" style="color: #999;">审核: {{ fmtTime(row.reviewTime) }}</div>
         </div>
@@ -156,7 +156,7 @@ const handleReject = async () => {
           <Button type="primary" size="small" @click="handleApprove(row.id)">通过</Button>
           <Button danger size="small" @click="showReject(row.id)">拒绝</Button>
         </Space>
-        <span v-else style="color: #999; font-size: 12px;">已处理</span>
+        <span v-else style=" font-size: 12px;color: #999;">已处理</span>
       </template>
     </Grid>
 

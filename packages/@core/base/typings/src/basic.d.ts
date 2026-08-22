@@ -9,27 +9,33 @@ type TabOption = BasicOption;
 
 interface BasicUserInfo {
   /**
-   * Avatar
+   * 头像
    */
   avatar: string;
   /**
-   * Real name
+   * 用户昵称
    */
   realName: string;
   /**
-   * User roles
+   * 用户角色
    */
   roles?: string[];
   /**
-   * User id
+   * 用户id
    */
   userId: string;
   /**
-   * Username
+   * 用户名
    */
   username: string;
 }
 
-type ClassType = Array<object | string> | object | string;
+type ClassType =
+  | Array<ClassType>
+  | boolean
+  | null
+  | object
+  | string
+  | undefined;
 
 export type { BasicOption, BasicUserInfo, ClassType, SelectOption, TabOption };

@@ -15,7 +15,7 @@
       "type": "chrome",
       "name": "vben admin antd dev",
       "request": "launch",
-      "url": "http://localhost:6012",
+      "url": "http://localhost:5666",
       "env": { "NODE_ENV": "development" },
       "sourceMaps": true,
       "webRoot": "${workspaceFolder}/apps/web-antd"

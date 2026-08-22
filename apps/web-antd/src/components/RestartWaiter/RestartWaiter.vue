@@ -120,7 +120,7 @@ function close() {
     width="420px"
     @update:open="(v: boolean) => emit('update:open', v)"
   >
-    <div style="text-align: center; padding: 24px 0">
+    <div style=" padding: 24px 0;text-align: center">
       <div v-if="status === 'polling'">
         <div class="restart-pulse">
           <div class="restart-pulse-ring" />
@@ -131,8 +131,8 @@ function close() {
         <div
           style="
             margin-top: 20px;
-            color: var(--ant-color-text-secondary);
             font-size: 15px;
+            color: var(--ant-color-text-secondary);
           "
         >
           程序正在重启<span class="restart-dots" />
@@ -140,8 +140,8 @@ function close() {
         <div
           style="
             margin-top: 8px;
-            color: var(--ant-color-text-tertiary);
             font-size: 13px;
+            color: var(--ant-color-text-tertiary);
           "
         >
           服务恢复后将自动关闭
@@ -196,12 +196,13 @@ function close() {
 
 @keyframes restart-pulse {
   0% {
-    transform: scale(0.85);
     opacity: 0.6;
+    transform: scale(0.85);
   }
+
   100% {
-    transform: scale(1.2);
     opacity: 0;
+    transform: scale(1.2);
   }
 }
 
@@ -216,12 +217,15 @@ function close() {
   0% {
     content: '';
   }
+
   25% {
     content: '.';
   }
+
   50% {
     content: '..';
   }
+
   75% {
     content: '...';
   }

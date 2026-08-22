@@ -31,12 +31,12 @@ const props = withDefaults(defineProps<Props>(), {
   loading: false,
   qrCodeLoginPath: '/auth/qrcode-login',
   registerPath: '/auth/register',
-  showCodeLogin: false,
-  showForgetPassword: false,
-  showQrcodeLogin: false,
-  showRegister: false,
-  showRememberMe: false,
-  showThirdPartyLogin: false,
+  showCodeLogin: true,
+  showForgetPassword: true,
+  showQrcodeLogin: true,
+  showRegister: true,
+  showRememberMe: true,
+  showThirdPartyLogin: true,
   submitButtonText: '',
   subTitle: '',
   title: '',
@@ -146,7 +146,7 @@ defineExpose({
 
     <div
       v-if="showCodeLogin || showQrcodeLogin"
-      class="mb-2 mt-4 flex items-center justify-between"
+      class="mt-4 mb-2 flex items-center justify-between"
     >
       <VbenButton
         v-if="showCodeLogin"

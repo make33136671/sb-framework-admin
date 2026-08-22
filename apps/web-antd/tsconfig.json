@@ -1,8 +1,8 @@
-{
+﻿{
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "@vben/tsconfig/web-app.json",
   "compilerOptions": {
-    "baseUrl": ".",
+    "baseUrl": ".","ignoreDeprecations": "6.0",
     "paths": {
       "#/*": ["./src/*"]
     }

@@ -65,16 +65,16 @@ function handleClear() {
 </script>
 
 <template>
-  <Card title="SQL 执行" style="height: 100%; display: flex; flex-direction: column;">
+  <Card title="SQL 执行" style=" display: flex; flex-direction: column;height: 100%;">
       <div style="margin-bottom: 12px;">
         <textarea
           v-model="sql"
           placeholder="输入 SQL 语句，支持 SELECT / INSERT / UPDATE / DELETE / CREATE / ALTER 等"
-          style="width: 100%; min-height: 160px; padding: 12px; border: 1px solid #d9d9d9; border-radius: 6px; font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 13px; line-height: 1.6; resize: vertical; outline: none; background: #1e1e1e; color: #d4d4d4;"
+          style="width: 100%; min-height: 160px; padding: 12px; font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 13px; line-height: 1.6; color: #d4d4d4; resize: vertical; outline: none; background: #1e1e1e; border: 1px solid #d9d9d9; border-radius: 6px;"
           @keydown.ctrl.enter="handleExecute"
           @keydown.meta.enter="handleExecute"
         />
-        <div style="color: #999; font-size: 12px; margin-top: 4px;">
+        <div style=" margin-top: 4px; font-size: 12px;color: #999;">
           Ctrl + Enter 执行
         </div>
       </div>
@@ -95,7 +95,7 @@ function handleClear() {
       <!-- 错误信息 -->
       <div
         v-if="errorMsg"
-        style="padding: 12px; background: #fff2f0; border: 1px solid #ffccc7; border-radius: 6px; color: #cf1322; margin-bottom: 12px; font-size: 13px;"
+        style="padding: 12px; margin-bottom: 12px; font-size: 13px; color: #cf1322; background: #fff2f0; border: 1px solid #ffccc7; border-radius: 6px;"
       >
         {{ errorMsg }}
       </div>

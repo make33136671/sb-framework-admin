@@ -125,14 +125,14 @@ const formattedAmount = computed(() => {
 <style scoped>
 .amount-display {
   display: inline-flex;
-  align-items: center;
   gap: 6px;
+  align-items: center;
   padding: 1px 8px;
-  border-radius: 4px;
   font-size: 12px;
   line-height: 22px;
-  border: 1px solid;
   white-space: nowrap;
+  border: 1px solid;
+  border-radius: 4px;
 }
 
 .amount-display__unit {
@@ -144,7 +144,7 @@ const formattedAmount = computed(() => {
 .amount-display__sep {
   width: 1px;
   height: 12px;
-  background: currentColor;
+  background: currentcolor;
   opacity: 0.25;
 }
 

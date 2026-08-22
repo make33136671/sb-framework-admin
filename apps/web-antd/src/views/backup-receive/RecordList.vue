@@ -113,7 +113,7 @@ onMounted(load);
     <Button style="margin-bottom: 16px;" @click="router.back()">← 返回产品列表</Button>
 
     <Card>
-      <div style="display: flex; align-items: center; gap: 14px; margin-bottom: 16px;">
+      <div style="display: flex; gap: 14px; align-items: center; margin-bottom: 16px;">
         <img
           v-if="logoPath"
           :src="toServerUrl(logoPath)"
@@ -122,15 +122,15 @@ onMounted(load);
             width: 48px;
             height: 48px;
             object-fit: contain;
-            border-radius: 6px;
             border: 1px solid var(--ant-color-border-secondary);
+            border-radius: 6px;
           "
         />
         <div>
           <div style="font-size: 18px; font-weight: 600;">
             {{ productCn || productEn }}
           </div>
-          <div style="color: var(--ant-color-text-tertiary); font-size: 12px;">
+          <div style=" font-size: 12px;color: var(--ant-color-text-tertiary);">
             {{ productEn }} · 共 {{ total }} 份备份
           </div>
         </div>

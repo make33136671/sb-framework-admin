@@ -189,7 +189,7 @@ async function copyClientInfo() {
     <!-- 未配置公钥蒙板 -->
     <div v-if="isMissingPublicKey" class="overlay-mask">
       <div class="overlay-content">
-        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#ff4d4f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 12px; display: block; margin-left: auto; margin-right: auto;">
+        <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="#ff4d4f" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style=" display: block; margin-right: auto;margin-bottom: 12px; margin-left: auto;">
           <path d="M12 9v4m0 4h.01M21 12a9 9 0 1 1-18 0 9 9 0 0 1 18 0Z" />
         </svg>
         <div class="overlay-title" style="color: #ff4d4f;">未配置 RSA 公钥</div>
@@ -202,7 +202,7 @@ async function copyClientInfo() {
     <!-- 未登录蒙板: 覆盖整个面板, 用户看得见底下操作面板轮廓, 但必须先点"前往登录" -->
     <div v-else-if="loginRequired" class="overlay-mask">
       <div class="overlay-content">
-        <div style="font-size: 48px; opacity: 0.6; margin-bottom: 12px; line-height: 1;">🔒</div>
+        <div style=" margin-bottom: 12px;font-size: 48px; line-height: 1; opacity: 0.6;">🔒</div>
         <div class="overlay-title">需要管理员登录</div>
         <div class="overlay-desc" style="margin-bottom: 20px;">
           登录后可进行授权更新操作
@@ -221,8 +221,8 @@ async function copyClientInfo() {
           style="
             display: block;
             margin-bottom: 8px;
-            color: var(--ant-color-text);
             font-size: 14px;
+            color: var(--ant-color-text);
           "
         >
           授权服务器地址
@@ -254,8 +254,8 @@ async function copyClientInfo() {
           style="
             display: block;
             margin-bottom: 8px;
-            color: var(--ant-color-text);
             font-size: 14px;
+            color: var(--ant-color-text);
           "
         >
           客户端身份信息（复制后发给管理员生成授权 Key）
@@ -271,7 +271,7 @@ async function copyClientInfo() {
             font-size: 12px;
           "
         />
-        <div style="text-align: right; margin-bottom: 16px;">
+        <div style=" margin-bottom: 16px;text-align: right;">
           <Button size="small" @click="copyClientInfo">复制</Button>
         </div>
 
@@ -279,8 +279,8 @@ async function copyClientInfo() {
           style="
             display: block;
             margin-bottom: 8px;
-            color: var(--ant-color-text);
             font-size: 14px;
+            color: var(--ant-color-text);
           "
         >
           授权 Key（粘贴管理员生成的授权字符串）
@@ -376,7 +376,7 @@ async function copyClientInfo() {
           <span style="font-family: monospace;">{{ fmtTime(queryResult.issuedAt) }}</span>
         </DescriptionsItem>
         <DescriptionsItem label="到期时间">
-          <span style="font-family: monospace; color: #1677ff; font-weight: 500;">{{ fmtTime(queryResult.expiresAt) }}</span>
+          <span style="font-family: monospace; font-weight: 500; color: #1677ff;">{{ fmtTime(queryResult.expiresAt) }}</span>
         </DescriptionsItem>
 
         <!-- 到期后行为: 签发授权时勾选的策略 -->
@@ -395,8 +395,8 @@ async function copyClientInfo() {
           </Tag>
           <Tag v-else color="default">全部禁用</Tag>
           <template v-if="queryResult.allowedRoutes?.length">
-            <span style="margin-left: 8px; color: var(--ant-color-text-tertiary); font-size: 12px;">自定义放行:</span>
-            <Tag v-for="r in queryResult.allowedRoutes" :key="r" color="default" style="font-family: monospace; margin-bottom: 2px;">{{ r }}</Tag>
+            <span style="margin-left: 8px; font-size: 12px; color: var(--ant-color-text-tertiary);">自定义放行:</span>
+            <Tag v-for="r in queryResult.allowedRoutes" :key="r" color="default" style=" margin-bottom: 2px;font-family: monospace;">{{ r }}</Tag>
           </template>
         </DescriptionsItem>
 
@@ -456,40 +456,40 @@ async function copyClientInfo() {
 .overlay-mask {
   position: absolute;
   inset: 0;
-  min-height: 100%;
   z-index: 10;
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(240, 240, 240, 0.75);
-  backdrop-filter: blur(4px);
+  min-height: 100%;
+  background: rgb(240 240 240 / 75%);
   border-radius: 8px;
+  backdrop-filter: blur(4px);
 }
 
 .overlay-content {
-  text-align: center;
   padding: 24px;
+  text-align: center;
 }
 
 .overlay-title {
+  margin-bottom: 10px;
   font-size: 22px;
   font-weight: 600;
   color: var(--ant-color-text);
-  margin-bottom: 10px;
 }
 
 .overlay-desc {
-  font-size: 16px;
-  color: rgba(0, 0, 0, 0.65);
   max-width: 360px;
+  font-size: 16px;
   line-height: 1.6;
+  color: rgb(0 0 0 / 65%);
 }
 
 :global(.dark) .overlay-mask {
-  background: rgba(30, 30, 30, 0.75);
+  background: rgb(30 30 30 / 75%);
 }
 
 :global(.dark) .overlay-desc {
-  color: rgba(255, 255, 255, 0.65);
+  color: rgb(255 255 255 / 65%);
 }
 </style>

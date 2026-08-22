@@ -227,7 +227,7 @@ async function handleRevoke(record: any) {
             <div class="product-card-label">机器名</div>
             <div class="product-card-value">{{ row.machineName || '-' }}</div>
             <div class="product-card-label product-card-label-inner">CPU</div>
-            <div class="product-card-value" style="width: 40px; flex: none;">{{ row.processorCount || '-' }}</div>
+            <div class="product-card-value" style=" flex: none;width: 40px;">{{ row.processorCount || '-' }}</div>
           </div>
           <div class="product-card-row">
             <div class="product-card-label">操作系统</div>
@@ -252,15 +252,15 @@ async function handleRevoke(record: any) {
       <template #timeStatusCol="{ row }">
         <div style="padding: 8px 0; line-height: 1.9;">
           <div>
-            <span style="color: var(--ant-color-text-tertiary); font-size: 12px;">创建　</span>
+            <span style=" font-size: 12px;color: var(--ant-color-text-tertiary);">创建　</span>
             <TimeTag color="cyan" :time="fmtTime(row.createdTime)" />
           </div>
           <div>
-            <span style="color: var(--ant-color-text-tertiary); font-size: 12px;">验证　</span>
+            <span style=" font-size: 12px;color: var(--ant-color-text-tertiary);">验证　</span>
             <TimeTag v-if="row.lastVerifyTime" color="blue" :time="fmtTime(row.lastVerifyTime)" />
             <Tag v-else color="default" style="margin: 0;">未验证</Tag>
           </div>
-          <div style="font-size: 13px; margin-top: 2px;">
+          <div style=" margin-top: 2px;font-size: 13px;">
             <span>验证 <strong>{{ row.verifyCount }}</strong> 次</span>
             <Tag v-if="row.status === 0" color="green" style="margin-left: 8px;">正常</Tag>
             <Tag v-else color="red" style="margin-left: 8px;">禁用</Tag>
@@ -377,7 +377,7 @@ async function handleRevoke(record: any) {
                 </Tag>
                 <span
                   v-if="parseJson(row.allowedRoutes) !== '-'"
-                  style="font-family: monospace; font-size: 12px; margin-left: 8px"
+                  style=" margin-left: 8px;font-family: monospace; font-size: 12px"
                 >
                   自定义放行: {{ parseJson(row.allowedRoutes) }}
                 </span>
@@ -393,10 +393,10 @@ async function handleRevoke(record: any) {
 <style>
 .product-card {
   margin: 10px 0;
-  border: 1px solid #d9d9d9;
-  border-radius: 6px;
   overflow: hidden;
   font-size: 12px;
+  border: 1px solid #d9d9d9;
+  border-radius: 6px;
 }
 
 .product-card-row {
@@ -410,31 +410,31 @@ async function handleRevoke(record: any) {
 
 /* 声明域名 vs 实际访问域名不一致时, 整行黄色背景提示 */
 .product-card-row-warn {
-  background: #fffbe6;
-  color: #d48806;
   font-weight: 500;
+  color: #d48806;
+  background: #fffbe6;
 }
 
 .dark .product-card-row-warn {
-  background: #2b2611;
   color: #ffc53d;
+  background: #2b2611;
 }
 
 .product-card-label {
-  width: 80px;
   flex-shrink: 0;
+  width: 80px;
   padding: 4px 8px;
   color: #999;
+  white-space: nowrap;
   background: #fafafa;
   border-right: 1px solid #f0f0f0;
-  white-space: nowrap;
 }
 
 .product-card-value {
   flex: 1;
+  min-width: 0;
   padding: 4px 8px;
   word-break: break-all;
-  min-width: 0;
 }
 
 .product-card-label-inner {
@@ -466,8 +466,8 @@ async function handleRevoke(record: any) {
   flex-direction: column;
   gap: 12px;
   max-height: 70vh;
-  overflow-y: auto;
   padding-right: 4px;
+  overflow-y: auto;
 }
 
 .modal-record-card {
@@ -489,8 +489,8 @@ async function handleRevoke(record: any) {
 
 .modal-card-title {
   display: flex;
+  gap: 8px;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
 }
 </style>

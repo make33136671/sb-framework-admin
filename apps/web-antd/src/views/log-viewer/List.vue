@@ -157,7 +157,7 @@ onMounted(() => {
       <!-- 左侧文件列表 -->
       <Card
         title="日志文件"
-        style="width: 360px; flex-shrink: 0; overflow-y: auto;"
+        style=" flex-shrink: 0;width: 360px; overflow-y: auto;"
         :loading="filesLoading"
       >
         <template #extra>
@@ -173,13 +173,13 @@ onMounted(() => {
         <List size="small" :data-source="files">
           <template #renderItem="{ item }">
             <ListItem
-              style="cursor: pointer; padding: 8px 12px;"
+              style=" padding: 8px 12px;cursor: pointer;"
               :style="{ background: selectedFile === item.name ? 'hsl(var(--accent))' : '' }"
               @click="handleSelect(item.name)"
             >
               <ListItemMeta>
                 <template #title>
-                  <div style="display: flex; align-items: center; gap: 6px;">
+                  <div style="display: flex; gap: 6px; align-items: center;">
                     <Tag :color="getLevelTag(item.name).color" style="margin: 0;">
                       {{ getLevelTag(item.name).label }}
                     </Tag>
@@ -206,7 +206,7 @@ onMounted(() => {
 
       <!-- 右侧内容区 -->
       <Card
-        style="flex: 1; display: flex; flex-direction: column; overflow: hidden;"
+        style=" display: flex;flex: 1; flex-direction: column; overflow: hidden;"
         :loading="contentLoading"
       >
         <template #title>
@@ -235,11 +235,11 @@ onMounted(() => {
 
         <pre
           v-if="content"
-          style="flex: 1; margin: 0; padding: 16px; background: #1e1e1e; color: #d4d4d4; border-radius: 6px; font-size: 12px; line-height: 1.6; font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; overflow: auto; white-space: pre-wrap; word-break: break-all; max-height: calc(100vh - 220px);"
+          style="flex: 1; max-height: calc(100vh - 220px); padding: 16px; margin: 0; overflow: auto; font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 12px; line-height: 1.6; color: #d4d4d4; word-break: break-all; white-space: pre-wrap; background: #1e1e1e; border-radius: 6px;"
         >{{ content }}</pre>
         <div
           v-else-if="!selectedFile"
-          style="text-align: center; padding: 80px 0; color: hsl(var(--muted-foreground));"
+          style=" padding: 80px 0; color: hsl(var(--muted-foreground));text-align: center;"
         >
           点击左侧日志文件查看内容
         </div>

@@ -142,22 +142,22 @@ onUnmounted(() => {
       <div
         style="
           display: flex;
-          justify-content: center;
-          align-items: flex-end;
           gap: 16px;
+          align-items: flex-end;
+          justify-content: center;
           margin-bottom: 12px;
         "
       >
         <template v-for="(item, idx) in cells" :key="idx">
           <div
             style="
+              min-width: 72px;
               font-size: 48px;
               font-weight: 700;
-              line-height: 1;
-              min-width: 72px;
-              text-align: center;
-              color: var(--ant-color-warning);
               font-variant-numeric: tabular-nums;
+              line-height: 1;
+              color: var(--ant-color-warning);
+              text-align: center;
             "
           >
             {{ pad(item.value) }}
@@ -165,10 +165,10 @@ onUnmounted(() => {
           <div
             v-if="idx < cells.length - 1"
             style="
+              padding-bottom: 4px;
               font-size: 36px;
               font-weight: 700;
               line-height: 1;
-              padding-bottom: 4px;
               color: var(--ant-color-text-quaternary);
             "
           >
@@ -197,9 +197,9 @@ onUnmounted(() => {
         style="
           margin-top: 24px;
           margin-bottom: 0;
-          text-align: center;
           font-size: 15px;
           color: var(--ant-color-text);
+          text-align: center;
         "
       >
         系统授权即将到期，为避免影响使用，请尽快续期。
@@ -207,10 +207,10 @@ onUnmounted(() => {
 
       <div
         style="
-          margin-top: 24px;
           display: flex;
-          justify-content: center;
           gap: 12px;
+          justify-content: center;
+          margin-top: 24px;
         "
       >
         <Button @click="open = false">稍后处理</Button>

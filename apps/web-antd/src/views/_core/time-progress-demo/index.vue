@@ -397,10 +397,10 @@ const halfEnd = now + 5 * 24 * 60 * 60 * 1000;
 <style scoped>
 .demo-page {
   max-width: 1200px;
-  margin: 0 auto;
-  padding: 24px;
-  background: hsl(var(--background));
   min-height: 100vh;
+  padding: 24px;
+  margin: 0 auto;
+  background: hsl(var(--background));
 }
 
 .demo-header h1 {
@@ -412,8 +412,8 @@ const halfEnd = now + 5 * 24 * 60 * 60 * 1000;
 
 .demo-sub {
   margin: 0 0 20px;
-  color: hsl(var(--muted-foreground));
   font-size: 13px;
+  color: hsl(var(--muted-foreground));
 }
 
 .demo-control {
@@ -450,13 +450,13 @@ const halfEnd = now + 5 * 24 * 60 * 60 * 1000;
 }
 
 .demo-code {
-  margin: 12px 0 0;
   padding: 8px 10px;
-  background: hsl(var(--muted));
-  border-radius: 4px;
+  margin: 12px 0 0;
   font-size: 11px;
   color: hsl(var(--muted-foreground));
-  white-space: pre-wrap;
   word-break: break-all;
+  white-space: pre-wrap;
+  background: hsl(var(--muted));
+  border-radius: 4px;
 }
 </style>

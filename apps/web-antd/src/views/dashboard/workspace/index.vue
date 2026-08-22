@@ -156,7 +156,7 @@ const memberColumns = [
           <!-- 待审核实名 -->
           <Card title="待审核实名认证" class="mt-4 lg:mt-0">
             <template v-if="pendingRealNames.length === 0">
-              <div style="color: #999; text-align: center; padding: 16px;">暂无待审核</div>
+              <div style=" padding: 16px;color: #999; text-align: center;">暂无待审核</div>
             </template>
             <div v-for="item in pendingRealNames" :key="item.id" class="pending-item">
               <div class="pending-info">
@@ -194,8 +194,8 @@ const memberColumns = [
 <style scoped>
 .pending-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   padding: 10px 0;
   border-bottom: 1px solid #f0f0f0;
 }
@@ -206,8 +206,8 @@ const memberColumns = [
 
 .pending-info {
   display: flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
 }
 
 .pending-name {
@@ -215,28 +215,28 @@ const memberColumns = [
 }
 
 .pending-real {
-  color: #999;
   font-size: 12px;
+  color: #999;
 }
 
 .pending-time {
-  color: #999;
   font-size: 12px;
+  color: #999;
 }
 
 .view-all {
   display: block;
-  text-align: center;
   padding-top: 12px;
-  color: #1890ff;
-  cursor: pointer;
   font-size: 13px;
+  color: #1890ff;
+  text-align: center;
+  cursor: pointer;
 }
 
 .member-item {
   display: flex;
-  justify-content: space-between;
   align-items: center;
+  justify-content: space-between;
   padding: 8px 0;
   border-bottom: 1px solid #f0f0f0;
 }
@@ -247,8 +247,8 @@ const memberColumns = [
 
 .member-info {
   display: flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
 }
 
 .member-username {
@@ -256,18 +256,18 @@ const memberColumns = [
 }
 
 .member-name {
-  color: #999;
   font-size: 12px;
+  color: #999;
 }
 
 .member-meta {
   display: flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
 }
 
 .member-time {
-  color: #999;
   font-size: 12px;
+  color: #999;
 }
 </style>

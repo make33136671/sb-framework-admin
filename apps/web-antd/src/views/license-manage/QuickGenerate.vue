@@ -139,7 +139,7 @@ function reset() {
           :auto-size="{ minRows: 6, maxRows: 12 }"
           style="font-family: monospace; font-size: 12px;"
         />
-        <div v-if="parseError" style="color: #ff4d4f; margin-top: 4px; font-size: 12px;">{{ parseError }}</div>
+        <div v-if="parseError" style=" margin-top: 4px; font-size: 12px;color: #ff4d4f;">{{ parseError }}</div>
       </div>
 
       <div style="margin-bottom: 16px;">
@@ -189,10 +189,10 @@ function reset() {
         :value="resultData?.licenseKey || ''"
         readonly
         :auto-size="{ minRows: 3, maxRows: 6 }"
-        style="font-family: monospace; font-size: 12px; margin-bottom: 16px;"
+        style=" margin-bottom: 16px;font-family: monospace; font-size: 12px;"
       />
 
-      <div style="display: flex; justify-content: center; gap: 12px;">
+      <div style="display: flex; gap: 12px; justify-content: center;">
         <Button type="primary" size="large" @click="copyLicenseKey">复制授权 Key</Button>
         <Button size="large" @click="reset">继续签发</Button>
       </div>

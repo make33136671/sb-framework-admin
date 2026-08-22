@@ -206,9 +206,9 @@ onMounted(loadCacheInfo);
                   (cacheInfo.stats?.instance_keys ?? 0)
                 "
                 style="
-                  color: var(--ant-color-text-tertiary);
                   margin-left: 4px;
                   font-size: 12px;
+                  color: var(--ant-color-text-tertiary);
                 "
               >
                 (含其他系统)
@@ -222,7 +222,7 @@ onMounted(loadCacheInfo);
                   cacheInfo.stats?.maxmemory_human &&
                   cacheInfo.stats.maxmemory_human !== '0B'
                 "
-                style="color: var(--ant-color-text-tertiary); margin-left: 4px"
+                style=" margin-left: 4px;color: var(--ant-color-text-tertiary)"
               >
                 / {{ cacheInfo.stats.maxmemory_human }}
               </span>
@@ -235,7 +235,7 @@ onMounted(loadCacheInfo);
             </Descriptions.Item>
 
             <Descriptions.Item label="命中率">
-              <div style="display: flex; align-items: center; gap: 8px">
+              <div style="display: flex; gap: 8px; align-items: center">
                 <Progress
                   :percent="cacheInfo.stats?.hit_rate ?? 0"
                   size="small"
@@ -248,8 +248,8 @@ onMounted(loadCacheInfo);
                 />
                 <span
                   style="
-                    color: var(--ant-color-text-tertiary);
                     font-size: 12px;
+                    color: var(--ant-color-text-tertiary);
                   "
                 >
                   {{ formatNumber(cacheInfo.stats?.keyspace_hits) }} /
@@ -270,9 +270,9 @@ onMounted(loadCacheInfo);
       <div
         v-else
         style="
-          text-align: center;
           padding: 16px;
           color: var(--ant-color-text-tertiary);
+          text-align: center;
         "
       >
         无法获取缓存信息
@@ -292,13 +292,13 @@ onMounted(loadCacheInfo);
           <div
             style="
               display: flex;
+              gap: 16px;
               align-items: center;
               justify-content: space-between;
-              gap: 16px;
             "
           >
             <div style="flex: 1; min-width: 0">
-              <div style="font-weight: 500; font-size: 15px">
+              <div style=" font-size: 15px;font-weight: 500">
                 {{ cat.name }}
                 <Tag color="blue" style="margin-left: 8px">
                   {{ formatNumber(cat.count) }} keys
@@ -306,9 +306,9 @@ onMounted(loadCacheInfo);
               </div>
               <div
                 style="
-                  color: var(--ant-color-text-tertiary);
-                  font-size: 13px;
                   margin-top: 4px;
+                  font-size: 13px;
+                  color: var(--ant-color-text-tertiary);
                 "
               >
                 {{ cat.description }}
@@ -339,7 +339,7 @@ onMounted(loadCacheInfo);
             "
           >
             <div>
-              <div style="font-weight: 500; font-size: 15px">
+              <div style=" font-size: 15px;font-weight: 500">
                 未分类
                 <Tag style="margin-left: 8px">
                   {{ formatNumber(cacheInfo.uncategorized) }} keys
@@ -347,9 +347,9 @@ onMounted(loadCacheInfo);
               </div>
               <div
                 style="
-                  color: var(--ant-color-text-tertiary);
-                  font-size: 13px;
                   margin-top: 4px;
+                  font-size: 13px;
+                  color: var(--ant-color-text-tertiary);
                 "
               >
                 不在已知分类前缀下的其他 key(通常是业务运行时缓存)
@@ -382,9 +382,9 @@ onMounted(loadCacheInfo);
     <Card v-if="cacheInfo && !isEnabled">
       <div
         style="
-          text-align: center;
           padding: 24px;
           color: var(--ant-color-text-tertiary);
+          text-align: center;
         "
       >
         当前系统未启用缓存,无需清理

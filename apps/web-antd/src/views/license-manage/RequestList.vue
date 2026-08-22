@@ -194,7 +194,7 @@ async function handleReject(row: any) {
             v-model:value="approveForm.allowedRoutesStr"
             placeholder="逗号分隔，如 /admin/  留空表示全部拦截"
           />
-          <div style="color: #999; font-size: 12px; margin-top: 4px">
+          <div style=" margin-top: 4px; font-size: 12px;color: #999">
             默认到期后 API 和 Admin 都不可访问。可输入如 /admin/ 表示到期后后台仍可访问
           </div>
         </FormItem>

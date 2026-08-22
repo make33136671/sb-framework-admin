@@ -28,7 +28,7 @@ function logChange(label: string, d: any) {
 </script>
 
 <template>
-  <div style="max-width: 1200px; margin: 0 auto; padding: 24px">
+  <div style="max-width: 1200px; padding: 24px; margin: 0 auto">
     <h1 style="margin-bottom: 16px; font-size: 20px; font-weight: 600">
       上传组件回归测试
     </h1>
@@ -79,7 +79,7 @@ function logChange(label: string, d: any) {
         <pre style="margin-top: 12px; font-size: 11px">v-model: {{ smart }}</pre>
       </Card>
     </div>
-    <div style="margin-top: 24px; font-size: 12px; color: rgba(0, 0, 0, 0.45)">
+    <div style="margin-top: 24px; font-size: 12px; color: rgb(0 0 0 / 45%)">
       路由：<code>/test/upload-stress</code>（dev 调试用）。
       后端 dev 限速：1500ms/片（appsettings.Development.json
       UploadConfig.DebugThrottleMs）。

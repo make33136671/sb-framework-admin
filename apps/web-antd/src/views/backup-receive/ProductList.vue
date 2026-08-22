@@ -126,33 +126,33 @@ onMounted(() => {
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'product'">
-            <div style="display: flex; align-items: center; gap: 12px">
+            <div style="display: flex; gap: 12px; align-items: center">
               <img
                 v-if="record.logoPath"
                 :src="toServerUrl(record.logoPath)"
                 :alt="record.productCn"
                 style="
+                  flex-shrink: 0;
                   width: 40px;
                   height: 40px;
                   object-fit: contain;
-                  border-radius: 4px;
                   border: 1px solid var(--ant-color-border-secondary);
-                  flex-shrink: 0;
+                  border-radius: 4px;
                 "
               />
               <div
                 v-else
                 style="
-                  width: 40px;
-                  height: 40px;
-                  border-radius: 4px;
-                  border: 1px solid var(--ant-color-border-secondary);
-                  flex-shrink: 0;
                   display: flex;
+                  flex-shrink: 0;
                   align-items: center;
                   justify-content: center;
-                  color: var(--ant-color-text-quaternary);
+                  width: 40px;
+                  height: 40px;
                   font-size: 18px;
+                  color: var(--ant-color-text-quaternary);
+                  border: 1px solid var(--ant-color-border-secondary);
+                  border-radius: 4px;
                 "
               >
                 ?
@@ -161,8 +161,8 @@ onMounted(() => {
                 <div
                   style="
                     font-weight: 500;
-                    color: var(--ant-color-text);
                     line-height: 1.4;
+                    color: var(--ant-color-text);
                   "
                 >
                   {{ record.productCn || record.productEn || '-' }}
@@ -170,8 +170,8 @@ onMounted(() => {
                 <div
                   style="
                     font-size: 12px;
-                    color: var(--ant-color-text-tertiary);
                     line-height: 1.4;
+                    color: var(--ant-color-text-tertiary);
                   "
                 >
                   {{ record.productEn }}

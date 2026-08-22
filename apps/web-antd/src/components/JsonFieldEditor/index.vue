@@ -299,14 +299,16 @@ const enumMatch = computed(() => {
 <style scoped>
 .array-item {
   display: flex;
-  align-items: flex-start;
   gap: 8px;
+  align-items: flex-start;
   margin-bottom: 8px;
 }
+
 .array-item-index {
   flex-shrink: 0;
   padding-top: 4px;
 }
+
 .array-item-body {
   flex: 1;
   min-width: 0;
@@ -315,33 +317,39 @@ const enumMatch = computed(() => {
 .object-field {
   margin-bottom: 12px;
 }
+
 .object-field-label {
   margin-bottom: 4px;
   font-size: 13px;
   font-weight: 500;
   color: var(--ant-color-text-secondary);
 }
+
 .object-field-body {
   padding-left: 4px;
 }
 
 .card-title {
   display: inline-flex;
-  align-items: center;
   gap: 6px;
+  align-items: center;
   user-select: none;
 }
+
 .card-title.clickable {
   cursor: pointer;
 }
+
 .card-title.clickable:hover {
   color: var(--ant-color-primary);
 }
+
 .collapse-icon {
   font-size: 14px;
   color: var(--ant-color-text-tertiary);
   transition: transform 0.15s;
 }
+
 .card-title.clickable:hover .collapse-icon {
   color: var(--ant-color-primary);
 }

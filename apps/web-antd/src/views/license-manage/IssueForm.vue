@@ -415,7 +415,7 @@ async function handleSubmit() {
               <Button
                 v-if="!d.deleted && showAppendWildcardBtn(d.domain)"
                 size="small"
-                style="margin-left: 4px; padding: 0 6px"
+                style=" padding: 0 6px;margin-left: 4px"
                 @click="appendWildcard(d.domain)"
               >
                 +通配
@@ -423,7 +423,7 @@ async function handleSubmit() {
               <Button
                 size="small"
                 :type="d.deleted ? 'primary' : 'default'"
-                style="margin-left: 4px; padding: 0 6px"
+                style=" padding: 0 6px;margin-left: 4px"
                 @click="toggleInitialDomain(i)"
               >
                 {{ d.deleted ? '恢复' : '标记删除' }}
@@ -441,7 +441,7 @@ async function handleSubmit() {
               <Button
                 v-if="showAppendWildcardBtn(d)"
                 size="small"
-                style="margin-left: 4px; padding: 0 6px"
+                style=" padding: 0 6px;margin-left: 4px"
                 @click="appendWildcard(d)"
               >
                 +通配
@@ -450,9 +450,9 @@ async function handleSubmit() {
           </div>
           <div
             style="
+              margin-top: 4px;
               font-size: 12px;
               color: var(--ant-color-text-secondary);
-              margin-top: 4px;
             "
           >
             初始化域名只能"标记删除"防误操作; 子域 (api.foo.com) 旁的 +通配 按钮会一并追加 *.foo.com 和裸域 foo.com (可逆). 裸域 foo.com 不显示 +通配 — 签发时后端会自动展开为 foo.com + *.foo.com.
@@ -483,9 +483,9 @@ async function handleSubmit() {
       <FormItem label="到期后行为">
         <div
           style="
+            margin-bottom: 8px;
             font-size: 12px;
             color: var(--ant-color-text-secondary);
-            margin-bottom: 8px;
           "
         >
           授权过期后是否保留以下功能 (白名单路径如登录/授权页始终可用):
@@ -509,13 +509,13 @@ async function handleSubmit() {
         <div
           v-else
           style="
+            margin-top: 6px;
             font-size: 12px;
             color: var(--ant-color-text-tertiary);
-            margin-top: 6px;
           "
         >
           当前策略:
-          <span style="color: var(--ant-color-text-secondary); font-weight: 500">
+          <span style=" font-weight: 500;color: var(--ant-color-text-secondary)">
             {{
               allowAdminAfterExpiry
                 ? '到期后仅管理后台可用'
@@ -555,20 +555,21 @@ async function handleSubmit() {
 
 @media (max-width: 768px) {
   .issue-form-info {
+    padding-bottom: 16px;
+    margin-bottom: 16px;
+
     /* 小屏堆叠时分隔线改为下边线 */
     border-right: none;
     border-bottom: 1px dashed var(--ant-color-split);
-    padding-bottom: 16px;
-    margin-bottom: 16px;
   }
 }
 
 .issue-form-section-title {
+  padding-bottom: 8px;
+  margin-bottom: 12px;
   font-size: 14px;
   font-weight: 500;
   color: var(--ant-color-text);
-  margin-bottom: 12px;
-  padding-bottom: 8px;
   border-bottom: 1px solid var(--ant-color-border-secondary);
 }
 </style>

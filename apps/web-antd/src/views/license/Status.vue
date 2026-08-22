@@ -260,16 +260,16 @@ onUnmounted(() => {
           >
             <!-- 第 1 行: 产品名称（带 Logo 缩略图，兜底 __APP_INFO__） | 授权状态 -->
             <DescriptionsItem label="产品名称">
-              <div style="display: flex; align-items: center; gap: 10px">
+              <div style="display: flex; gap: 10px; align-items: center">
                 <img
                   :src="appLogo"
                   :alt="productCnText"
                   style="
-                    height: 32px;
+                    flex-shrink: 0;
                     width: 32px;
+                    height: 32px;
                     object-fit: contain;
                     border-radius: 4px;
-                    flex-shrink: 0;
                   "
                 />
                 <div style="min-width: 0">
@@ -277,9 +277,9 @@ onUnmounted(() => {
                   <div
                     v-if="productEnText"
                     style="
-                      color: var(--ant-color-text-tertiary);
                       font-size: 12px;
                       line-height: 1.3;
+                      color: var(--ant-color-text-tertiary);
                     "
                   >
                     {{ productEnText }}
@@ -375,8 +375,8 @@ onUnmounted(() => {
 
             <!-- 第 6 行: 到期后行为 (独占整行) -->
             <DescriptionsItem label="到期后行为" :span="2">
-              <div style="display: flex; align-items: center; gap: 16px; flex-wrap: wrap;">
-                <span style="display: inline-flex; align-items: center; gap: 4px;">
+              <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
+                <span style="display: inline-flex; gap: 4px; align-items: center;">
                   <IconifyIcon
                     :icon="statusData?.allowClientApiAfterExpiry ? 'ant-design:check-circle-filled' : 'ant-design:close-circle-filled'"
                     :style="{
@@ -386,7 +386,7 @@ onUnmounted(() => {
                   />
                   客户端{{ statusData?.allowClientApiAfterExpiry ? '可用' : '不可用' }}
                 </span>
-                <span style="display: inline-flex; align-items: center; gap: 4px;">
+                <span style="display: inline-flex; gap: 4px; align-items: center;">
                   <IconifyIcon
                     :icon="statusData?.allowAdminAfterExpiry ? 'ant-design:check-circle-filled' : 'ant-design:close-circle-filled'"
                     :style="{
@@ -396,7 +396,7 @@ onUnmounted(() => {
                   />
                   管理端{{ statusData?.allowAdminAfterExpiry ? '可用' : '不可用' }}
                 </span>
-                <span style="color: var(--ant-color-text-tertiary); font-size: 12px;">
+                <span style=" font-size: 12px;color: var(--ant-color-text-tertiary);">
                   (登录页/授权管理始终可访问)
                 </span>
               </div>

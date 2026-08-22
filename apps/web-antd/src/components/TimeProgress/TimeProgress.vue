@@ -289,19 +289,19 @@ const activeColor = computed(() => {
 
 <style scoped>
 .time-progress {
-  width: 100%;
   display: flex;
   flex-direction: column;
   gap: 4px;
+  width: 100%;
 }
 
 /* 轨道 */
 .time-progress__track {
   position: relative;
   width: 100%;
+  overflow: hidden;
   background: hsl(var(--muted));
   border-radius: 999px;
-  overflow: hidden;
 }
 
 /* 过期态: 整条红色闪烁 (危险视觉) */
@@ -311,14 +311,15 @@ const activeColor = computed(() => {
 
 @keyframes time-progress-blink {
   0%, 100% { opacity: 1; }
+
   50% { opacity: 0.4; }
 }
 
 /* 区间模式填充 */
 .time-progress__fill {
+  position: relative;
   height: 100%;
   border-radius: 999px;
-  position: relative;
   transition: width 0.3s linear;
 }
 
@@ -328,23 +329,23 @@ const activeColor = computed(() => {
 
 /* striped: 45° 斜条纹流动 (Bootstrap 经典 progress bar) */
 .time-progress__fill--striped::before {
-  content: '';
   position: absolute;
   inset: 0;
-  border-radius: 999px;
+  pointer-events: none;
+  content: '';
   background-image: linear-gradient(
     45deg,
-    rgba(255, 255, 255, 0.32) 25%,
+    rgb(255 255 255 / 32%) 25%,
     transparent 25%,
     transparent 50%,
-    rgba(255, 255, 255, 0.32) 50%,
-    rgba(255, 255, 255, 0.32) 75%,
+    rgb(255 255 255 / 32%) 50%,
+    rgb(255 255 255 / 32%) 75%,
     transparent 75%,
     transparent
   );
   background-size: 16px 16px;
+  border-radius: 999px;
   animation: time-progress-stripes 1s linear infinite;
-  pointer-events: none;
 }
 
 /* rtl 反向填充时条纹向反方向流动, 视觉跟填充方向一致 */
@@ -354,59 +355,60 @@ const activeColor = computed(() => {
 
 @keyframes time-progress-stripes {
   from { background-position: 16px 0; }
+
   to { background-position: 0 0; }
 }
 
 /* === variant: glossy === 顶部白色渐变高光, 让条有光泽 */
 .time-progress__fill--glossy::after {
-  content: '';
   position: absolute;
   top: 0;
-  left: 0;
   right: 0;
+  left: 0;
   height: 50%;
-  border-radius: 999px 999px 0 0;
+  pointer-events: none;
+  content: '';
   background: linear-gradient(
     to bottom,
-    rgba(255, 255, 255, 0.35),
-    rgba(255, 255, 255, 0)
+    rgb(255 255 255 / 35%),
+    rgb(255 255 255 / 0%)
   );
-  pointer-events: none;
+  border-radius: 999px 999px 0 0;
 }
 
 /* === variant: decorative === 强光泽 + 发光 + 描边胶囊 */
 .time-progress__track--decorative {
   border: 1px solid hsl(var(--border));
-  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 1px 3px rgb(0 0 0 / 25%);
 }
 
 .time-progress__fill--decorative::after {
-  content: '';
   position: absolute;
   top: 0;
-  left: 0;
   right: 0;
+  left: 0;
   height: 50%;
-  border-radius: 999px 999px 0 0;
+  pointer-events: none;
+  content: '';
   background: linear-gradient(
     to bottom,
-    rgba(255, 255, 255, 0.55),
-    rgba(255, 255, 255, 0.05)
+    rgb(255 255 255 / 55%),
+    rgb(255 255 255 / 5%)
   );
-  pointer-events: none;
+  border-radius: 999px 999px 0 0;
 }
 
 .time-progress__fill--decorative {
   /* 主色发光投影 (沿用 fill 当前 background 颜色不太可控, 用 currentColor 模拟) */
-  filter: drop-shadow(0 0 4px rgba(255, 255, 255, 0.15));
+  filter: drop-shadow(0 0 4px rgb(255 255 255 / 15%));
 }
 
 /* 无限模式: 一段亮条 0%→100%→0% 往复 */
 .time-progress__indeterminate {
   position: absolute;
   top: 0;
-  height: 100%;
   width: 35%;
+  height: 100%;
   border-radius: 999px;
   animation: time-progress-indeterminate 1.8s ease-in-out infinite alternate;
 }
@@ -417,6 +419,7 @@ const activeColor = computed(() => {
 
 @keyframes time-progress-indeterminate {
   0% { left: 0; }
+
   100% { left: 65%; }
 }
 
@@ -424,43 +427,44 @@ const activeColor = computed(() => {
 .time-progress__center {
   position: absolute;
   inset: 0;
+  z-index: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 13px;
   font-weight: 600;
-  color: #fff;
-  pointer-events: none;
   font-variant-numeric: tabular-nums;
+  color: #fff;
   letter-spacing: 0.3px;
+
   /* 多向 text-shadow 模拟 outline 描边, 比单方向阴影对比更稳 */
   text-shadow:
-    -1px -1px 0 rgba(0, 0, 0, 0.55),
-    1px -1px 0 rgba(0, 0, 0, 0.55),
-    -1px 1px 0 rgba(0, 0, 0, 0.55),
-    1px 1px 0 rgba(0, 0, 0, 0.55),
-    0 1px 3px rgba(0, 0, 0, 0.5);
-  -webkit-text-stroke: 0.4px rgba(0, 0, 0, 0.45);
-  z-index: 1;
+    -1px -1px 0 rgb(0 0 0 / 55%),
+    1px -1px 0 rgb(0 0 0 / 55%),
+    -1px 1px 0 rgb(0 0 0 / 55%),
+    1px 1px 0 rgb(0 0 0 / 55%),
+    0 1px 3px rgb(0 0 0 / 50%);
+  pointer-events: none;
+  -webkit-text-stroke: 0.4px rgb(0 0 0 / 45%);
 }
 
 /* 下方一行 */
 .time-progress__sub {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 12px;
-  color: hsl(var(--muted-foreground));
-  font-variant-numeric: tabular-nums;
-  gap: 12px;
   flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  color: hsl(var(--muted-foreground));
 }
 
 .time-progress__sub-left,
 .time-progress__sub-right {
   display: inline-flex;
-  align-items: baseline;
   gap: 4px;
+  align-items: baseline;
 }
 
 .time-progress__sub-label {
@@ -469,8 +473,8 @@ const activeColor = computed(() => {
 }
 
 .time-progress__sub-value {
-  color: hsl(var(--foreground));
   font-weight: 500;
+  color: hsl(var(--foreground));
 }
 
 .time-progress__sub-value--expired {

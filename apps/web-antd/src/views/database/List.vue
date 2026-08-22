@@ -365,7 +365,7 @@ onMounted(() => {
 
           <div
             v-else
-            style="text-align: center; padding: 16px; color: #999"
+            style=" padding: 16px; color: #999;text-align: center"
           >
             无法获取数据库信息
           </div>
@@ -413,10 +413,10 @@ onMounted(() => {
         <div
           v-if="row.md5"
           style="
+            margin-top: 2px;
             font-family: monospace;
             font-size: 11px;
             color: var(--ant-color-text-tertiary);
-            margin-top: 2px;
           "
         >
           MD5: {{ row.md5 }}
@@ -524,7 +524,7 @@ onMounted(() => {
         >
           <Descriptions.Item label="目标数据库">
             <Tag color="red">{{ dbInfo.database }}</Tag>
-            <span style="color: var(--ant-color-text-tertiary); font-size: 12px">
+            <span style=" font-size: 12px;color: var(--ant-color-text-tertiary)">
               ({{ dbInfo.server }})
             </span>
           </Descriptions.Item>

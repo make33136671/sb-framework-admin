@@ -308,10 +308,10 @@ onMounted(fetchData);
 
 .card-title-row {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
   flex-wrap: wrap;
   gap: 8px;
+  align-items: center;
+  justify-content: space-between;
 }
 
 .card-title-text {
@@ -319,30 +319,30 @@ onMounted(fetchData);
 }
 
 .card-title-sub {
-  color: var(--ant-color-text-tertiary);
   margin-left: 6px;
+  color: var(--ant-color-text-tertiary);
 }
 
 .card-title-tags {
   display: flex;
-  align-items: center;
   gap: 4px;
+  align-items: center;
 }
 
 .client-section-title {
+  padding-top: 10px;
   margin: 12px 0 8px;
   font-size: 13px;
   font-weight: 500;
   color: var(--ant-color-text-tertiary);
   border-top: 1px dashed var(--ant-color-border);
-  padding-top: 10px;
 }
 
 .record-pagination {
   display: flex;
   justify-content: flex-end;
-  margin-top: 16px;
   padding-bottom: 8px;
+  margin-top: 16px;
 }
 
 .mono-text {

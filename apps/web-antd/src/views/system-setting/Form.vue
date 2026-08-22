@@ -377,7 +377,7 @@ async function onSubmit(values: Record<string, any>) {
       style="margin-top: 16px; background: var(--ant-color-fill-quaternary)"
     >
       <template #extra>
-        <span style="margin-right: 8px; color: var(--ant-color-text-secondary); font-size: 12px">
+        <span style="margin-right: 8px; font-size: 12px; color: var(--ant-color-text-secondary)">
           {{ currentExample.tip }}
         </span>
         <Button
@@ -401,7 +401,7 @@ async function onSubmit(values: Record<string, any>) {
         v-if="currentExample.json"
         code
       >
-        <pre style="margin: 0; white-space: pre-wrap; font-size: 12px">{{ currentExample.json }}</pre>
+        <pre style="margin: 0; font-size: 12px; white-space: pre-wrap">{{ currentExample.json }}</pre>
       </Typography.Text>
       <Typography.Text v-else type="secondary">
         该显示类型无需数据配置

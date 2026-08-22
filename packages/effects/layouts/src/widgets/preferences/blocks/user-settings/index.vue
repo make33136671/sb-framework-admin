@@ -94,9 +94,9 @@ function toggleSection(section: string) {
 }
 
 .settings-section {
+  overflow: hidden;
   border: 1px solid hsl(var(--border));
   border-radius: 8px;
-  overflow: hidden;
 }
 
 .section-header {
@@ -105,12 +105,12 @@ function toggleSection(section: string) {
   justify-content: space-between;
   padding: 12px 16px;
   cursor: pointer;
-  background: hsl(var(--accent) / 0.3);
+  background: hsl(var(--accent) / 30%);
   transition: background-color 0.2s;
 }
 
 .section-header:hover {
-  background: hsl(var(--accent) / 0.5);
+  background: hsl(var(--accent) / 50%);
 }
 
 .section-content {

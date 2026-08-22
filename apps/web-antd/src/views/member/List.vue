@@ -132,9 +132,9 @@ const realNameLabels: Record<number, { text: string; color: string }> = {
     <Grid>
       <!-- 会员信息: 头像+用户名+名称 -->
       <template #username="{ row }">
-        <div style="display: flex; align-items: center; gap: 8px;">
-          <img v-if="row.avatar" :src="row.avatar" style="width: 32px; height: 32px; border-radius: 50%; object-fit: cover; flex-shrink: 0;" />
-          <div style="line-height: 1.4; font-size: 12px; min-width: 0;">
+        <div style="display: flex; gap: 8px; align-items: center;">
+          <img v-if="row.avatar" :src="row.avatar" style=" flex-shrink: 0;width: 32px; height: 32px; object-fit: cover; border-radius: 50%;" />
+          <div style=" min-width: 0; font-size: 12px;line-height: 1.4;">
             <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">{{ row.username }}</div>
             <div style="color: #999;">{{ row.name }}</div>
           </div>
@@ -143,16 +143,16 @@ const realNameLabels: Record<number, { text: string; color: string }> = {
 
       <!-- 状态/认证: 账户状态+实名+信用分 -->
       <template #status="{ row }">
-        <div style="line-height: 1.6; font-size: 12px;">
+        <div style=" font-size: 12px;line-height: 1.6;">
           <div><Tag :color="row.status == 0 ? 'success' : 'error'" style="margin: 0;">{{ row.status == 0 ? '正常' : '封禁' }}</Tag></div>
           <div style="margin-top: 4px;"><Tag :color="realNameLabels[row.realNameStatus]?.color" style="margin: 0;">{{ realNameLabels[row.realNameStatus]?.text }}</Tag></div>
-          <div style="color: #999; margin-top: 4px;">信用: {{ row.creditScore }}</div>
+          <div style=" margin-top: 4px;color: #999;">信用: {{ row.creditScore }}</div>
         </div>
       </template>
 
       <!-- 邀请/推荐: 邀请码+直推人数+上级 -->
       <template #invitationCode="{ row }">
-        <div style="line-height: 1.4; font-size: 12px;">
+        <div style=" font-size: 12px;line-height: 1.4;">
           <div v-if="row.invitationCode">邀请码: {{ row.invitationCode }}</div>
           <div>直推: <span style="color: #1890ff;">{{ row.directInviteCount ?? 0 }}</span> 人</div>
           <div v-if="row.parentName" style="color: #999;">上级: {{ row.parentName }}</div>
@@ -161,7 +161,7 @@ const realNameLabels: Record<number, { text: string; color: string }> = {
 
       <!-- 注册/最后在线 -->
       <template #createTime="{ row }">
-        <div style="line-height: 1.4; font-size: 12px;">
+        <div style=" font-size: 12px;line-height: 1.4;">
           <div>注册: {{ fmtTime(row.createTime) }}</div>
           <div style="color: #999;">在线: {{ fmtTime(row.lastOnlineTime) }}</div>
         </div>

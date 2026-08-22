@@ -645,36 +645,36 @@ onMounted(() => {
 /* 根:作为 ops-tools tabpane 的直接子,被父级 flex:1+min-height:0 撑满全高。
  * 自身 flex column 占满,内部纯 flex 布局,无 Vben Page 的额外结构开销。 */
 .app-settings-page {
-  height: 100%;
-  min-height: 0;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
+  height: 100%;
+  min-height: 0;
   padding: 12px;
+  overflow: hidden;
 }
 
 /* 两栏容器:flex:1 撑满根的剩余高度(根无 header,即全高);两栏并排 */
 .settings-layout {
-  flex: 1;
-  min-height: 0;
   display: flex;
+  flex: 1;
   gap: 12px;
+  min-height: 0;
 }
 
 /* 左:编辑器卡片,flex 行容器 align-items:stretch 默认垂直撑满 layout 高度 */
 .editor-card {
+  display: flex;
   flex: 1;
+  flex-direction: column;
   min-width: 0;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
 }
 
 /* card-body flex 撑满 editor-card,position:relative 作为 editor-body 的定位锚 */
 .editor-card :deep(.ant-card-body) {
+  position: relative;
   flex: 1;
   min-height: 0;
-  position: relative;
 }
 
 /* editor-body 用 absolute inset:0 填满 card-body:高度完全由 card-body 决定,
@@ -695,8 +695,8 @@ onMounted(() => {
 /* 可视化模式内容较长时,滚动条落在这里(编辑器卡片内部),不外溢成整页滚动 */
 .visual-scroll {
   height: 100%;
-  overflow: auto;
   padding: 12px;
+  overflow: auto;
 }
 
 /* 右:操作按钮竖排面板,固定窄宽。
@@ -704,27 +704,28 @@ onMounted(() => {
  * 展开并顶部对齐。这样全页只有编辑器一个滚动区,鼠标滚轮不会在两个滚动条间冲突,
  * 右栏底部的路径/大小/修改时间也永远完整可见,不会被裁掉。 */
 .action-panel {
-  flex: 0 0 auto;
-  width: 136px;
-  min-width: 0;
-  align-self: flex-start;
   display: flex;
+  flex: 0 0 auto;
   flex-direction: column;
   gap: 8px;
+  align-self: flex-start;
+  width: 136px;
+  min-width: 0;
 }
 
 /* 移动端:固定在屏幕底部的滑出面板。默认 translateY(100%) 藏在屏幕外,
  * --open 时滑入。纯 CSS transform,无 Teleport/Drawer 的 DOM 时序坑。 */
 .action-panel--mobile {
   position: fixed;
-  left: 0;
   right: 0;
   bottom: 0;
+  left: 0;
   z-index: 1001;
   width: auto;
   max-height: 80vh;
-  overflow-y: auto;
   padding: 12px 16px calc(16px + env(safe-area-inset-bottom));
+  overflow-y: auto;
+
   /* 用 shadcn 的 :root token(挂在根元素,fixed 元素也能继承到;antd 的 --ant-* 变量
    * 在这个脱离 ConfigProvider 容器的 fixed 面板上解析为空,会透明) */
   background: hsl(var(--background));
@@ -759,9 +760,9 @@ onMounted(() => {
 
 .panel-auto-restart {
   display: flex;
+  gap: 8px;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
   padding: 0 2px;
 }
 
@@ -798,7 +799,7 @@ onMounted(() => {
 }
 
 .json-editor {
-  font-family: 'SFMono-Regular', 'Menlo', 'Consolas', monospace;
+  font-family: SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 13px;
   line-height: 1.5;
 }
@@ -810,29 +811,29 @@ onMounted(() => {
 }
 
 .diff-title {
-  font-weight: 500;
   margin-bottom: 6px;
+  font-weight: 500;
   color: var(--ant-color-text-secondary);
 }
 
 .diff-pre {
   max-height: 60vh;
-  overflow: auto;
   padding: 8px 12px;
-  font-family: 'SFMono-Regular', 'Menlo', monospace;
+  overflow: auto;
+  font-family: SFMono-Regular, Menlo, monospace;
   font-size: 12px;
   line-height: 1.4;
+  word-break: break-all;
+  white-space: pre-wrap;
   background: var(--ant-color-fill-tertiary);
   border: 1px solid var(--ant-color-border);
   border-radius: 4px;
-  white-space: pre-wrap;
-  word-break: break-all;
 }
 
 .history-list {
-  list-style: none;
-  margin: 0;
   padding: 0;
+  margin: 0;
+  list-style: none;
 }
 
 .history-list li {
@@ -847,9 +848,9 @@ onMounted(() => {
 }
 
 code {
-  font-family: 'SFMono-Regular', 'Menlo', monospace;
-  font-size: 12px;
   padding: 2px 6px;
+  font-family: SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
   background: var(--ant-color-fill-tertiary);
   border-radius: 3px;
 }

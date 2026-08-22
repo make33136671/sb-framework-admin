@@ -1,4 +1,5 @@
 export { default as Block } from './block.vue';
+export { default as Custom } from './custom/custom.vue';
 export { default as Animation } from './general/animation.vue';
 export { default as General } from './general/general.vue';
 export { default as Breadcrumb } from './layout/breadcrumb.vue';
@@ -18,4 +19,3 @@ export { default as ColorMode } from './theme/color-mode.vue';
 export { default as FontSize } from './theme/font-size.vue';
 export { default as Radius } from './theme/radius.vue';
 export { default as Theme } from './theme/theme.vue';
-export { default as UserSettings } from './user-settings/index.vue';

@@ -220,16 +220,19 @@ const handleCancel = () => {
 .form-item {
   margin-bottom: 20px;
 }
+
 .form-label {
   display: block;
   margin-bottom: 8px;
   font-weight: 500;
   color: #333;
 }
+
 .required {
-  color: #ff4d4f;
   margin-left: 4px;
+  color: #ff4d4f;
 }
+
 .form-hint {
   margin-top: 4px;
   font-size: 12px;

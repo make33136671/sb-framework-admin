@@ -1,4 +1,4 @@
-<script setup lang="ts">
+﻿<script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -197,8 +197,8 @@ onMounted(() => {
         left: 24px;
         z-index: 5;
         display: flex;
-        align-items: center;
         gap: 12px;
+        align-items: center;
       "
     >
       <span
@@ -223,28 +223,28 @@ onMounted(() => {
     <!-- 中间内容区 -->
     <div
       style="
-        min-height: 100vh;
         display: flex;
         align-items: center;
         justify-content: center;
-        padding: 72px 24px 24px 24px;
+        min-height: 100vh;
+        padding: 72px 24px 24px;
       "
     >
-      <Card style="max-width: 1100px; width: 100%;">
+      <Card style=" width: 100%;max-width: 1100px;">
         <!-- 左右布局: 左 (标题 + 授权信息) / 右获取授权 -->
         <!-- 关键: 右侧容器 min-height 预留离线 tab 的最大高度, 切换 tab 不跳动 -->
         <div
           style="
             display: flex;
+            flex-wrap: wrap;
             gap: 32px;
             align-items: flex-start;
-            flex-wrap: wrap;
           "
         >
           <!-- 左侧: 授权状态标题 + 授权详情（产品身份合到表格里）-->
           <div style="flex: 1 1 360px; min-width: 300px;">
             <!-- 授权状态标题 (有 statusData 时才显示, 没启用授权就跳过)-->
-            <div v-if="statusData" style="text-align: center; margin-bottom: 24px;">
+            <div v-if="statusData" style=" margin-bottom: 24px;text-align: center;">
               <div
                 :style="{
                   fontSize: '56px',
@@ -257,10 +257,10 @@ onMounted(() => {
               </div>
               <h2
                 style="
-                  margin: 0 0 8px 0;
-                  color: var(--ant-color-text);
+                  margin: 0 0 8px;
                   font-size: 22px;
                   font-weight: 600;
+                  color: var(--ant-color-text);
                 "
               >
                 {{ isMissingPublicKey ? '未配置 RSA 公钥' : '系统授权已到期' }}
@@ -268,8 +268,8 @@ onMounted(() => {
               <p
                 style="
                   margin: 0;
-                  color: var(--ant-color-text-secondary);
                   font-size: 14px;
+                  color: var(--ant-color-text-secondary);
                 "
               >
                 {{ isMissingPublicKey ? '请在 appsettings.json 中配置 LicenseConfig:PublicKeyXml 后重启服务' : '请联系管理员续期授权' }}
@@ -283,16 +283,16 @@ onMounted(() => {
               :label-style="{ width: '110px', whiteSpace: 'nowrap' }"
             >
               <DescriptionsItem label="产品名称">
-                <div style="display: flex; align-items: center; gap: 10px">
+                <div style="display: flex; gap: 10px; align-items: center">
                   <img
                     :src="appLogo"
                     :alt="productCnText"
                     style="
-                      height: 32px;
+                      flex-shrink: 0;
                       width: 32px;
+                      height: 32px;
                       object-fit: contain;
                       border-radius: 4px;
-                      flex-shrink: 0;
                     "
                   />
                   <div style="min-width: 0">
@@ -300,9 +300,9 @@ onMounted(() => {
                     <div
                       v-if="productEnText"
                       style="
-                        color: var(--ant-color-text-tertiary);
                         font-size: 12px;
                         line-height: 1.3;
+                        color: var(--ant-color-text-tertiary);
                       "
                     >
                       {{ productEnText }}
@@ -333,7 +333,7 @@ onMounted(() => {
                 <Tag v-if="statusData.requiresDomain" color="blue">域名</Tag>
                 <Tag v-if="statusData.requiresClientKey" color="blue">ClientKey</Tag>
                 <Tag v-if="statusData.requiresHardwareId" color="blue">HardwareId</Tag>
-                <span v-if="!statusData.requiresProduct && !statusData.requiresDomain && !statusData.requiresClientKey && !statusData.requiresHardwareId" style="color: var(--ant-color-text-tertiary); font-size: 12px">
+                <span v-if="!statusData.requiresProduct && !statusData.requiresDomain && !statusData.requiresClientKey && !statusData.requiresHardwareId" style=" font-size: 12px;color: var(--ant-color-text-tertiary)">
                   仅验证到期
                 </span>
               </DescriptionsItem>
@@ -341,7 +341,7 @@ onMounted(() => {
                 {{ statusData.identity?.hardwareInfo?.machineName || '-' }}
               </DescriptionsItem>
               <DescriptionsItem label="操作系统">
-                <span style="font-size: 12px; word-break: break-word">
+                <span style="font-size: 12px; overflow-wrap: break-word">
                   {{ statusData.identity?.hardwareInfo?.osDescription || '-' }}
                 </span>
               </DescriptionsItem>
@@ -367,16 +367,16 @@ onMounted(() => {
               :label-style="{ width: '110px', whiteSpace: 'nowrap' }"
             >
               <DescriptionsItem label="产品名称">
-                <div style="display: flex; align-items: center; gap: 10px">
+                <div style="display: flex; gap: 10px; align-items: center">
                   <img
                     :src="appLogo"
                     :alt="productCnText"
                     style="
-                      height: 32px;
+                      flex-shrink: 0;
                       width: 32px;
+                      height: 32px;
                       object-fit: contain;
                       border-radius: 4px;
-                      flex-shrink: 0;
                     "
                   />
                   <div style="min-width: 0">
@@ -384,9 +384,9 @@ onMounted(() => {
                     <div
                       v-if="productEnText"
                       style="
-                        color: var(--ant-color-text-tertiary);
                         font-size: 12px;
                         line-height: 1.3;
+                        color: var(--ant-color-text-tertiary);
                       "
                     >
                       {{ productEnText }}
@@ -401,9 +401,9 @@ onMounted(() => {
             <p
               v-if="!statusData"
               style="
-                color: var(--ant-color-text-secondary);
-                font-size: 13px;
                 margin-top: 12px;
+                font-size: 13px;
+                color: var(--ant-color-text-secondary);
               "
             >
               {{ licenseMessage.replace(/\s*UTC\s*$/, '') }}
@@ -427,13 +427,13 @@ onMounted(() => {
             paddingLeft: '32px',
           }">
             <!-- 验证 token 中: 避免旧 token 造成的"看起来可操作但实际 401"闪烁 -->
-            <div v-if="!tokenChecked" style="text-align: center; padding: 40px 0;">
+            <div v-if="!tokenChecked" style=" padding: 40px 0;text-align: center;">
               <Spin size="large" />
               <p
                 style="
                   margin-top: 16px;
-                  color: var(--ant-color-text-secondary);
                   font-size: 14px;
+                  color: var(--ant-color-text-secondary);
                 "
               >
                 正在检测登录状态...

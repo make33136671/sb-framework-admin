@@ -244,7 +244,7 @@ const copy = (text: string) => {
         <Grid>
           <template #displayName="{ row }">
             <div style="font-weight: 500">{{ row.displayName || row.name }}</div>
-            <div style="font-size: 11px; color: var(--ant-color-text-tertiary); font-family: monospace">
+            <div style=" font-family: monospace;font-size: 11px; color: var(--ant-color-text-tertiary)">
               {{ row.name }}
             </div>
           </template>
@@ -336,19 +336,19 @@ const copy = (text: string) => {
       <Tabs.TabPane key="log" tab="任务日志" class="h-full">
         <LogGrid>
           <template #log_source="{ row }">
-            <div style="line-height: 1.5; font-size: 12px;">
+            <div style=" font-size: 12px;line-height: 1.5;">
               <div>
                 <Tag :color="sourceMap[row.source]?.color" style="margin: 0;">{{ sourceMap[row.source]?.label || '未知' }}</Tag>
                 <Tag :color="logLevelMap[row.logLevel]?.color" style="margin: 0 0 0 4px;">{{ logLevelMap[row.logLevel]?.label }}</Tag>
               </div>
-              <div style="color: #666; margin-top: 2px;">{{ row.taskName }}</div>
+              <div style=" margin-top: 2px;color: #666;">{{ row.taskName }}</div>
             </div>
           </template>
 
           <template #log_message="{ row }">
-            <div style="line-height: 1.5; font-size: 12px;">
+            <div style=" font-size: 12px;line-height: 1.5;">
               <div>{{ row.message }}</div>
-              <div v-if="row.exception" style="color: #ff4d4f; margin-top: 2px;">
+              <div v-if="row.exception" style=" margin-top: 2px;color: #ff4d4f;">
                 {{ row.exception.length > 80 ? row.exception.substring(0, 80) + '...' : row.exception }}
               </div>
             </div>
@@ -372,27 +372,27 @@ const copy = (text: string) => {
       width="700px"
       :footer="null"
     >
-      <div v-if="logLoading" style="text-align: center; padding: 24px">
+      <div v-if="logLoading" style=" padding: 24px;text-align: center">
         加载中...
       </div>
       <div
         v-else-if="logList.length === 0"
-        style="text-align: center; padding: 24px; color: #999"
+        style=" padding: 24px; color: #999;text-align: center"
       >
         暂无日志
       </div>
-      <div v-else style="max-height: 500px; overflow-y: auto; padding: 8px 0">
+      <div v-else style="max-height: 500px; padding: 8px 0; overflow-y: auto">
         <Timeline>
           <Timeline.Item
             v-for="log in logList"
             :key="log.id"
             :color="logLevelMap[log.logLevel]?.color || 'blue'"
           >
-            <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px">
+            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px">
               <Tag :color="logLevelMap[log.logLevel]?.color" size="small">
                 {{ logLevelMap[log.logLevel]?.label || 'Unknown' }}
               </Tag>
-              <span style="color: #999; font-size: 12px">
+              <span style=" font-size: 12px;color: #999">
                 {{ new Date(log.createdTime).toLocaleString('zh-CN') }}
               </span>
             </div>
@@ -400,14 +400,14 @@ const copy = (text: string) => {
             <div
               v-if="log.exception"
               style="
-                margin-top: 4px;
                 padding: 8px;
-                background: #fff2f0;
-                border-radius: 4px;
+                margin-top: 4px;
                 font-size: 12px;
                 color: #ff4d4f;
-                white-space: pre-wrap;
                 word-break: break-all;
+                white-space: pre-wrap;
+                background: #fff2f0;
+                border-radius: 4px;
               "
             >
               {{ log.exception }}
@@ -428,33 +428,33 @@ const copy = (text: string) => {
         <div style="margin-bottom: 12px;">
           <Tag :color="sourceMap[detailRow.source]?.color">{{ sourceMap[detailRow.source]?.label }}</Tag>
           <Tag :color="logLevelMap[detailRow.logLevel]?.color">{{ logLevelMap[detailRow.logLevel]?.label }}</Tag>
-          <span style="color: #999; margin-left: 8px;">{{ fmtTime(detailRow.createdTime) }}</span>
+          <span style=" margin-left: 8px;color: #999;">{{ fmtTime(detailRow.createdTime) }}</span>
         </div>
 
-        <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">
+        <div style=" display: flex; gap: 4px; align-items: center;margin-bottom: 8px;">
           <strong>来源名称：</strong>{{ detailRow.taskName }}
           <Button size="small" @click="copy(detailRow.taskName)">复制</Button>
         </div>
 
-        <div style="margin-bottom: 8px; display: flex; align-items: center; gap: 4px;">
+        <div style=" display: flex; gap: 4px; align-items: center;margin-bottom: 8px;">
           <strong>消息：</strong>{{ detailRow.message }}
           <Button size="small" @click="copy(detailRow.message)">复制</Button>
         </div>
 
         <div v-if="detailInfo" style="margin-bottom: 8px;">
-          <div style="display: flex; align-items: center; gap: 4px;">
+          <div style="display: flex; gap: 4px; align-items: center;">
             <strong>异常信息：</strong>
             <Button size="small" @click="copy(detailInfo)">复制</Button>
           </div>
-          <pre style="margin-top: 4px; padding: 12px; background: #1e1e1e; color: #d4d4d4; border-radius: 6px; font-size: 12px; white-space: pre-wrap; word-break: break-all; max-height: 200px; overflow-y: auto;">{{ detailInfo }}</pre>
+          <pre style=" max-height: 200px; padding: 12px;margin-top: 4px; overflow-y: auto; font-size: 12px; color: #d4d4d4; word-break: break-all; white-space: pre-wrap; background: #1e1e1e; border-radius: 6px;">{{ detailInfo }}</pre>
         </div>
 
         <div v-if="detailStack">
-          <div style="display: flex; align-items: center; gap: 4px;">
+          <div style="display: flex; gap: 4px; align-items: center;">
             <strong>堆栈信息：</strong>
             <Button size="small" @click="copy(detailStack)">复制</Button>
           </div>
-          <pre style="margin-top: 4px; padding: 12px; background: #1e1e1e; color: #d4d4d4; border-radius: 6px; font-size: 12px; white-space: pre-wrap; word-break: break-all; max-height: 300px; overflow-y: auto;">{{ detailStack }}</pre>
+          <pre style=" max-height: 300px; padding: 12px;margin-top: 4px; overflow-y: auto; font-size: 12px; color: #d4d4d4; word-break: break-all; white-space: pre-wrap; background: #1e1e1e; border-radius: 6px;">{{ detailStack }}</pre>
         </div>
       </div>
     </Modal>

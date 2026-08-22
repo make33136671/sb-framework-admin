@@ -62,7 +62,7 @@ const activeKey = ref<TabKey>(resolveInitialTab());
 <style scoped>
 /* Page → Tabs → TabPane → 子组件 高度链路要全部撑满，
  * 否则 vxe-grid 的 height:'auto' 会自己无限撑开（数据库备份 Tab 之前
- * 表格越来越长就是断在这里）*/
+ * 表格越来越长就是断在这里） */
 .ops-tabs {
   display: flex;
   flex-direction: column;
@@ -72,8 +72,8 @@ const activeKey = ref<TabKey>(resolveInitialTab());
 .ops-tabs :deep(.ant-tabs-content-holder) {
   display: flex;
   flex: 1;
-  min-height: 0;
   flex-direction: column;
+  min-height: 0;
 }
 
 .ops-tabs :deep(.ant-tabs-content) {

@@ -144,7 +144,7 @@ const handleCloseDetail = () => {
       :footer="null"
       @cancel="handleCloseDetail"
     >
-      <div v-if="detailLoading" style="text-align: center; padding: 40px;">
+      <div v-if="detailLoading" style=" padding: 40px;text-align: center;">
         加载中...
       </div>
       <template v-else-if="currentLog">
@@ -181,10 +181,11 @@ const handleCloseDetail = () => {
 .email-body {
   margin-top: 16px;
 }
+
 .empty-body {
   padding: 40px;
-  text-align: center;
   color: var(--ant-color-text-quaternary);
+  text-align: center;
   background: var(--ant-color-fill-quaternary);
   border-radius: 4px;
 }

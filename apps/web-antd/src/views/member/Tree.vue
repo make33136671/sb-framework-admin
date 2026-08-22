@@ -190,18 +190,18 @@ const switchToOverview = () => {
 
 <style scoped>
 .tree-page {
-  padding: 16px;
-  height: 100%;
   display: flex;
   flex-direction: column;
+  height: 100%;
+  padding: 16px;
 }
 
 .tree-header {
   display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 16px;
   flex-shrink: 0;
+  gap: 12px;
+  align-items: center;
+  margin-bottom: 16px;
 }
 
 .tree-title {
@@ -211,19 +211,19 @@ const switchToOverview = () => {
 }
 
 .focus-card {
-  background: var(--ant-color-fill-quaternary);
-  border-radius: 8px;
+  flex-shrink: 0;
   padding: 16px;
   margin-bottom: 16px;
-  flex-shrink: 0;
+  background: var(--ant-color-fill-quaternary);
   border: 1px solid var(--ant-color-border);
+  border-radius: 8px;
 }
 
 .focus-card-inner {
   display: flex;
-  align-items: center;
-  gap: 16px;
   flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
 }
 
 .focus-name {
@@ -233,30 +233,30 @@ const switchToOverview = () => {
 }
 
 .focus-name-sub {
-  color: var(--ant-color-text-quaternary);
-  font-weight: 400;
   margin-left: 4px;
+  font-weight: 400;
+  color: var(--ant-color-text-quaternary);
 }
 
 .focus-time {
-  color: var(--ant-color-text-quaternary);
   font-size: 12px;
+  color: var(--ant-color-text-quaternary);
 }
 
 .tree-container {
   flex: 1;
+  padding: 16px;
   overflow: auto;
   background: var(--ant-color-bg-container);
-  border-radius: 8px;
   border: 1px solid var(--ant-color-border);
-  padding: 16px;
+  border-radius: 8px;
 }
 
 
 .tree-node {
   display: inline-flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
   padding: 6px 0;
   font-size: 13px;
 }
@@ -271,36 +271,36 @@ const switchToOverview = () => {
 }
 
 .node-tag {
+  padding: 0 4px;
   margin: 0;
   font-size: 11px;
   line-height: 18px;
-  padding: 0 4px;
 }
 
 .node-child-count {
-  color: var(--ant-color-primary);
   font-size: 12px;
+  color: var(--ant-color-primary);
 }
 
 .node-time {
-  color: var(--ant-color-text-quaternary);
   font-size: 11px;
+  color: var(--ant-color-text-quaternary);
 }
 
 .node-link {
-  padding: 0;
   height: auto;
+  padding: 0;
   font-size: 12px;
 }
 </style>
 
 <style>
 .tree-container .ant-tree-list-holder-inner > .ant-tree-treenode {
-  border-bottom: 1px solid rgba(128, 128, 128, 0.15);
   padding-inline: 4px;
+  border-bottom: 1px solid rgb(128 128 128 / 15%);
 }
 
 .tree-container .ant-tree-list-holder-inner > .ant-tree-treenode:nth-child(odd) {
-  background: rgba(128, 128, 128, 0.06);
+  background: rgb(128 128 128 / 6%);
 }
 </style>

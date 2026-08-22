@@ -926,10 +926,10 @@ onUnmounted(stopTimers);
             <Descriptions.Item label="zip 入口前 10 项">
               <div
                 style="
-                  font-family: monospace;
-                  font-size: 12px;
                   max-height: 160px;
                   overflow: auto;
+                  font-family: monospace;
+                  font-size: 12px;
                 "
               >
                 <div v-for="e in confirmPreview.entries" :key="e">{{ e }}</div>
@@ -989,15 +989,15 @@ onUnmounted(stopTimers);
 
 /* 文件名在记录表内允许换行(组件默认 nowrap+ellipsis 会撑宽) */
 .records-table :deep(.deploy-card__file) {
-  white-space: normal;
   word-break: break-all;
+  white-space: normal;
 }
 
 .records-table :deep(.ant-table-thead > tr > th),
 .records-table :deep(.ant-table-tbody > tr > td) {
-  white-space: normal;
   word-break: break-all;
   overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 /* 时间标签(TimeTag 的 antd Tag)默认 inline-block 不换行会撑宽,
@@ -1005,8 +1005,8 @@ onUnmounted(stopTimers);
 .records-table :deep(.time-tag) {
   display: inline-block;
   max-width: 100%;
-  white-space: normal;
   word-break: break-all;
+  white-space: normal;
 }
 
 .deploy-grid {
@@ -1045,8 +1045,8 @@ onUnmounted(stopTimers);
 /* 单项行:左对齐,内部若有多个元素(如状态 Tag)横向排列 */
 .cell-stack__line {
   display: flex;
-  align-items: center;
   gap: 6px;
+  align-items: center;
   min-width: 0;
 }
 
@@ -1070,8 +1070,8 @@ onUnmounted(stopTimers);
 
 .deploy-card__row {
   display: flex;
-  align-items: center;
   gap: 8px;
+  align-items: center;
   font-size: 13px;
 }
 
@@ -1119,18 +1119,18 @@ onUnmounted(stopTimers);
 }
 
 .checkbox-label {
-  cursor: pointer;
   display: inline-flex;
-  align-items: center;
   gap: 4px;
+  align-items: center;
+  cursor: pointer;
 }
 
 .filter-select {
   height: 28px;
   padding: 0 8px;
+  color: var(--ant-color-text);
+  background: var(--ant-color-bg-container);
   border: 1px solid var(--ant-color-border);
   border-radius: 4px;
-  background: var(--ant-color-bg-container);
-  color: var(--ant-color-text);
 }
 </style>
