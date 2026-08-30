@@ -1,14 +1,13 @@
 /**
  * 安装向导 API
  * 使用 fetch 直接请求，不走 auth 拦截器（安装时没有认证）
+ * Setup 端点挂在 /admin/ 下，与业务接口共用 baseURL，nginx 统一反代
  */
 import { useAppConfig } from '@vben/hooks';
 
 const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
 
-// Setup 接口在新版 SB.Framework 挂在 /api/ 下（业务接口在 /admin/），
-// 业务 baseURL 末尾的 /admin 替换成 /api 给 Setup 用，兼容 prod 同 host 反代
-const setupApiURL = apiURL.replace(/\/admin\/?$/, '/api');
+const setupApiURL = apiURL;
 
 interface ApiResult<T = any> {
   code: number;
@@ -42,4 +41,21 @@ export async function testRedisApi(config: Record<string, any>) {
 
 export async function installApi(request: Record<string, any>) {
   return setupFetch('/Setup/Install', request);
+}
+
+export async function getDeployHintsApi() {
+  return setupFetch<{
+    isDocker?: boolean;
+    apiPath: string;
+    adminPath: string;
+    h5Path: string;
+    database?: {
+      dbType: string;
+      server: string;
+      port: string;
+      database: string;
+      user: string;
+      password: string;
+    };
+  }>('/Setup/DeployHints');
 }

@@ -26,6 +26,7 @@ import {
 
 import {
   checkSetupStatusApi,
+  getDeployHintsApi,
   installApi,
   testDatabaseApi,
   testRedisApi,
@@ -156,6 +157,9 @@ const dbTypeLabel = computed(() =>
   dbType.value === 'PostgreSql' ? 'PostgreSQL' : 'MySQL',
 );
 
+// === Docker 模式标记 ===
+const isDocker = ref(false);
+
 // === 初始化 ===
 onMounted(async () => {
   try {
@@ -164,10 +168,38 @@ onMounted(async () => {
       installed.value = true;
     }
   } catch {}
+
+  try {
+    const res = await getDeployHintsApi();
+    if (res.code === 0 && res.data) {
+      const hints = res.data;
+      if (hints.isDocker) {
+        isDocker.value = true;
+        if (hints.database) {
+          dbType.value = hints.database.dbType;
+          dbServer.value = hints.database.server;
+          dbPort.value = hints.database.port;
+          dbName.value = hints.database.database;
+          dbUser.value = hints.database.user;
+          dbPassword.value = hints.database.password;
+        }
+        sitePaths.value = [
+          { type: 'admin', path: hints.adminPath || '/app/admin-ui' },
+          { type: 'h5', path: hints.h5Path || '/app/user-ui' },
+        ];
+      } else if (hints.adminPath || hints.h5Path) {
+        sitePaths.value = [
+          { type: 'admin', path: hints.adminPath || '' },
+          { type: 'h5', path: hints.h5Path || '' },
+        ];
+      }
+    }
+  } catch {}
 });
 
 // === 数据库类型切换 ===
 function onDbTypeChange(val: string) {
+  if (isDocker.value && val !== 'PostgreSql') return;
   dbType.value = val;
   if (val === 'PostgreSql' && dbPort.value === '3306') {
     dbPort.value = '5432';
@@ -206,16 +238,18 @@ function onPrimaryDomainChange() {
 function onProductEnChange() {
   const name = productEn.value.toLowerCase().replace(/[^a-z0-9]/g, '');
   productEn.value = name;
-  // 联动数据库名（首字母大写）
-  if (name) {
+  // 联动数据库名（首字母大写）— Docker 模式使用容器预设值，跳过
+  if (name && !isDocker.value) {
     dbName.value = name.charAt(0).toUpperCase() + name.slice(1);
   }
   // 联动缓存前缀
   cachePrefix.value = name ? `${name}:` : 'sb:';
-  // 联动站点路径
-  sitePaths.value.forEach(s => {
-    s.path = `/www/wwwroot/${name}_${s.type}`;
-  });
+  // 联动站点路径 — Docker 模式使用容器预设路径，跳过
+  if (!isDocker.value) {
+    sitePaths.value.forEach(s => {
+      s.path = `/www/wwwroot/${name}_${s.type}`;
+    });
+  }
 }
 
 // === Logo 上传 ===
@@ -656,7 +690,7 @@ function fillFormFromConfig(config: any) {
           <div class="form-item">
             <label>数据库类型</label>
             <RadioGroup :value="dbType" @change="(e: any) => onDbTypeChange(e.target.value)">
-              <Radio value="MySql">MySQL</Radio>
+              <Radio v-if="!isDocker" value="MySql">MySQL</Radio>
               <Radio value="PostgreSql">PostgreSQL</Radio>
             </RadioGroup>
           </div>
