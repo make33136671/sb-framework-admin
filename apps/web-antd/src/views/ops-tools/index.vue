@@ -7,6 +7,7 @@ import { Page } from '@vben/common-ui';
 import { Tabs } from 'ant-design-vue';
 
 import AppSettingsView from '../app-settings/index.vue';
+import BrandView from '../brand/index.vue';
 import CacheList from '../cache/List.vue';
 import DatabaseList from '../database/List.vue';
 import SqlList from '../sql/List.vue';
@@ -21,6 +22,7 @@ const TAB_KEYS = [
   'sql',
   'app-settings',
   'setup-config',
+  'brand',
 ] as const;
 type TabKey = (typeof TAB_KEYS)[number];
 
@@ -64,6 +66,9 @@ const activeKey = ref<TabKey>(resolveInitialTab());
       </Tabs.TabPane>
       <Tabs.TabPane key="setup-config" tab="安装配置导出">
         <SetupConfigView />
+      </Tabs.TabPane>
+      <Tabs.TabPane key="brand" tab="品牌图标">
+        <BrandView />
       </Tabs.TabPane>
     </Tabs>
   </Page>
