@@ -10,11 +10,18 @@ import AppSettingsView from '../app-settings/index.vue';
 import CacheList from '../cache/List.vue';
 import DatabaseList from '../database/List.vue';
 import SqlList from '../sql/List.vue';
+import SetupConfigView from './setup-config.vue';
 
 const route = useRoute();
 
 /** 合法 tab key 列表，URL ?tab= 仅用于进入时定位初始 Tab */
-const TAB_KEYS = ['backup', 'cache', 'sql', 'app-settings'] as const;
+const TAB_KEYS = [
+  'backup',
+  'cache',
+  'sql',
+  'app-settings',
+  'setup-config',
+] as const;
 type TabKey = (typeof TAB_KEYS)[number];
 
 /**
@@ -54,6 +61,9 @@ const activeKey = ref<TabKey>(resolveInitialTab());
       </Tabs.TabPane>
       <Tabs.TabPane key="app-settings" tab="配置文件">
         <AppSettingsView />
+      </Tabs.TabPane>
+      <Tabs.TabPane key="setup-config" tab="安装配置导出">
+        <SetupConfigView />
       </Tabs.TabPane>
     </Tabs>
   </Page>
