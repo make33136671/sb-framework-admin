@@ -25,12 +25,36 @@ const props = withDefaults(defineProps<Props>(), {
 
 // 单位标签 (中/英)
 const ZH_UNITS = [
-  '厘', '分', '角', '元', '十', '百', '千',
-  '万', '十万', '百万', '千万', '亿', '十亿', '百亿',
+  '厘',
+  '分',
+  '角',
+  '元',
+  '十',
+  '百',
+  '千',
+  '万',
+  '十万',
+  '百万',
+  '千万',
+  '亿',
+  '十亿',
+  '百亿',
 ];
 const EN_UNITS = [
-  'Mill', 'Cent', 'Dime', '1', '10', '100', '1K',
-  '10K', '100K', '1M', '10M', '100M', '1B', '10B',
+  'Mill',
+  'Cent',
+  'Dime',
+  '1',
+  '10',
+  '100',
+  '1K',
+  '10K',
+  '100K',
+  '1M',
+  '10M',
+  '100M',
+  '1B',
+  '10B',
 ];
 
 // 渐进色阶: 从冷色浅调到暖色深调, 视觉重量逐级递增
@@ -116,7 +140,11 @@ const formattedAmount = computed(() => {
     <span class="amount-display__sep"></span>
     <span class="amount-display__value">{{ formattedAmount }}</span>
     <span class="amount-display__currency">
-      <IconifyIcon v-if="mode === 'icon'" :icon="currencyIcon" class="amount-display__icon" />
+      <IconifyIcon
+        v-if="mode === 'icon'"
+        :icon="currencyIcon"
+        class="amount-display__icon"
+      />
       <template v-else>{{ currency }}</template>
     </span>
   </span>

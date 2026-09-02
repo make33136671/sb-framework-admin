@@ -51,15 +51,56 @@ const gridOptions: VxeGridProps = {
   columns: [
     { field: 'id', title: 'Id', width: 60 },
     { field: 'name', title: '名称', minWidth: 140 },
-    { field: 'tokenPrefix', title: '前缀', width: 120, slots: { default: 'prefix' } },
-    { field: 'fullAccess', title: '权限', width: 110, slots: { default: 'access' } },
-    { field: 'scopes', title: 'Scopes', minWidth: 200, slots: { default: 'scopes' } },
-    { field: 'rateLimitPerMinute', title: '速率/分', width: 80, slots: { default: 'rate' } },
-    { field: 'expiresAt', title: '过期', width: 120, slots: { default: 'expires' } },
-    { field: 'lastUsedAt', title: '最近使用', width: 150, slots: { default: 'lastUsed' } },
+    {
+      field: 'tokenPrefix',
+      title: '前缀',
+      width: 120,
+      slots: { default: 'prefix' },
+    },
+    {
+      field: 'fullAccess',
+      title: '权限',
+      width: 110,
+      slots: { default: 'access' },
+    },
+    {
+      field: 'scopes',
+      title: 'Scopes',
+      minWidth: 200,
+      slots: { default: 'scopes' },
+    },
+    {
+      field: 'rateLimitPerMinute',
+      title: '速率/分',
+      width: 80,
+      slots: { default: 'rate' },
+    },
+    {
+      field: 'expiresAt',
+      title: '过期',
+      width: 120,
+      slots: { default: 'expires' },
+    },
+    {
+      field: 'lastUsedAt',
+      title: '最近使用',
+      width: 150,
+      slots: { default: 'lastUsed' },
+    },
     { field: 'createdBy', title: '创建者', width: 100 },
-    { field: 'isDeleted', title: '状态', width: 80, slots: { default: 'status' } },
-    { field: 'action', fixed: 'right', slots: { default: 'action' }, title: '操作', width: 220 },
+    {
+      field: 'isDeleted',
+      title: '状态',
+      width: 80,
+      slots: { default: 'status' },
+    },
+    {
+      field: 'action',
+      fixed: 'right',
+      slots: { default: 'action' },
+      title: '操作',
+      width: 220,
+    },
   ],
   height: 'auto',
   keepSource: true,
@@ -139,7 +180,8 @@ async function handleSave() {
   } else {
     const res: any = await postCreate({
       name: editForm.value.name,
-      serviceAccount: editForm.value.serviceAccount?.trim() || editForm.value.name.trim(),
+      serviceAccount:
+        editForm.value.serviceAccount?.trim() || editForm.value.name.trim(),
       scopes: editForm.value.fullAccess ? undefined : editForm.value.scopes,
       fullAccess: editForm.value.fullAccess,
       expiresAt,
@@ -285,9 +327,15 @@ function scopeBadges(scopes?: string) {
       </template>
 
       <template #scopes="{ row }">
-        <Typography.Text v-if="row.fullAccess" type="secondary">—</Typography.Text>
+        <Typography.Text v-if="row.fullAccess" type="secondary"
+          >—</Typography.Text
+        >
         <Space v-else :size="4" wrap>
-          <Tag v-for="s in scopeBadges(row.scopes)" :key="s.key" :color="s.color">
+          <Tag
+            v-for="s in scopeBadges(row.scopes)"
+            :key="s.key"
+            :color="s.color"
+          >
             {{ s.label }}
           </Tag>
         </Space>
@@ -322,8 +370,12 @@ function scopeBadges(scopes?: string) {
 
       <template #action="{ row }">
         <Space>
-          <Button type="primary" size="small" @click="openAudit(row)">审计</Button>
-          <Button v-if="!row.isDeleted" size="small" @click="handleEdit(row)">编辑</Button>
+          <Button type="primary" size="small" @click="openAudit(row)"
+            >审计</Button
+          >
+          <Button v-if="!row.isDeleted" size="small" @click="handleEdit(row)"
+            >编辑</Button
+          >
           <Button
             v-if="!row.isDeleted"
             type="primary"
@@ -361,7 +413,9 @@ function scopeBadges(scopes?: string) {
         <Form.Item v-if="!isEditMode">
           <template #label>
             FullAccess(god)
-            <Tooltip title="全权穿透所有接口并旁路 License,取代原 MasterKey。仅超级管理员可签发,必须设过期。慎用!">
+            <Tooltip
+              title="全权穿透所有接口并旁路 License,取代原 MasterKey。仅超级管理员可签发,必须设过期。慎用!"
+            >
               <span style="margin-left: 4px; cursor: help">ⓘ</span>
             </Tooltip>
           </template>
@@ -377,7 +431,9 @@ function scopeBadges(scopes?: string) {
         <Form.Item v-if="!editForm.fullAccess">
           <template #label>
             Scopes
-            <Tooltip title="RBAC 逗号分隔。* 全部 / read:* 全部读 / read:task / write:requirement。留空=该 key 在所有已开放 [Scope] 端点放行。受限 key 不能访问未声明 [Scope] 的端点。">
+            <Tooltip
+              title="RBAC 逗号分隔。* 全部 / read:* 全部读 / read:task / write:requirement。留空=该 key 在所有已开放 [Scope] 端点放行。受限 key 不能访问未声明 [Scope] 的端点。"
+            >
               <span style="margin-left: 4px; cursor: help">ⓘ</span>
             </Tooltip>
           </template>
@@ -394,7 +450,10 @@ function scopeBadges(scopes?: string) {
           />
         </Form.Item>
         <Form.Item label="IP 白名单(逗号分隔,留空=不限;支持 192.168.10. 前缀)">
-          <Input v-model:value="editForm.ipAllowlist" placeholder="如:192.168.10.65,10.0.0." />
+          <Input
+            v-model:value="editForm.ipAllowlist"
+            placeholder="如:192.168.10.65,10.0.0."
+          />
         </Form.Item>
         <Form.Item>
           <template #label>
@@ -411,7 +470,11 @@ function scopeBadges(scopes?: string) {
           />
         </Form.Item>
         <Form.Item label="备注">
-          <Input.TextArea v-model:value="editForm.notes" :rows="2" placeholder="可选" />
+          <Input.TextArea
+            v-model:value="editForm.notes"
+            :rows="2"
+            placeholder="可选"
+          />
         </Form.Item>
       </Form>
     </Modal>
@@ -518,9 +581,12 @@ function scopeBadges(scopes?: string) {
             }}</Tag>
           </template>
           <template v-else-if="column.dataIndex === 'requestPath'">
-            <Typography.Text v-if="record.requestPath" code style="font-size: 12px">{{
-              record.requestPath
-            }}</Typography.Text>
+            <Typography.Text
+              v-if="record.requestPath"
+              code
+              style="font-size: 12px"
+              >{{ record.requestPath }}</Typography.Text
+            >
             <Typography.Text v-else type="secondary">-</Typography.Text>
           </template>
           <template v-else-if="column.dataIndex === 'denyReason'">

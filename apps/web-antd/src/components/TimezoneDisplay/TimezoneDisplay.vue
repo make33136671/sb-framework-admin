@@ -113,7 +113,9 @@ const zhName = computed(() => {
   return `${continent} ${city}`;
 });
 
-const offset = computed(() => (props.timezone ? getOffset(props.timezone) : ''));
+const offset = computed(() =>
+  props.timezone ? getOffset(props.timezone) : '',
+);
 </script>
 
 <template>

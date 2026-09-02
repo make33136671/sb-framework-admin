@@ -1,7 +1,7 @@
 # 上传组件体系重构设计
 
 | 字段 | 值 |
-|---|---|
+| --- | --- |
 | 日期 | 2026-04-28 |
 | 状态 | design（待评审） |
 | 作者 | 用户 + Claude |
@@ -27,7 +27,7 @@ bug 已经修复，但同样的问题会在新业务页继续出现。本次重�
 ## 2. 目标
 
 | # | 目标 | 验收 |
-|---|---|---|
+| --- | --- | --- |
 | G1 | 业务页只通过 3 个公共组件使用上传，不再直接 `useSmartUpload` 写样板 | 全项目搜不到外部对 `useSmartUpload` 的引用，只剩组件内部 |
 | G2 | 直传 / 切片 UI 视觉一致 | 同 type 切换上传模式肉眼无差别 |
 | G3 | 前端不再硬编码阈值，由后端 `UploadConfig` 驱动 | 调整后端配置可改变前端切片阈值，无需重新发版 |
@@ -61,7 +61,7 @@ views/_core/upload-stress/index.vue      bug 复现/回归测试页（dev only�
 ### 3.2 已识别问题
 
 | # | 问题 | 后果 |
-|---|---|---|
+| --- | --- | --- |
 | P1 | `<SmartUpload>` 公共组件 API 不足 | 业务页绕过组件，重复造轮子 |
 | P2 | 样板三件套（`syncState`/`UploadState`/`setInterval`）在多处重复 | 改一处难推广，bug 易复发 |
 | P3 | 普通直传零组件封装 | loading/error/进度展示参差不齐 |
@@ -80,7 +80,7 @@ views/_core/upload-stress/index.vue      bug 复现/回归测试页（dev only�
 ## 4. 需求确认（与用户讨论结果）
 
 | 编号 | 决定 |
-|---|---|
+| --- | --- |
 | 顶层入口 | 提供 3 个并列公共组件：`<DirectUpload>`（强制直传）、`<ChunkUpload>`（强制切片）、`<SmartUpload>`（自动按 `ChunkThresholdMB` 选） |
 | props 一致性 | K1：三组件共享同一份 props/emits/slots，业务页切换组件只需改 tag 名 |
 | v-model 形态 | A1 + H2：单文件 `string`、多文件 `string[]`，存**相对路径**（如 `/storage/uploads/abc.png`） |
@@ -154,7 +154,7 @@ views/_core/upload-stress/index.vue      bug 复现/回归测试页（dev only�
 ### 6.1 props（三组件共用）
 
 | 名 | 类型 | 默认 | 说明 |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `value`（v-model） | `string \| string[]` | `''` / `[]` | 文件相对路径（如 `/storage/uploads/abc.png`），多文件时为数组 |
 | `type` | `'image' \| 'images' \| 'video' \| 'videos' \| 'file' \| 'files'` | `'file'` | 决定默认 UI 与 accept 默认值 |
 | `maxCount` | `number` | 单 = 1，多 = `Infinity` | 文件数量上限（含已存在 + 上传中） |
@@ -165,7 +165,7 @@ views/_core/upload-stress/index.vue      bug 复现/回归测试页（dev only�
 ### 6.2 emits（三组件共用）
 
 | 事件 | 参数 | 触发时机 |
-|---|---|---|
+| --- | --- | --- |
 | `update:value` | `string \| string[]`（相对路径） | v-model 双向同步：成功 / 删除 / 重试都会触发 |
 | `change` | `UploadDetail \| UploadDetail[]` | v-model 同时机；`detail` 含 `{fileName, absfileName, name, size}` |
 | `success` | 同 `change` 但**仅在新文件刚上传成功瞬间**触发，不含删除 | 用于"上传完成做点事"，如 avatar-setting 调 `changeAvatarApi` |
@@ -174,16 +174,16 @@ views/_core/upload-stress/index.vue      bug 复现/回归测试页（dev only�
 ### 6.3 slots（三组件共用）
 
 | 名 | scope | 说明 |
-|---|---|---|
+| --- | --- | --- |
 | `default` | `{ items, addFiles, cancel, retry, remove }` | **完全自定义** UI，default slot 提供时 `<UploadUi>` 不渲染 |
 | `extra` | 同上 | 在默认 UI 旁追加内容（说明文字、自定义按钮等） |
 
 ### 6.4 暴露方法（`defineExpose`）
 
-| 方法 | 说明 |
-|---|---|
-| `cancelAll(): void` | 取消所有进行中的上传项 |
-| `clear(): void` | 清空整个列表（含已完成） |
+| 方法                            | 说明                           |
+| ------------------------------- | ------------------------------ |
+| `cancelAll(): void`             | 取消所有进行中的上传项         |
+| `clear(): void`                 | 清空整个列表（含已完成）       |
 | `addFiles(files: File[]): void` | 程序化添加文件（绕过点击选择） |
 
 ### 6.5 共享类型
@@ -354,7 +354,7 @@ public class UploadConfig
 ### 8.2 路径统一 — 合并为单个 `UploadController`
 
 | 新路径 | 原路径 | 变化 |
-|---|---|---|
+| --- | --- | --- |
 | `GET /admin/Upload/Config` | — | 新增 |
 | `POST /admin/Upload/Direct` | `/admin/Auth/Upload`（位于 AuthController，调 FileUploadService） | 重命名并迁移到新 UploadController；FileUploadService 保留或合入 UploadService |
 | `POST /admin/Upload/ChunkInit` | `/admin/ChunkUpload/Init` | 重命名 |
@@ -391,6 +391,7 @@ public class UploadConfigDto
 ### 8.4 返回值统一加 `size` + `name`
 
 `Direct` 端点：
+
 ```csharp
 return Result.Success("上传成功", new {
     fileName = relativePath,
@@ -432,7 +433,7 @@ sb-admin/apps/web-antd/src/api/core/upload.ts   统一上传 API（替代 chunkU
 ### 9.2 业务页迁移清单
 
 | 文件 | 现状 | 迁移目标 |
-|---|---|---|
+| --- | --- | --- |
 | `views/_core/profile/avatar-setting.vue` | 手写 customRequest + uploadFileApi | `<DirectUpload type="image" v-model:value="form.avatar" @success="onUploaded">` |
 | `views/system-setting/SettingRender.vue` | DisplayType 6/17/18 各自手写 | 6 ImageUpload → `<DirectUpload type="image">`；17 MultiImageUpload → `<DirectUpload type="images">`；18 FileUpload → `<DirectUpload type="files">` |
 | `views/_core/setup/setup.vue` | 安装向导（logo 等） | `<DirectUpload type="image">` |
@@ -442,7 +443,7 @@ sb-admin/apps/web-antd/src/api/core/upload.ts   统一上传 API（替代 chunkU
 ### 9.3 删除清单
 
 | 文件 / 符号 | 原因 |
-|---|---|
+| --- | --- |
 | `components/SmartUpload/` 整目录 | 被 `components/Upload/` 替代 |
 | `api/core/admin.ts` 的 `uploadFileApi` 函数 | 内部封装在 `useDirectUpload` 中，不再对外 |
 | `api/core/chunkUpload.ts` | 改名 `api/core/upload.ts`，整合切片+直传+config |
@@ -451,10 +452,12 @@ sb-admin/apps/web-antd/src/api/core/upload.ts   统一上传 API（替代 chunkU
 ### 9.4 数据迁移
 
 数据库存的旧 URL：
+
 - 现有惯例：业务页保存的是**绝对 URL**（如 `http://x.com/storage/uploads/abc.png`）
 - 新组件 v-model 是**相对路径**
 
 **迁移策略**：
+
 - 不写 SQL 迁移脚本（每张表的字段名各异，写脚本风险高）
 - 业务页迁移到新组件时，在初始化处加一次性兼容逻辑：
 
@@ -471,7 +474,7 @@ form.avatar = stripHost(rawDataFromBackend.avatar);
 ## 10. 错误处理
 
 | 场景 | 处理 |
-|---|---|
+| --- | --- |
 | 文件类型不符（accept 不通过） | 选文件阶段拦截，`message.error('不支持的文件类型: xxx')`，不入队 |
 | 文件超过 `MaxFileSizeMB` | 选文件阶段拦截，`message.error('文件超过 X MB 限制')` |
 | 多文件超 `maxCount` | 选文件阶段拦截，`message.error('最多 N 个文件')` |
@@ -487,12 +490,13 @@ form.avatar = stripHost(rawDataFromBackend.avatar);
 ## 11. 测试策略
 
 | 层级 | 内容 |
-|---|---|
+| --- | --- |
 | 手动 | `/test/upload-stress` 页面：3 组件并发上传 + 取消 + 重试 + 删除（覆盖核心交互） |
 | 单元 | `useUploadQueue` 排队逻辑（mock useDirectUpload）— 逻辑独立，值得写 |
 | E2E | 暂不做（投入产出比） |
 
 `useUploadQueue` 单元测试要点：
+
 - 入队 N 个文件，验证同时只有 1 个 uploading，其它为 queued
 - 第一个完成后，第二个自动开始
 - 中途 cancel 一个，剩下的继续
@@ -527,7 +531,10 @@ public Result Init(string fileName, long fileSize, string fileMd5) { ... }
  * 多文件上传排队消费器
  * 同时仅 1 个上传中，前一个完成后自动消费下一个 queued
  */
-export function useUploadQueue(items: Ref<UploadItem[]>, runUpload: (item: UploadItem) => Promise<void>) {
+export function useUploadQueue(
+  items: Ref<UploadItem[]>,
+  runUpload: (item: UploadItem) => Promise<void>,
+) {
   // ...
 }
 
@@ -552,7 +559,7 @@ export interface UploadDetail {
 ## 13. 风险与兼容性
 
 | 风险 | 缓解 |
-|---|---|
+| --- | --- |
 | 后端 endpoint 路径变更，已发版的客户端 404 | 项目目前只有内部使用的 admin 端，不存在外部 client；上线前确保前后端同时部署 |
 | 数据库存的旧绝对 URL 无法直接 v-model 接 | 业务页迁移时加 `stripHost` 兼容，老数据展示无错 |
 | 用户业务页正在编辑表单时切换到新组件，行为差异（如 success 事件参数变） | 全部业务页迁移列在 §9.2，逐个测试，不漏 |

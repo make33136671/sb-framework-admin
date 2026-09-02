@@ -65,7 +65,9 @@ const emit = defineEmits<{
 }>();
 
 // 后端 UTC 字符串没带 Z 时按本地时间解析会有偏差, 兜底补 Z
-function parseTime(v: Date | null | number | string | undefined): null | number {
+function parseTime(
+  v: Date | null | number | string | undefined,
+): null | number {
   if (v == null) return null;
   if (v instanceof Date) return v.getTime();
   if (typeof v === 'number') return v;
@@ -90,9 +92,12 @@ let timer: null | ReturnType<typeof setInterval> = null;
 
 function startTimer() {
   if (timer) clearInterval(timer);
-  timer = setInterval(() => {
-    now.value = Date.now();
-  }, Math.max(100, props.refreshInterval));
+  timer = setInterval(
+    () => {
+      now.value = Date.now();
+    },
+    Math.max(100, props.refreshInterval),
+  );
 }
 
 onMounted(() => startTimer());
@@ -100,7 +105,10 @@ onBeforeUnmount(() => {
   if (timer) clearInterval(timer);
   timer = null;
 });
-watch(() => props.refreshInterval, () => startTimer());
+watch(
+  () => props.refreshInterval,
+  () => startTimer(),
+);
 
 // === 状态机 ===
 type Status = 'expired' | 'infinite' | 'not-started' | 'running';
@@ -222,7 +230,9 @@ const activeColor = computed(() => {
       :style="{
         height: `${heightPx}px`,
         // expired 状态整条变红，优先级最高；非 expired 时若传了 trackColor 就覆盖默认 muted
-        ...(trackColor && status !== 'expired' ? { background: trackColor } : {}),
+        ...(trackColor && status !== 'expired'
+          ? { background: trackColor }
+          : {}),
         ...(status === 'expired' ? { background: expiredColor } : {}),
       }"
     >
@@ -233,8 +243,7 @@ const activeColor = computed(() => {
         :class="[
           `time-progress__fill--${variant}`,
           {
-            'time-progress__fill--striped':
-              striped && status === 'running',
+            'time-progress__fill--striped': striped && status === 'running',
             'time-progress__fill--rtl': fillDirection === 'rtl',
           },
         ]"
@@ -276,7 +285,8 @@ const activeColor = computed(() => {
             :class="{
               'time-progress__sub-value--expired': status === 'expired',
             }"
-          >{{ remainingText }}</span>
+            >{{ remainingText }}</span
+          >
         </span>
         <span v-if="showExpires" class="time-progress__sub-right">
           <span class="time-progress__sub-label">到期</span>
@@ -310,9 +320,14 @@ const activeColor = computed(() => {
 }
 
 @keyframes time-progress-blink {
-  0%, 100% { opacity: 1; }
+  0%,
+  100% {
+    opacity: 1;
+  }
 
-  50% { opacity: 0.4; }
+  50% {
+    opacity: 0.4;
+  }
 }
 
 /* 区间模式填充 */
@@ -354,9 +369,13 @@ const activeColor = computed(() => {
 }
 
 @keyframes time-progress-stripes {
-  from { background-position: 16px 0; }
+  from {
+    background-position: 16px 0;
+  }
 
-  to { background-position: 0 0; }
+  to {
+    background-position: 0 0;
+  }
 }
 
 /* === variant: glossy === 顶部白色渐变高光, 让条有光泽 */
@@ -418,9 +437,13 @@ const activeColor = computed(() => {
 }
 
 @keyframes time-progress-indeterminate {
-  0% { left: 0; }
+  0% {
+    left: 0;
+  }
 
-  100% { left: 65%; }
+  100% {
+    left: 65%;
+  }
 }
 
 /* 中心叠加文字: 白字 + 描边 + 阴影, 在任意底色上保持清晰 */

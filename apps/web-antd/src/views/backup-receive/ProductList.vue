@@ -2,15 +2,20 @@
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-import { Button, Card, Form, FormItem, Input, Space, Table, Tag } from 'ant-design-vue';
+import {
+  Button,
+  Card,
+  Form,
+  FormItem,
+  Input,
+  Space,
+  Table,
+  Tag,
+} from 'ant-design-vue';
 
 import { api } from '#/api/request';
 import { TimeTag } from '#/components/TimeTag';
-import {
-  type BackupProductSummary,
-  getProductList,
-  toServerUrl,
-} from './api';
+import { type BackupProductSummary, getProductList, toServerUrl } from './api';
 
 // 程序时区：从后端 /Verification/Status 取 appTimeZone（即服务端 appsettings.TimeZone）
 // 这样表格里所有时间都是"按服务端配置时区显示"，跟服务端日志/调度对齐
@@ -94,9 +99,9 @@ onMounted(() => {
 </script>
 
 <template>
-  <div style="padding: 24px;">
+  <div style="padding: 24px">
     <Card>
-      <Form layout="inline" style="margin-bottom: 16px;" @submit.prevent>
+      <Form layout="inline" style="margin-bottom: 16px" @submit.prevent>
         <FormItem label="搜索">
           <Input
             v-model:value="keyword"
@@ -198,7 +203,14 @@ onMounted(() => {
             />
           </template>
           <template v-else-if="column.key === 'clientIps'">
-            <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start">
+            <div
+              style="
+                display: flex;
+                flex-direction: column;
+                gap: 4px;
+                align-items: flex-start;
+              "
+            >
               <Tag
                 v-for="ip in record.clientIps"
                 :key="ip"
@@ -210,7 +222,11 @@ onMounted(() => {
             </div>
           </template>
           <template v-else-if="column.key === 'action'">
-            <Button type="primary" size="small" @click="goDetail(record.productEn)">
+            <Button
+              type="primary"
+              size="small"
+              @click="goDetail(record.productEn)"
+            >
               查看
             </Button>
           </template>

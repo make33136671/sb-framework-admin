@@ -42,9 +42,7 @@ const isVideo = computed(
   () => props.type === 'video' || props.type === 'videos',
 );
 /** 是否文件类型 */
-const isFile = computed(
-  () => props.type === 'file' || props.type === 'files',
-);
+const isFile = computed(() => props.type === 'file' || props.type === 'files');
 
 /** 是否还能添加（未达到 maxCount） */
 const canAdd = computed(
@@ -186,7 +184,10 @@ function formatSize(bytes?: number): string {
           </div>
 
           <!-- 哈希中遮罩（炫酷大圆环） -->
-          <div v-if="item.status === 'hashing'" class="overlay overlay--hashing">
+          <div
+            v-if="item.status === 'hashing'"
+            class="overlay overlay--hashing"
+          >
             <div class="hashing-spinner hashing-spinner--card">
               <div class="hashing-spinner__inner" />
             </div>
@@ -216,13 +217,15 @@ function formatSize(bytes?: number): string {
               danger
               size="small"
               @click="emit('cancel', item.uid)"
-            >取消</Button>
+              >取消</Button
+            >
             <Button
               v-else-if="item.status === 'error'"
               type="primary"
               size="small"
               @click="emit('retry', item.uid)"
-            >重试</Button>
+              >重试</Button
+            >
             <Button size="small" @click="emit('remove', item.uid)">删除</Button>
           </div>
         </div>
@@ -295,7 +298,9 @@ function formatSize(bytes?: number): string {
                   <div
                     v-if="item.status === 'uploading'"
                     class="progress-center-content__percent"
-                  >{{ percent }}%</div>
+                  >
+                    {{ percent }}%
+                  </div>
                   <div v-else class="progress-center-content__label">
                     {{
                       item.status === 'queued'
@@ -334,11 +339,7 @@ function formatSize(bytes?: number): string {
               "
               class="thread-row"
             >
-              <div
-                v-for="th in item.threads"
-                :key="th.id"
-                class="thread-item"
-              >
+              <div v-for="th in item.threads" :key="th.id" class="thread-item">
                 <Progress
                   type="circle"
                   :size="threadSize"
@@ -378,24 +379,25 @@ function formatSize(bytes?: number): string {
               v-if="item.status === 'done' && item.absfileName"
               size="small"
               @click="triggerDownload(item.absfileName!, item.name)"
-            >下载</Button>
+              >下载</Button
+            >
             <Button
               v-if="item.status === 'uploading'"
               danger
               size="small"
               @click="emit('cancel', item.uid)"
-            >取消</Button>
+              >取消</Button
+            >
             <Button
               v-if="item.status === 'error'"
               type="primary"
               size="small"
               @click="emit('retry', item.uid)"
-            >重试</Button>
-            <Button
-              danger
-              size="small"
-              @click="emit('remove', item.uid)"
-            >删除</Button>
+              >重试</Button
+            >
+            <Button danger size="small" @click="emit('remove', item.uid)"
+              >删除</Button
+            >
           </div>
         </div>
 
@@ -778,7 +780,8 @@ function formatSize(bytes?: number): string {
 }
 
 @keyframes hashing-pulse {
-  0%, 100% {
+  0%,
+  100% {
     opacity: 0.6;
   }
 

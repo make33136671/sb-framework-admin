@@ -50,7 +50,9 @@ const tailCount = ref(500);
 
 const files = computed<LogFile[]>(() => {
   if (!selectedArchive.value) return currentFiles.value;
-  return archives.value.find((a) => a.folder === selectedArchive.value)?.files ?? [];
+  return (
+    archives.value.find((a) => a.folder === selectedArchive.value)?.files ?? []
+  );
 });
 
 const archiveOptions = computed(() => [
@@ -94,7 +96,11 @@ async function handleSelect(fileName: string) {
   contentLoading.value = true;
   content.value = '';
   try {
-    const data = await readFile(fileName, tailCount.value, selectedArchive.value || undefined);
+    const data = await readFile(
+      fileName,
+      tailCount.value,
+      selectedArchive.value || undefined,
+    );
     content.value = data.content;
     totalLines.value = data.totalLines;
     returnedLines.value = data.returnedLines;
@@ -109,7 +115,11 @@ async function handleLoadAll() {
   if (!selectedFile.value) return;
   contentLoading.value = true;
   try {
-    const data = await readFile(selectedFile.value, 0, selectedArchive.value || undefined);
+    const data = await readFile(
+      selectedFile.value,
+      0,
+      selectedArchive.value || undefined,
+    );
     content.value = data.content;
     totalLines.value = data.totalLines;
     returnedLines.value = data.returnedLines;
@@ -153,11 +163,11 @@ onMounted(() => {
 
 <template>
   <Page auto-content-height>
-    <div style="display: flex; gap: 16px; height: 100%;">
+    <div style="display: flex; gap: 16px; height: 100%">
       <!-- 左侧文件列表 -->
       <Card
         title="日志文件"
-        style=" flex-shrink: 0;width: 360px; overflow-y: auto;"
+        style="flex-shrink: 0; width: 360px; overflow-y: auto"
         :loading="filesLoading"
       >
         <template #extra>
@@ -166,32 +176,38 @@ onMounted(() => {
         <Select
           v-model:value="selectedArchive"
           :options="archiveOptions"
-          style="width: 100%; margin-bottom: 12px;"
+          style="width: 100%; margin-bottom: 12px"
           size="small"
           @change="handleArchiveChange"
         />
         <List size="small" :data-source="files">
           <template #renderItem="{ item }">
             <ListItem
-              style=" padding: 8px 12px;cursor: pointer;"
-              :style="{ background: selectedFile === item.name ? 'hsl(var(--accent))' : '' }"
+              style="padding: 8px 12px; cursor: pointer"
+              :style="{
+                background:
+                  selectedFile === item.name ? 'hsl(var(--accent))' : '',
+              }"
               @click="handleSelect(item.name)"
             >
               <ListItemMeta>
                 <template #title>
-                  <div style="display: flex; gap: 6px; align-items: center;">
-                    <Tag :color="getLevelTag(item.name).color" style="margin: 0;">
+                  <div style="display: flex; gap: 6px; align-items: center">
+                    <Tag
+                      :color="getLevelTag(item.name).color"
+                      style="margin: 0"
+                    >
                       {{ getLevelTag(item.name).label }}
                     </Tag>
-                    <span style="font-size: 13px;">{{ item.name }}</span>
+                    <span style="font-size: 13px">{{ item.name }}</span>
                   </div>
                 </template>
                 <template #description>
-                  <Space style="font-size: 12px;">
+                  <Space style="font-size: 12px">
                     <span>{{ fmtSize(item.size) }}</span>
                     <span>{{ fmtTime(item.lastModified) }}</span>
                     <a
-                      style="color: hsl(var(--primary));"
+                      style="color: hsl(var(--primary))"
                       @click.stop="handleDownload(item.name)"
                     >
                       下载
@@ -206,40 +222,67 @@ onMounted(() => {
 
       <!-- 右侧内容区 -->
       <Card
-        style=" display: flex;flex: 1; flex-direction: column; overflow: hidden;"
+        style="display: flex; flex: 1; flex-direction: column; overflow: hidden"
         :loading="contentLoading"
       >
         <template #title>
           <span v-if="selectedFile">{{ selectedFile }}</span>
-          <span v-else style="color: hsl(var(--muted-foreground));">请选择日志文件</span>
+          <span v-else style="color: hsl(var(--muted-foreground))"
+            >请选择日志文件</span
+          >
         </template>
         <template v-if="selectedFile" #extra>
           <Space>
-            <span style="font-size: 12px; color: hsl(var(--muted-foreground));">
+            <span style="font-size: 12px; color: hsl(var(--muted-foreground))">
               显示 {{ returnedLines }} / {{ totalLines }} 行
             </span>
-            <span style="font-size: 12px; color: hsl(var(--muted-foreground));">尾部行数:</span>
+            <span style="font-size: 12px; color: hsl(var(--muted-foreground))"
+              >尾部行数:</span
+            >
             <InputNumber
               v-model:value="tailCount"
               :min="100"
               :max="10000"
               :step="500"
               size="small"
-              style="width: 100px;"
+              style="width: 100px"
             />
-            <Button size="small" @click="handleSelect(selectedFile)">刷新</Button>
+            <Button size="small" @click="handleSelect(selectedFile)"
+              >刷新</Button
+            >
             <Button size="small" @click="handleLoadAll">加载全部</Button>
-            <Button size="small" @click="handleDownload(selectedFile)">下载</Button>
+            <Button size="small" @click="handleDownload(selectedFile)"
+              >下载</Button
+            >
           </Space>
         </template>
 
         <pre
           v-if="content"
-          style="flex: 1; max-height: calc(100vh - 220px); padding: 16px; margin: 0; overflow: auto; font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace; font-size: 12px; line-height: 1.6; color: #d4d4d4; word-break: break-all; white-space: pre-wrap; background: #1e1e1e; border-radius: 6px;"
-        >{{ content }}</pre>
+          style="
+            flex: 1;
+            max-height: calc(100vh - 220px);
+            padding: 16px;
+            margin: 0;
+            overflow: auto;
+            font-family: 'JetBrains Mono', 'Fira Code', Consolas, monospace;
+            font-size: 12px;
+            line-height: 1.6;
+            color: #d4d4d4;
+            word-break: break-all;
+            white-space: pre-wrap;
+            background: #1e1e1e;
+            border-radius: 6px;
+          "
+          >{{ content }}</pre
+        >
         <div
           v-else-if="!selectedFile"
-          style=" padding: 80px 0; color: hsl(var(--muted-foreground));text-align: center;"
+          style="
+            padding: 80px 0;
+            color: hsl(var(--muted-foreground));
+            text-align: center;
+          "
         >
           点击左侧日志文件查看内容
         </div>

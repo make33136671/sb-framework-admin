@@ -128,9 +128,16 @@ onMounted(fetchData);
                     {{ row.client?.productCn || row.productEn || '-' }}
                   </span>
                   <span class="card-title-sub">
-                    {{ row.client?.productEn ? `(${row.client.productEn})` : '' }}
+                    {{
+                      row.client?.productEn ? `(${row.client.productEn})` : ''
+                    }}
                   </span>
-                  <Tag v-if="row.client?.isDeleted" color="default" style="margin-left: 6px">客户已删除</Tag>
+                  <Tag
+                    v-if="row.client?.isDeleted"
+                    color="default"
+                    style="margin-left: 6px"
+                    >客户已删除</Tag
+                  >
                 </span>
                 <span class="card-title-tags">
                   <Tag v-if="row.status === 0" color="green">有效</Tag>
@@ -157,7 +164,9 @@ onMounted(fetchData);
             >
               <DescriptionsItem label="记录 ID">{{ row.id }}</DescriptionsItem>
               <DescriptionsItem label="验证模式">
-                <Tag :color="deriveVerifyMode(row).color">{{ deriveVerifyMode(row).text }}</Tag>
+                <Tag :color="deriveVerifyMode(row).color">{{
+                  deriveVerifyMode(row).text
+                }}</Tag>
               </DescriptionsItem>
               <DescriptionsItem label="产品标识">
                 <span class="mono-text">{{ row.productEn || '-' }}</span>
@@ -167,19 +176,29 @@ onMounted(fetchData);
                 <span class="mono-text-sm">{{ parseJson(row.domains) }}</span>
               </DescriptionsItem>
 
-              <DescriptionsItem label="ClientKey" :span="row.hardwareId ? 1 : 2">
+              <DescriptionsItem
+                label="ClientKey"
+                :span="row.hardwareId ? 1 : 2"
+              >
                 <span class="mono-text-sm" :title="row.clientKey">
                   {{ shortId(row.clientKey, 32) }}
                 </span>
               </DescriptionsItem>
-              <DescriptionsItem label="HardwareId" :span="row.clientKey ? 2 : 1">
+              <DescriptionsItem
+                label="HardwareId"
+                :span="row.clientKey ? 2 : 1"
+              >
                 <span class="mono-text-sm" :title="row.hardwareId">
                   {{ shortId(row.hardwareId, 32) }}
                 </span>
               </DescriptionsItem>
 
               <DescriptionsItem label="签发时间">
-                <TimeTag color="cyan" :time="fmtTime(row.issuedAt)" :timezone="localTimezone" />
+                <TimeTag
+                  color="cyan"
+                  :time="fmtTime(row.issuedAt)"
+                  :timezone="localTimezone"
+                />
               </DescriptionsItem>
               <DescriptionsItem label="到期时间">
                 <TimeTag
@@ -189,7 +208,11 @@ onMounted(fetchData);
                 />
               </DescriptionsItem>
               <DescriptionsItem label="生成时间">
-                <TimeTag color="default" :time="fmtTime(row.createdTime)" :timezone="localTimezone" />
+                <TimeTag
+                  color="default"
+                  :time="fmtTime(row.createdTime)"
+                  :timezone="localTimezone"
+                />
               </DescriptionsItem>
 
               <DescriptionsItem label="到期后行为" :span="3">
@@ -210,29 +233,46 @@ onMounted(fetchData);
             <template v-if="row.client">
               <div class="client-section-title">客户环境</div>
               <Descriptions
-              bordered
-              size="small"
-              :column="{ xs: 1, sm: 2, md: 2, lg: 2, xl: 3, xxl: 3 }"
-              :label-style="{ width: '110px', whiteSpace: 'nowrap' }"
-            >
+                bordered
+                size="small"
+                :column="{ xs: 1, sm: 2, md: 2, lg: 2, xl: 3, xxl: 3 }"
+                :label-style="{ width: '110px', whiteSpace: 'nowrap' }"
+              >
                 <DescriptionsItem label="声明域名">
                   <span class="mono-text">{{ row.client.domain || '-' }}</span>
                 </DescriptionsItem>
                 <DescriptionsItem label="实际域名">
-                  <span class="mono-text" :class="{ 'warn-text': row.client.lastActualDomain && row.client.lastActualDomain !== row.client.domain }">
+                  <span
+                    class="mono-text"
+                    :class="{
+                      'warn-text':
+                        row.client.lastActualDomain &&
+                        row.client.lastActualDomain !== row.client.domain,
+                    }"
+                  >
                     {{ row.client.lastActualDomain || '-' }}
                   </span>
                 </DescriptionsItem>
                 <DescriptionsItem label="服务器 IP">
-                  <span class="mono-text">{{ row.client.serverIP || '-' }}</span>
+                  <span class="mono-text">{{
+                    row.client.serverIP || '-'
+                  }}</span>
                 </DescriptionsItem>
 
-                <DescriptionsItem label="机器名">{{ row.client.machineName || '-' }}</DescriptionsItem>
-                <DescriptionsItem label="操作系统" :span="2">{{ row.client.osDescription || '-' }}</DescriptionsItem>
+                <DescriptionsItem label="机器名">{{
+                  row.client.machineName || '-'
+                }}</DescriptionsItem>
+                <DescriptionsItem label="操作系统" :span="2">{{
+                  row.client.osDescription || '-'
+                }}</DescriptionsItem>
 
-                <DescriptionsItem label="CPU 核心">{{ row.client.processorCount ?? '-' }}</DescriptionsItem>
+                <DescriptionsItem label="CPU 核心">{{
+                  row.client.processorCount ?? '-'
+                }}</DescriptionsItem>
                 <DescriptionsItem label="MAC 地址" :span="2">
-                  <span class="mono-text-sm">{{ row.client.macAddresses || '-' }}</span>
+                  <span class="mono-text-sm">{{
+                    row.client.macAddresses || '-'
+                  }}</span>
                 </DescriptionsItem>
 
                 <DescriptionsItem label="最后心跳">
@@ -242,9 +282,13 @@ onMounted(fetchData);
                     :time="fmtTime(row.client.lastHeartbeat)"
                     :timezone="localTimezone"
                   />
-                  <span v-else style="color: var(--ant-color-text-tertiary)">-</span>
+                  <span v-else style="color: var(--ant-color-text-tertiary)"
+                    >-</span
+                  >
                 </DescriptionsItem>
-                <DescriptionsItem label="客户备注" :span="2">{{ row.client.remark || '-' }}</DescriptionsItem>
+                <DescriptionsItem label="客户备注" :span="2">{{
+                  row.client.remark || '-'
+                }}</DescriptionsItem>
               </Descriptions>
             </template>
           </Card>

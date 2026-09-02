@@ -50,6 +50,7 @@ pnpm preview            # 预览
 所有 Admin 端点遵循 `/Admin/[controller]/[action]` 模式（需要 JwtAdmin 认证）
 
 ### 认证相关（`/Admin/Auth/[action]`）
+
 - `POST /Admin/Auth/Login` - 登录（AllowAnonymous）
 - `GET /Admin/Auth/GetInfo` - 获取用户信息
 - `POST /Admin/Auth/Logout` - 登出
@@ -61,6 +62,7 @@ pnpm preview            # 预览
 - `POST /Admin/Auth/UnbindGoogleCode` - 解绑谷歌验证器
 
 ### 管理员管理（`/Admin/Manager/[action]`）
+
 - `GET /Admin/Manager/List` - 管理员列表（分页）
 - `GET /Admin/Manager/Detail` - 管理员详情
 - `POST /Admin/Manager/Add` - 添加管理员
@@ -68,6 +70,7 @@ pnpm preview            # 预览
 - `POST /Admin/Manager/Del` - 删除管理员
 
 ### 角色管理（`/Admin/Role/[action]`）
+
 - `GET /Admin/Role/List` - 角色列表
 - `GET /Admin/Role/Detail` - 角色详情
 - `POST /Admin/Role/Add` - 添加角色
@@ -75,6 +78,7 @@ pnpm preview            # 预览
 - `POST /Admin/Role/Del` - 删除角色
 
 ### 菜单管理（`/Admin/Menu/[action]`）
+
 - `GET /Admin/Menu/All` - 获取当前用户权限菜单（树形）
 - `GET /Admin/Menu/TreeList` - 树形权限菜单（分页）
 - `GET /Admin/Menu/List` - 平面权限菜单（分页）
@@ -84,6 +88,7 @@ pnpm preview            # 预览
 - `POST /Admin/Menu/Del` - 删除菜单
 
 ### 会员管理（`/Admin/Member/[action]`）
+
 - `GET /Admin/Member/List` - 会员列表（分页, 支持 keyword/status 筛选）
 - `GET /Admin/Member/Detail` - 会员详情
 - `POST /Admin/Member/Add` - 添加会员
@@ -95,6 +100,7 @@ pnpm preview            # 预览
 - `GET /Admin/Member/Search` - 搜索会员
 
 ### 仪表盘统计（`/Admin/Dashboard/[action]`）
+
 - `GET /Admin/Dashboard/Overview` - 概览统计(会员/活跃/认证/封禁)
 - `GET /Admin/Dashboard/MemberTrend?days=30` - 会员注册趋势
 - `GET /Admin/Dashboard/MemberDistribution` - 会员状态+认证分布
@@ -104,12 +110,14 @@ pnpm preview            # 预览
 - `GET /Admin/Dashboard/LoginTrend?days=7` - 每日活跃趋势
 
 ### 实名认证管理（`/Admin/RealName/[action]`）
+
 - `GET /Admin/RealName/List` - 认证列表(分页, 支持 status/keyword 筛选)
 - `GET /Admin/RealName/Detail` - 认证详情
 - `POST /Admin/RealName/Approve` - 审核通过
 - `POST /Admin/RealName/Reject` - 审核拒绝(可附 reason)
 
 ### 系统设置（`/Admin/SystemSetting/[action]`）
+
 - `GET /Admin/SystemSetting/List` - 系统设置列表
 - `GET /Admin/SystemSetting/GetCategoryWithSettingList` - 获取分类带设置列表
 - `POST /Admin/SystemSetting/Add` - 添加设置
@@ -118,12 +126,14 @@ pnpm preview            # 预览
 - `POST /Admin/SystemSetting/Del` - 删除设置
 
 ### 系统安装（`/api/Setup/[action]`，AllowAnonymous）
+
 - `GET /api/Setup/Status` - 获取安装状态
 - `POST /api/Setup/TestDatabase` - 测试数据库连接
 - `POST /api/Setup/TestRedis` - 测试 Redis 连接
 - `POST /api/Setup/Install` - 执行安装
 
 ### 文件上传（`/Api/[action]`，AllowAnonymous）
+
 - `POST /Api/Upload` - 文件上传
 
 ## 开发工作流
@@ -136,16 +146,16 @@ pnpm preview            # 预览
 import { api } from '#/api/request';
 
 // GET - 默认静默（无 loading、无 toast）
-api.get('/Member/List', { params: { page: 1, pageSize: 20 } })
+api.get('/Member/List', { params: { page: 1, pageSize: 20 } });
 
 // POST - 默认带 loading + 成功 toast
-api.post('/Member/Add', { username: 'test', password: '123' })
+api.post('/Member/Add', { username: 'test', password: '123' });
 
 // POST 静默模式（登录/上传等不需要 toast 的场景）
-api.post('/Auth/Login', data, { quiet: true })
+api.post('/Auth/Login', data, { quiet: true });
 
 // 原始请求（refreshToken/logout，不走业务码检查）
-api.raw.post('/Auth/Logout', { withCredentials: true })
+api.raw.post('/Auth/Logout', { withCredentials: true });
 ```
 
 各模块 API 定义在 `apps/web-antd/src/views/[module]/api.ts`。
@@ -163,6 +173,7 @@ api.raw.post('/Auth/Logout', { withCredentials: true })
 **症状**：`Error: ERESOLVE unable to resolve dependency tree`
 
 **解决**：
+
 ```bash
 # 清除缓存重新安装
 pnpm clean --del-lock
@@ -174,6 +185,7 @@ pnpm install
 **症状**：`EADDRINUSE: address already in use :::5173`
 
 **解决**：
+
 ```bash
 # 改用其他端口
 pnpm run dev -- --port 5174
@@ -184,6 +196,7 @@ pnpm run dev -- --port 5174
 **症状**：前端请求返回 404
 
 **检查项**：
+
 - 确认 API 路由地址在 `apps/web-antd/src/api/` 中的定义是否正确
 - 检查后端服务是否正常运行（http://localhost:6010）
 - 查看浏览器控制台的 Network 选项卡，确认请求 URL
@@ -194,6 +207,7 @@ pnpm run dev -- --port 5174
 **症状**：编译错误 `Type '...' is not assignable to type '...'`
 
 **解决**：
+
 ```bash
 # 运行类型检查
 pnpm run check:type
@@ -206,12 +220,13 @@ pnpm run check:type
 **症状**：编辑菜单时，icon、hideInMenu、ignoreKeepAlive 等字段无法显示
 
 **原因**：
+
 - 后端返回的 VbenMenu 数据结构中，这些字段被嵌套在 `meta` 对象中
 - 但表单 schema 中这些字段定义在顶层
 - 导致数据无法正确绑定到表单
 
-**解决**：
-在表单打开时，需要将嵌套的 `meta` 对象展平到顶层：
+**解决**：在表单打开时，需要将嵌套的 `meta` 对象展平到顶层：
+
 ```typescript
 const flattenedData = {
   ...data,
@@ -225,6 +240,7 @@ formApi.setValues(flattenedData);
 ```
 
 **注意**：
+
 - 后端的 Menu 实体中这些字段是顶层属性
 - 前端的 VbenMenu DTO 为了展示目的将它们放在 meta 对象中
 - 编辑时需要进行展平转换以保持一致性
@@ -236,21 +252,26 @@ formApi.setValues(flattenedData);
 ### 安装步骤
 
 **步骤 1：数据库配置**
+
 - 服务器地址、端口、数据库名、用户名、密码
 - 点击"测试连接"验证
 
 **步骤 2：缓存配置** (可选)
+
 - 启用/禁用缓存
 - 选择 Provider：Memory（内存）或 Redis（分布式）
 - 若选 Redis，设置连接字符串和实例前缀
 
 **步骤 3：应用设置**
+
 - 应用名称、CORS 策略
 
 **步骤 4：超级管理员**
+
 - 创建初始管理员账号
 
 **步骤 5：确认摘要**
+
 - 检查所有配置，点击"确认安装"
 
 ### 缓存配置

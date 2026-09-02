@@ -258,7 +258,9 @@ export const useSoundSettingsStore = defineStore('sound-settings', () => {
   function playSystemNotificationSound() {
     if (!settings.value.systemNotificationEnabled) return;
 
-    const audio = new Audio(`/sounds/${settings.value.systemNotificationSound}`);
+    const audio = new Audio(
+      `/sounds/${settings.value.systemNotificationSound}`,
+    );
     audio.volume = settings.value.systemNotificationVolume / 100;
     audio.play().catch(() => {});
   }

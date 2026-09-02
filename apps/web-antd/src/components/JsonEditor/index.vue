@@ -25,7 +25,8 @@ function ensureMonacoConfigured() {
   self.MonacoEnvironment = {
     getWorker(_: any, label: string) {
       if (label === 'json') return new jsonWorker();
-      if (label === 'typescript' || label === 'javascript') return new tsWorker();
+      if (label === 'typescript' || label === 'javascript')
+        return new tsWorker();
       return new editorWorker();
     },
   };

@@ -11,10 +11,10 @@ const chartRef = ref<EchartsUIType>();
 const { renderEcharts } = useEcharts(chartRef);
 
 const colorMap: Record<string, string> = {
-  '未认证': '#d9d9d9',
-  '审核中': '#1890ff',
-  '已认证': '#52c41a',
-  '已拒绝': '#ff4d4f',
+  未认证: '#d9d9d9',
+  审核中: '#1890ff',
+  已认证: '#52c41a',
+  已拒绝: '#ff4d4f',
 };
 
 onMounted(async () => {

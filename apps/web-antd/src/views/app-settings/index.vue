@@ -133,7 +133,9 @@ const editText = ref('');
 const meta = ref<{ path?: string; size?: number; lastModified?: string }>({});
 const autoRestart = ref(true);
 
-const isDirty = computed(() => editText.value.trim() !== originalText.value.trim());
+const isDirty = computed(
+  () => editText.value.trim() !== originalText.value.trim(),
+);
 
 // ---- 编辑器模式切换 ----
 // 'editor' = Monaco JSON 文本编辑
@@ -308,7 +310,8 @@ async function onRestartSuccess(info: any) {
 async function manualRestart() {
   Modal.confirm({
     title: '确认立即重启应用？',
-    content: '将触发 GracefulStop，systemd 自动拉起新进程。运行中请求会被中断。',
+    content:
+      '将触发 GracefulStop，systemd 自动拉起新进程。运行中请求会被中断。',
     okText: '重启',
     okType: 'danger',
     onOk: async () => {
@@ -354,7 +357,9 @@ const beforeUpload: UploadProps['beforeUpload'] = async (file) => {
 const historyOpen = ref(false);
 const historyList = ref<AppSettingsHistoryItem[]>([]);
 const historyLoading = ref(false);
-const previewingHistory = ref<{ fileName: string; rawText: string } | null>(null);
+const previewingHistory = ref<{ fileName: string; rawText: string } | null>(
+  null,
+);
 
 async function openHistory() {
   historyOpen.value = true;
@@ -373,7 +378,8 @@ async function previewHistory(item: AppSettingsHistoryItem) {
 async function doRollback(item: AppSettingsHistoryItem) {
   Modal.confirm({
     title: `确认回滚到 ${item.fileName}？`,
-    content: '当前 appsettings.json 会先备份，然后用历史版本覆盖。应用自动重启。',
+    content:
+      '当前 appsettings.json 会先备份，然后用历史版本覆盖。应用自动重启。',
     okText: '回滚并重启',
     okType: 'danger',
     onOk: async () => {
@@ -411,47 +417,47 @@ onMounted(() => {
   <div class="app-settings-page">
     <!-- 左编辑器 + 右操作栏 -->
     <div class="settings-layout">
-        <!-- 左:JSON 编辑器,占满两栏高度 -->
-        <Card class="editor-card" :body-style="{ padding: 0, height: '100%' }">
-          <template #title>
-            <Space>
-              <span>appsettings.json</span>
-              <RadioGroup
-                v-model:value="editorMode"
-                button-style="solid"
-                size="small"
-              >
-                <RadioButton value="editor">编辑器模式</RadioButton>
-                <RadioButton value="visual">可视化模式</RadioButton>
-              </RadioGroup>
-            </Space>
-          </template>
-          <div ref="editorBodyRef" class="editor-body">
-            <Spin
-              class="editor-spin"
-              :spinning="loading || restartWaiting"
-              :tip="restartWaiting ? '等待应用重启...' : '加载中...'"
+      <!-- 左:JSON 编辑器,占满两栏高度 -->
+      <Card class="editor-card" :body-style="{ padding: 0, height: '100%' }">
+        <template #title>
+          <Space>
+            <span>appsettings.json</span>
+            <RadioGroup
+              v-model:value="editorMode"
+              button-style="solid"
+              size="small"
             >
-              <JsonEditor
-                v-if="editorMode === 'editor'"
-                ref="jsonEditorRef"
-                v-model="editText"
-                language="json"
-                :height="editorPxHeight"
+              <RadioButton value="editor">编辑器模式</RadioButton>
+              <RadioButton value="visual">可视化模式</RadioButton>
+            </RadioGroup>
+          </Space>
+        </template>
+        <div ref="editorBodyRef" class="editor-body">
+          <Spin
+            class="editor-spin"
+            :spinning="loading || restartWaiting"
+            :tip="restartWaiting ? '等待应用重启...' : '加载中...'"
+          >
+            <JsonEditor
+              v-if="editorMode === 'editor'"
+              ref="jsonEditorRef"
+              v-model="editText"
+              language="json"
+              :height="editorPxHeight"
+            />
+            <div
+              v-else
+              class="visual-scroll"
+              :style="{ height: `${editorPxHeight}px` }"
+            >
+              <JsonFieldEditor
+                v-model="parsedObject"
+                :enum-options="APP_SETTINGS_ENUMS"
               />
-              <div
-                v-else
-                class="visual-scroll"
-                :style="{ height: `${editorPxHeight}px` }"
-              >
-                <JsonFieldEditor
-                  v-model="parsedObject"
-                  :enum-options="APP_SETTINGS_ENUMS"
-                />
-              </div>
-            </Spin>
-          </div>
-        </Card>
+            </div>
+          </Spin>
+        </div>
+      </Card>
 
       <!-- 操作按钮区:DOM 只写一份,始终在 layout 里。桌面端常驻右栏;移动端靠 CSS
            变成固定在底部、由 actionDrawerOpen 控制滑入滑出的面板(纯 transform,
@@ -538,30 +544,65 @@ onMounted(() => {
     <!-- 服务器信息抽屉 -->
     <Drawer v-model:open="serverInfoOpen" title="服务器信息" :width="560">
       <Descriptions :column="2" size="small" bordered>
-        <DescriptionsItem label="版本">{{ serverInfo.version || '-' }}</DescriptionsItem>
-        <DescriptionsItem label="环境">{{ serverInfo.environment || '-' }}</DescriptionsItem>
-        <DescriptionsItem label=".NET">{{ serverInfo.dotnetVersion || '-' }}</DescriptionsItem>
-        <DescriptionsItem label="时区">{{ serverInfo.timeZone || '-' }}</DescriptionsItem>
-        <DescriptionsItem label="启动时间">{{ serverInfo.startTime || '-' }}</DescriptionsItem>
-        <DescriptionsItem label="运行时长">{{ serverInfo.uptime || '-' }}</DescriptionsItem>
-        <DescriptionsItem label="服务器时间">{{ serverInfo.serverTime || '-' }}</DescriptionsItem>
-        <DescriptionsItem label="主机">{{ serverInfo.machineName || '-' }}</DescriptionsItem>
-        <DescriptionsItem label="进程 ID">{{ serverInfo.processId ?? '-' }}</DescriptionsItem>
-        <DescriptionsItem label="线程数">{{ serverInfo.threadCount ?? '-' }}</DescriptionsItem>
+        <DescriptionsItem label="版本">{{
+          serverInfo.version || '-'
+        }}</DescriptionsItem>
+        <DescriptionsItem label="环境">{{
+          serverInfo.environment || '-'
+        }}</DescriptionsItem>
+        <DescriptionsItem label=".NET">{{
+          serverInfo.dotnetVersion || '-'
+        }}</DescriptionsItem>
+        <DescriptionsItem label="时区">{{
+          serverInfo.timeZone || '-'
+        }}</DescriptionsItem>
+        <DescriptionsItem label="启动时间">{{
+          serverInfo.startTime || '-'
+        }}</DescriptionsItem>
+        <DescriptionsItem label="运行时长">{{
+          serverInfo.uptime || '-'
+        }}</DescriptionsItem>
+        <DescriptionsItem label="服务器时间">{{
+          serverInfo.serverTime || '-'
+        }}</DescriptionsItem>
+        <DescriptionsItem label="主机">{{
+          serverInfo.machineName || '-'
+        }}</DescriptionsItem>
+        <DescriptionsItem label="进程 ID">{{
+          serverInfo.processId ?? '-'
+        }}</DescriptionsItem>
+        <DescriptionsItem label="线程数">{{
+          serverInfo.threadCount ?? '-'
+        }}</DescriptionsItem>
         <DescriptionsItem label="工作集 (RSS)">
-          {{ serverInfo.workingSetMb != null ? `${serverInfo.workingSetMb} MB` : '-' }}
+          {{
+            serverInfo.workingSetMb != null
+              ? `${serverInfo.workingSetMb} MB`
+              : '-'
+          }}
         </DescriptionsItem>
         <DescriptionsItem label="GC 已分配">
-          {{ serverInfo.gcTotalMb != null ? `${serverInfo.gcTotalMb} MB` : '-' }}
+          {{
+            serverInfo.gcTotalMb != null ? `${serverInfo.gcTotalMb} MB` : '-'
+          }}
         </DescriptionsItem>
-        <DescriptionsItem label="CPU 核心">{{ serverInfo.processorCount ?? '-' }}</DescriptionsItem>
-        <DescriptionsItem label="操作系统" :span="2">{{ serverInfo.osVersion || '-' }}</DescriptionsItem>
+        <DescriptionsItem label="CPU 核心">{{
+          serverInfo.processorCount ?? '-'
+        }}</DescriptionsItem>
+        <DescriptionsItem label="操作系统" :span="2">{{
+          serverInfo.osVersion || '-'
+        }}</DescriptionsItem>
         <DescriptionsItem label="安装路径" :span="2">
           <code>{{ serverInfo.installPath || '-' }}</code>
         </DescriptionsItem>
         <DescriptionsItem label="监听地址" :span="2">
-          <Tag color="success">{{ serverInfo.listeningUrls || '(未识别)' }}</Tag>
-          <span class="hint">由 appsettings.json 的 <code>Urls</code> 字段决定（启动命令不传 --urls 时）</span>
+          <Tag color="success">{{
+            serverInfo.listeningUrls || '(未识别)'
+          }}</Tag>
+          <span class="hint"
+            >由 appsettings.json 的 <code>Urls</code> 字段决定（启动命令不传
+            --urls 时）</span
+          >
         </DescriptionsItem>
       </Descriptions>
     </Drawer>
@@ -584,11 +625,15 @@ onMounted(() => {
       />
       <div class="diff-grid">
         <div class="diff-col">
-          <div class="diff-title">当前（line {{ diffOld.split('\n').length }}）</div>
+          <div class="diff-title">
+            当前（line {{ diffOld.split('\n').length }}）
+          </div>
           <pre class="diff-pre">{{ diffOld }}</pre>
         </div>
         <div class="diff-col">
-          <div class="diff-title">即将保存（line {{ diffNew.split('\n').length }}）</div>
+          <div class="diff-title">
+            即将保存（line {{ diffNew.split('\n').length }}）
+          </div>
           <pre class="diff-pre">{{ diffNew }}</pre>
         </div>
       </div>
@@ -614,7 +659,9 @@ onMounted(() => {
               </div>
               <Space>
                 <Button size="small" @click="previewHistory(item)">查看</Button>
-                <Button size="small" danger @click="doRollback(item)">回滚</Button>
+                <Button size="small" danger @click="doRollback(item)"
+                  >回滚</Button
+                >
               </Space>
             </div>
           </li>

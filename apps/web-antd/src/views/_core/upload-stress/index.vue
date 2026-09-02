@@ -3,11 +3,7 @@ import { ref } from 'vue';
 
 import { Alert, Card } from 'ant-design-vue';
 
-import {
-  ChunkUpload,
-  DirectUpload,
-  SmartUpload,
-} from '#/components/Upload';
+import { ChunkUpload, DirectUpload, SmartUpload } from '#/components/Upload';
 
 defineOptions({ name: 'UploadStress' });
 
@@ -68,7 +64,9 @@ function logChange(label: string, d: any) {
           v-model:value="multi"
           @change="(d: any) => logChange('chunk-files', d)"
         />
-        <pre style="margin-top: 12px; font-size: 11px">v-model: {{ multi }}</pre>
+        <pre style="margin-top: 12px; font-size: 11px">
+v-model: {{ multi }}</pre
+        >
       </Card>
       <Card title="SmartUpload 自动" size="small">
         <SmartUpload
@@ -76,12 +74,14 @@ function logChange(label: string, d: any) {
           v-model:value="smart"
           @change="(d: any) => logChange('smart-files', d)"
         />
-        <pre style="margin-top: 12px; font-size: 11px">v-model: {{ smart }}</pre>
+        <pre style="margin-top: 12px; font-size: 11px">
+v-model: {{ smart }}</pre
+        >
       </Card>
     </div>
     <div style="margin-top: 24px; font-size: 12px; color: rgb(0 0 0 / 45%)">
-      路由：<code>/test/upload-stress</code>（dev 调试用）。
-      后端 dev 限速：1500ms/片（appsettings.Development.json
+      路由：<code>/test/upload-stress</code>（dev 调试用）。 后端 dev
+      限速：1500ms/片（appsettings.Development.json
       UploadConfig.DebugThrottleMs）。
     </div>
   </div>

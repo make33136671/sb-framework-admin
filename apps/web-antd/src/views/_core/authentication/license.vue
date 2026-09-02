@@ -34,7 +34,13 @@ const licenseMessage = ref(
 // 未配置公钥
 const isMissingPublicKey = computed(() => {
   const d = statusData.value;
-  return d && d.isEnabled && !d.isValid && !d.isExpired && d.message?.includes('未配置公钥');
+  return (
+    d &&
+    d.isEnabled &&
+    !d.isValid &&
+    !d.isExpired &&
+    d.message?.includes('未配置公钥')
+  );
 });
 
 async function fetchStatus() {
@@ -53,8 +59,7 @@ async function verifyLogin() {
     return;
   }
   try {
-    const baseURL =
-      (import.meta as any).env?.VITE_GLOB_API_URL || '/admin';
+    const baseURL = (import.meta as any).env?.VITE_GLOB_API_URL || '/admin';
     const resp = await fetch(`${baseURL}/Auth/GetInfo`, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -155,7 +160,9 @@ const productDisplay = computed(() => {
 // 后退到 __APP_INFO__（来自 /storage/app-info.json，安装向导生成）
 // 这样即使未启用授权（statusData 为空）也能展示产品身份
 const appInfo = (window as any).__APP_INFO__ || {};
-const appLogo = computed<string>(() => appInfo.logo || '/storage/images/logo.png');
+const appLogo = computed<string>(
+  () => appInfo.logo || '/storage/images/logo.png',
+);
 const productCnText = computed<string>(
   () => statusData.value?.productCn || appInfo.nameCn || '管理系统',
 );
@@ -202,16 +209,16 @@ onMounted(() => {
       "
     >
       <span
-        style="
-          font-size: 18px;
-          font-weight: 600;
-          color: var(--ant-color-text);
-        "
+        style="font-size: 18px; font-weight: 600; color: var(--ant-color-text)"
       >
         {{ productDisplay }}
       </span>
-      <Tag v-if="statusData && isMissingPublicKey" color="red" style="margin: 0;">未配置公钥</Tag>
-      <Tag v-else-if="statusData" color="orange" style="margin: 0;">授权已过期</Tag>
+      <Tag v-if="statusData && isMissingPublicKey" color="red" style="margin: 0"
+        >未配置公钥</Tag
+      >
+      <Tag v-else-if="statusData" color="orange" style="margin: 0"
+        >授权已过期</Tag
+      >
       <Button v-if="hasToken" size="small" @click="handleLogout">
         退出登录
       </Button>
@@ -230,7 +237,7 @@ onMounted(() => {
         padding: 72px 24px 24px;
       "
     >
-      <Card style=" width: 100%;max-width: 1100px;">
+      <Card style="width: 100%; max-width: 1100px">
         <!-- 左右布局: 左 (标题 + 授权信息) / 右获取授权 -->
         <!-- 关键: 右侧容器 min-height 预留离线 tab 的最大高度, 切换 tab 不跳动 -->
         <div
@@ -242,9 +249,12 @@ onMounted(() => {
           "
         >
           <!-- 左侧: 授权状态标题 + 授权详情（产品身份合到表格里）-->
-          <div style="flex: 1 1 360px; min-width: 300px;">
+          <div style="flex: 1 1 360px; min-width: 300px">
             <!-- 授权状态标题 (有 statusData 时才显示, 没启用授权就跳过)-->
-            <div v-if="statusData" style=" margin-bottom: 24px;text-align: center;">
+            <div
+              v-if="statusData"
+              style="margin-bottom: 24px; text-align: center"
+            >
               <div
                 :style="{
                   fontSize: '56px',
@@ -272,7 +282,11 @@ onMounted(() => {
                   color: var(--ant-color-text-secondary);
                 "
               >
-                {{ isMissingPublicKey ? '请在 appsettings.json 中配置 LicenseConfig:PublicKeyXml 后重启服务' : '请联系管理员续期授权' }}
+                {{
+                  isMissingPublicKey
+                    ? '请在 appsettings.json 中配置 LicenseConfig:PublicKeyXml 后重启服务'
+                    : '请联系管理员续期授权'
+                }}
               </p>
             </div>
             <Descriptions
@@ -296,7 +310,9 @@ onMounted(() => {
                     "
                   />
                   <div style="min-width: 0">
-                    <div style="font-weight: 500; line-height: 1.3">{{ productCnText }}</div>
+                    <div style="font-weight: 500; line-height: 1.3">
+                      {{ productCnText }}
+                    </div>
                     <div
                       v-if="productEnText"
                       style="
@@ -312,7 +328,9 @@ onMounted(() => {
               </DescriptionsItem>
               <DescriptionsItem label="授权状态">
                 <Tag v-if="statusData.isValid" color="green">有效</Tag>
-                <Tag v-else-if="statusData.isExpired" color="orange">已到期</Tag>
+                <Tag v-else-if="statusData.isExpired" color="orange"
+                  >已到期</Tag
+                >
                 <Tag v-else color="red">无效</Tag>
               </DescriptionsItem>
               <DescriptionsItem label="到期时间">
@@ -325,15 +343,40 @@ onMounted(() => {
               <DescriptionsItem label="配置域名">
                 {{ domainText || '-' }}
               </DescriptionsItem>
-              <DescriptionsItem v-if="statusData.licenseDomains?.length || statusData.licenseDomain" label="授权允许域名">
-                <Tag v-for="d in statusData.licenseDomains || [statusData.licenseDomain]" :key="d" color="blue" style="margin-bottom: 2px">{{ d }}</Tag>
+              <DescriptionsItem
+                v-if="
+                  statusData.licenseDomains?.length || statusData.licenseDomain
+                "
+                label="授权允许域名"
+              >
+                <Tag
+                  v-for="d in statusData.licenseDomains || [
+                    statusData.licenseDomain,
+                  ]"
+                  :key="d"
+                  color="blue"
+                  style="margin-bottom: 2px"
+                  >{{ d }}</Tag
+                >
               </DescriptionsItem>
               <DescriptionsItem label="启用验证项">
                 <Tag v-if="statusData.requiresProduct" color="blue">产品名</Tag>
                 <Tag v-if="statusData.requiresDomain" color="blue">域名</Tag>
-                <Tag v-if="statusData.requiresClientKey" color="blue">ClientKey</Tag>
-                <Tag v-if="statusData.requiresHardwareId" color="blue">HardwareId</Tag>
-                <span v-if="!statusData.requiresProduct && !statusData.requiresDomain && !statusData.requiresClientKey && !statusData.requiresHardwareId" style=" font-size: 12px;color: var(--ant-color-text-tertiary)">
+                <Tag v-if="statusData.requiresClientKey" color="blue"
+                  >ClientKey</Tag
+                >
+                <Tag v-if="statusData.requiresHardwareId" color="blue"
+                  >HardwareId</Tag
+                >
+                <span
+                  v-if="
+                    !statusData.requiresProduct &&
+                    !statusData.requiresDomain &&
+                    !statusData.requiresClientKey &&
+                    !statusData.requiresHardwareId
+                  "
+                  style="font-size: 12px; color: var(--ant-color-text-tertiary)"
+                >
                   仅验证到期
                 </span>
               </DescriptionsItem>
@@ -348,7 +391,10 @@ onMounted(() => {
               <DescriptionsItem label="CPU 核心">
                 {{ statusData.identity?.hardwareInfo?.processorCount || '-' }}
               </DescriptionsItem>
-              <DescriptionsItem v-if="statusData.identity?.hardwareInfo?.macAddresses?.length" label="MAC 地址">
+              <DescriptionsItem
+                v-if="statusData.identity?.hardwareInfo?.macAddresses?.length"
+                label="MAC 地址"
+              >
                 <span style="font-family: monospace; font-size: 12px">
                   {{ statusData.identity.hardwareInfo.macAddresses.join(', ') }}
                 </span>
@@ -380,7 +426,9 @@ onMounted(() => {
                     "
                   />
                   <div style="min-width: 0">
-                    <div style="font-weight: 500; line-height: 1.3">{{ productCnText }}</div>
+                    <div style="font-weight: 500; line-height: 1.3">
+                      {{ productCnText }}
+                    </div>
                     <div
                       v-if="productEnText"
                       style="
@@ -415,19 +463,24 @@ onMounted(() => {
                - 验证 token 中 (!tokenChecked): 用 flex 居中显示 Spin loading
                - 验证完成: LicenseUpdatePanel 始终渲染 (absolute 定位占满右侧),
                  未登录时由 LicenseUpdatePanel 内部显示"需要登录"蒙板, 用户点蒙板上的按钮触发 goLogin -->
-          <div :style="{
-            flex: '1 1 420px',
-            minWidth: '0',
-            minHeight: tokenChecked ? '540px' : 'auto',
-            position: 'relative',
-            display: !tokenChecked ? 'flex' : undefined,
-            alignItems: !tokenChecked ? 'center' : undefined,
-            justifyContent: !tokenChecked ? 'center' : undefined,
-            borderLeft: '1px solid var(--ant-color-border)',
-            paddingLeft: '32px',
-          }">
+          <div
+            :style="{
+              flex: '1 1 420px',
+              minWidth: '0',
+              minHeight: tokenChecked ? '540px' : 'auto',
+              position: 'relative',
+              display: !tokenChecked ? 'flex' : undefined,
+              alignItems: !tokenChecked ? 'center' : undefined,
+              justifyContent: !tokenChecked ? 'center' : undefined,
+              borderLeft: '1px solid var(--ant-color-border)',
+              paddingLeft: '32px',
+            }"
+          >
             <!-- 验证 token 中: 避免旧 token 造成的"看起来可操作但实际 401"闪烁 -->
-            <div v-if="!tokenChecked" style=" padding: 40px 0;text-align: center;">
+            <div
+              v-if="!tokenChecked"
+              style="padding: 40px 0; text-align: center"
+            >
               <Spin size="large" />
               <p
                 style="
@@ -448,7 +501,7 @@ onMounted(() => {
               :status-data="statusData"
               :login-required="!hasToken"
               success-button-text="授权有效，点击进入系统"
-              style="position: absolute; inset: 0;"
+              style="position: absolute; inset: 0"
               @success="onUpdateSuccess"
               @login="goLogin"
             />

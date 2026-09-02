@@ -1,6 +1,15 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
-import { Modal, Drawer, Button, Space, Tag, Timeline, message, Popconfirm } from 'ant-design-vue';
+import {
+  Modal,
+  Drawer,
+  Button,
+  Space,
+  Tag,
+  Timeline,
+  message,
+  Popconfirm,
+} from 'ant-design-vue';
 import DocRenderer from './DocRenderer.vue';
 
 /**
@@ -53,16 +62,23 @@ export interface DocPreviewApi {
   /** 拿指定版本完整内容 */
   fetchDetail: (versionId: number) => Promise<DocLatest>;
   /** 回档到某版本 */
-  rollback: (payload: { sourceType: string; sourceId: number; versionId: number }) => Promise<void>;
+  rollback: (payload: {
+    sourceType: string;
+    sourceId: number;
+    versionId: number;
+  }) => Promise<void>;
 }
 
-const props = withDefaults(defineProps<{
-  sourceType: string;
-  api: DocPreviewApi;
-  descLabel?: string;
-}>(), {
-  descLabel: '描述',
-});
+const props = withDefaults(
+  defineProps<{
+    sourceType: string;
+    api: DocPreviewApi;
+    descLabel?: string;
+  }>(),
+  {
+    descLabel: '描述',
+  },
+);
 
 // 预览
 const previewVisible = ref(false);
@@ -85,17 +101,20 @@ async function openPreview(sourceId: number, title: string) {
 // 公开链接
 function copyLink(sourceId: number) {
   const url = `${window.location.origin}/api/doc/${props.sourceType}/${sourceId}`;
-  navigator.clipboard.writeText(url).then(() => {
-    message.success('文档链接已复制');
-  }).catch(() => {
-    const input = document.createElement('input');
-    input.value = url;
-    document.body.appendChild(input);
-    input.select();
-    document.execCommand('copy');
-    document.body.removeChild(input);
-    message.success('文档链接已复制');
-  });
+  navigator.clipboard
+    .writeText(url)
+    .then(() => {
+      message.success('文档链接已复制');
+    })
+    .catch(() => {
+      const input = document.createElement('input');
+      input.value = url;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+      message.success('文档链接已复制');
+    });
 }
 
 // 下载
@@ -157,28 +176,56 @@ defineExpose({ openPreview, download: downloadDirect, openHistory, copyLink });
 
 <template>
   <!-- 预览弹窗 -->
-  <Modal v-model:open="previewVisible" :title="previewTitle" width="820px" :footer="null">
-    <div style="max-height: 70vh; padding: 4px 0; overflow-y: auto;">
+  <Modal
+    v-model:open="previewVisible"
+    :title="previewTitle"
+    width="820px"
+    :footer="null"
+  >
+    <div style="max-height: 70vh; padding: 4px 0; overflow-y: auto">
       <DocRenderer :content="previewRawContent" :desc-label="descLabel" />
     </div>
-    <div style="display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px;">
+    <div
+      style="
+        display: flex;
+        gap: 8px;
+        justify-content: flex-end;
+        margin-top: 14px;
+      "
+    >
       <Button @click="copyLink(previewSourceId)">复制链接</Button>
-      <Button @click="doDownload(previewRawContent, previewTitle)">下载 MD</Button>
+      <Button @click="doDownload(previewRawContent, previewTitle)"
+        >下载 MD</Button
+      >
       <Button @click="previewVisible = false">关闭</Button>
     </div>
   </Modal>
 
   <!-- 版本历史抽屉 -->
-  <Drawer v-model:open="historyVisible" :title="`${historyTitle} - 历史版本`" :width="480" placement="right">
+  <Drawer
+    v-model:open="historyVisible"
+    :title="`${historyTitle} - 历史版本`"
+    :width="480"
+    placement="right"
+  >
     <Timeline>
       <Timeline.Item v-for="v in historyList" :key="v.id">
-        <div style="display: flex; gap: 8px; align-items: center; justify-content: space-between;">
+        <div
+          style="
+            display: flex;
+            gap: 8px;
+            align-items: center;
+            justify-content: space-between;
+          "
+        >
           <div>
             <Tag color="blue">v{{ v.version }}</Tag>
             <span class="doc-preview-time">{{ v.createdTime }}</span>
           </div>
           <Space size="small">
-            <Button size="small" @click="viewVersion(v.id, v.version)">查看</Button>
+            <Button size="small" @click="viewVersion(v.id, v.version)"
+              >查看</Button
+            >
             <Popconfirm title="确定回档到此版本？" @confirm="rollback(v.id)">
               <Button size="small" type="primary" ghost>回档</Button>
             </Popconfirm>
@@ -189,12 +236,19 @@ defineExpose({ openPreview, download: downloadDirect, openHistory, copyLink });
         </div>
       </Timeline.Item>
     </Timeline>
-    <div v-if="historyList.length === 0" class="doc-preview-empty">暂无版本记录</div>
+    <div v-if="historyList.length === 0" class="doc-preview-empty">
+      暂无版本记录
+    </div>
   </Drawer>
 
   <!-- 版本内容查看 — 和预览用同一个 DocRenderer -->
-  <Modal v-model:open="versionViewVisible" :title="versionViewTitle" width="820px" :footer="null">
-    <div style="max-height: 70vh; padding: 4px 0; overflow-y: auto;">
+  <Modal
+    v-model:open="versionViewVisible"
+    :title="versionViewTitle"
+    width="820px"
+    :footer="null"
+  >
+    <div style="max-height: 70vh; padding: 4px 0; overflow-y: auto">
       <DocRenderer :content="versionContent" :desc-label="descLabel" />
     </div>
   </Modal>

@@ -66,9 +66,19 @@ const gridOptions: VxeGridProps = {
     { field: 'domain', title: '域名', minWidth: 180 },
     { field: 'serverIP', title: 'IP', width: 130 },
     { field: 'clientKey', title: 'ClientKey', width: 140, showOverflow: true },
-    { field: 'hardwareId', title: 'HardwareId', width: 140, showOverflow: true },
+    {
+      field: 'hardwareId',
+      title: 'HardwareId',
+      width: 140,
+      showOverflow: true,
+    },
     { field: 'status', title: '状态', width: 90, slots: { default: 'status' } },
-    { field: 'createdTime', title: '申请时间', width: 170, slots: { default: 'createdTime' } },
+    {
+      field: 'createdTime',
+      title: '申请时间',
+      width: 170,
+      slots: { default: 'createdTime' },
+    },
     { title: '操作', width: 150, slots: { default: 'action' }, fixed: 'right' },
   ],
   height: 'auto',
@@ -120,7 +130,10 @@ async function handleApprove() {
   approveLoading.value = true;
   try {
     const allowedRoutes = approveForm.value.allowedRoutesStr
-      ? approveForm.value.allowedRoutesStr.split(',').map((s: string) => s.trim()).filter(Boolean)
+      ? approveForm.value.allowedRoutesStr
+          .split(',')
+          .map((s: string) => s.trim())
+          .filter(Boolean)
       : [];
     await approveRequest({
       requestId: approveForm.value.requestId,
@@ -159,11 +172,11 @@ async function handleReject(row: any) {
           <Button size="small" type="primary" @click="showApprove(row)">
             批准
           </Button>
-          <Button danger size="small" @click="handleReject(row)">
-            拒绝
-          </Button>
+          <Button danger size="small" @click="handleReject(row)"> 拒绝 </Button>
         </Space>
-        <span v-else style="color: #999">{{ statusMap[row.status]?.label }}</span>
+        <span v-else style="color: #999">{{
+          statusMap[row.status]?.label
+        }}</span>
       </template>
     </Grid>
 
@@ -194,8 +207,9 @@ async function handleReject(row: any) {
             v-model:value="approveForm.allowedRoutesStr"
             placeholder="逗号分隔，如 /admin/  留空表示全部拦截"
           />
-          <div style=" margin-top: 4px; font-size: 12px;color: #999">
-            默认到期后 API 和 Admin 都不可访问。可输入如 /admin/ 表示到期后后台仍可访问
+          <div style="margin-top: 4px; font-size: 12px; color: #999">
+            默认到期后 API 和 Admin 都不可访问。可输入如 /admin/
+            表示到期后后台仍可访问
           </div>
         </FormItem>
       </Form>

@@ -200,8 +200,7 @@ onMounted(async () => {
   // 加载分类列表
   try {
     const catResult = await getCategoryList({ pageSize: 999 });
-    const items =
-      (catResult as any)?.items || [];
+    const items = (catResult as any)?.items || [];
     categoryOptions.value = items.map((c: any) => ({
       label: c.name,
       value: c.id,
@@ -377,7 +376,13 @@ async function onSubmit(values: Record<string, any>) {
       style="margin-top: 16px; background: var(--ant-color-fill-quaternary)"
     >
       <template #extra>
-        <span style="margin-right: 8px; font-size: 12px; color: var(--ant-color-text-secondary)">
+        <span
+          style="
+            margin-right: 8px;
+            font-size: 12px;
+            color: var(--ant-color-text-secondary);
+          "
+        >
           {{ currentExample.tip }}
         </span>
         <Button
@@ -397,11 +402,10 @@ async function onSubmit(values: Record<string, any>) {
           填入
         </Button>
       </template>
-      <Typography.Text
-        v-if="currentExample.json"
-        code
-      >
-        <pre style="margin: 0; font-size: 12px; white-space: pre-wrap">{{ currentExample.json }}</pre>
+      <Typography.Text v-if="currentExample.json" code>
+        <pre style="margin: 0; font-size: 12px; white-space: pre-wrap">{{
+          currentExample.json
+        }}</pre>
       </Typography.Text>
       <Typography.Text v-else type="secondary">
         该显示类型无需数据配置

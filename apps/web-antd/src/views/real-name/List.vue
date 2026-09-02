@@ -57,11 +57,36 @@ const formOptions: VbenFormProps = {
 const gridOptions: VxeGridProps<RowType> = {
   columns: [
     { field: 'id', title: 'ID', width: 60 },
-    { field: 'memberUsername', title: '会员信息', width: 160, slots: { default: 'member' } },
-    { field: 'realName', title: '认证信息', minWidth: 180, slots: { default: 'certInfo' } },
-    { field: 'idFrontImage', title: '证件照片', width: 200, slots: { default: 'images' } },
-    { field: 'status', title: '状态', width: 100, slots: { default: 'status' } },
-    { field: 'submitTime', title: '提交/审核时间', width: 170, slots: { default: 'time' } },
+    {
+      field: 'memberUsername',
+      title: '会员信息',
+      width: 160,
+      slots: { default: 'member' },
+    },
+    {
+      field: 'realName',
+      title: '认证信息',
+      minWidth: 180,
+      slots: { default: 'certInfo' },
+    },
+    {
+      field: 'idFrontImage',
+      title: '证件照片',
+      width: 200,
+      slots: { default: 'images' },
+    },
+    {
+      field: 'status',
+      title: '状态',
+      width: 100,
+      slots: { default: 'status' },
+    },
+    {
+      field: 'submitTime',
+      title: '提交/审核时间',
+      width: 170,
+      slots: { default: 'time' },
+    },
     {
       field: 'action',
       fixed: 'right',
@@ -117,17 +142,17 @@ const handleReject = async () => {
   <Page auto-content-height>
     <Grid>
       <template #member="{ row }">
-        <div style=" font-size: 12px;line-height: 1.4;">
+        <div style="font-size: 12px; line-height: 1.4">
           <div>{{ row.memberUsername }}</div>
-          <div style="color: #999;">{{ row.memberName }}</div>
+          <div style="color: #999">{{ row.memberName }}</div>
         </div>
       </template>
 
       <template #certInfo="{ row }">
-        <div style=" font-size: 12px;line-height: 1.4;">
+        <div style="font-size: 12px; line-height: 1.4">
           <div>姓名: {{ row.realName }}</div>
-          <div style="color: #999;">证件号: {{ row.idNumber }}</div>
-          <div v-if="row.rejectReason" style=" margin-top: 2px;color: #ff4d4f;">
+          <div style="color: #999">证件号: {{ row.idNumber }}</div>
+          <div v-if="row.rejectReason" style="margin-top: 2px; color: #ff4d4f">
             拒绝原因: {{ row.rejectReason }}
           </div>
         </div>
@@ -135,28 +160,46 @@ const handleReject = async () => {
 
       <template #images="{ row }">
         <Space>
-          <Image v-if="row.idFrontImage" :src="row.idFrontImage" :width="60" :height="40" style="object-fit: cover; border-radius: 4px;" />
-          <Image v-if="row.idBackImage" :src="row.idBackImage" :width="60" :height="40" style="object-fit: cover; border-radius: 4px;" />
+          <Image
+            v-if="row.idFrontImage"
+            :src="row.idFrontImage"
+            :width="60"
+            :height="40"
+            style="object-fit: cover; border-radius: 4px"
+          />
+          <Image
+            v-if="row.idBackImage"
+            :src="row.idBackImage"
+            :width="60"
+            :height="40"
+            style="object-fit: cover; border-radius: 4px"
+          />
         </Space>
       </template>
 
       <template #status="{ row }">
-        <Tag :color="statusMap[row.status]?.color">{{ statusMap[row.status]?.text }}</Tag>
+        <Tag :color="statusMap[row.status]?.color">{{
+          statusMap[row.status]?.text
+        }}</Tag>
       </template>
 
       <template #time="{ row }">
-        <div style=" font-size: 12px;line-height: 1.4;">
+        <div style="font-size: 12px; line-height: 1.4">
           <div>提交: {{ fmtTime(row.submitTime) }}</div>
-          <div v-if="row.reviewTime" style="color: #999;">审核: {{ fmtTime(row.reviewTime) }}</div>
+          <div v-if="row.reviewTime" style="color: #999">
+            审核: {{ fmtTime(row.reviewTime) }}
+          </div>
         </div>
       </template>
 
       <template #action="{ row }">
         <Space v-if="row.status === 1">
-          <Button type="primary" size="small" @click="handleApprove(row.id)">通过</Button>
+          <Button type="primary" size="small" @click="handleApprove(row.id)"
+            >通过</Button
+          >
           <Button danger size="small" @click="showReject(row.id)">拒绝</Button>
         </Space>
-        <span v-else style=" font-size: 12px;color: #999;">已处理</span>
+        <span v-else style="font-size: 12px; color: #999">已处理</span>
       </template>
     </Grid>
 

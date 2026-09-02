@@ -69,6 +69,7 @@
 ## Task 1：合并后端 UploadConfig（删 ChunkUploadConfig）
 
 **Files:**
+
 - Modify: `SB.Core/AppSettings.cs`
 
 - [ ] **Step 1：替换 `UploadConfig` 类与移除 `ChunkUploadConfig` 类**
@@ -129,10 +130,13 @@ public class UploadConfig
 ```
 
 定位 `AppSettings` 类内对 `ChunkUploadConfig` 的属性引用：
+
 ```csharp
 public ChunkUploadConfig ChunkUploadConfig { get; set; } = new();
 ```
+
 **删除该行**。`UploadConfig` 属性已存在则保持，无则新增：
+
 ```csharp
 /// <summary>
 /// 上传配置
@@ -166,12 +170,14 @@ git push
 ## Task 2：appsettings.json 配置 key 合并
 
 **Files:**
+
 - Modify: `SB.API/appsettings.json`
 - Modify: `SB.API/appsettings.Development.json`
 
 - [ ] **Step 1：appsettings.json 删除 ChunkUploadConfig key 并把字段并入 UploadConfig**
 
 定位现有：
+
 ```jsonc
 "UploadConfig": {
     "MaxFileSizeMB": ...,
@@ -188,6 +194,7 @@ git push
 ```
 
 替换为：
+
 ```jsonc
 "UploadConfig": {
     "MaxFileSizeMB": 2048,
@@ -207,6 +214,7 @@ git push
 - [ ] **Step 2：appsettings.Development.json 同步**
 
 定位现有 `ChunkUploadConfig` key（含 `DebugThrottleMs: 1500`），删除该 key；定位 `UploadConfig` key 改为：
+
 ```jsonc
 "UploadConfig": {
     "MaxFileSizeMB": 2048,
@@ -239,11 +247,13 @@ git push
 ## Task 3：ChunkUploadService 改用 UploadConfig
 
 **Files:**
+
 - Modify: `SB.Services/ChunkUploadService.cs`
 
 - [ ] **Step 1：替换全部 `ChunkUploadConfig` 引用**
 
 定位文件中所有 `AppGlobal.AppSettings.ChunkUploadConfig` 替换为 `AppGlobal.AppSettings.UploadConfig`，对应字段名变化：
+
 - `config.TempPath` → `config.ChunkTempPath`
 - `config.ExpireHours` → `config.ChunkExpireHours`
 - `config.MaxFileSizeMB`、`config.ChunkSizeMB`、`config.AllowedExtensions`、`config.DebugThrottleMs`：字段名不变
@@ -278,6 +288,7 @@ dotnet build SB.Services/SB.Services.csproj 2>&1 | tail -10
 - [ ] **Step 3：手动验证（如 API 在跑）**
 
 如果 dev API 已在运行，重启它（appsettings 改了，需要 reload）。否则跳过：
+
 ```bash
 cd /Users/tianlong/projects/sb/sb-api
 pkill -f "SB.API" 2>/dev/null; sleep 2
@@ -285,6 +296,7 @@ SB_LICENSE_KEY_DIR=/Users/tianlong/projects/sb ASPNETCORE_URLS=http://localhost:
 ```
 
 等 API 起来：
+
 ```bash
 until lsof -nP -iTCP:6010 -sTCP:LISTEN 2>/dev/null | grep -q LISTEN; do sleep 2; done
 echo "API ready"
@@ -309,6 +321,7 @@ git push
 ## Task 4：新建 UploadConfigDto
 
 **Files:**
+
 - Create: `SB.Models/Dto/UploadConfigDto.cs`
 
 - [ ] **Step 1：创建文件**
@@ -371,9 +384,10 @@ git push
 
 ---
 
-## Task 5：新建 UploadController（含 Config + Direct + Chunk*）
+## Task 5：新建 UploadController（含 Config + Direct + Chunk\*）
 
 **Files:**
+
 - Create: `SB.API/Controllers/UploadController.cs`
 
 - [ ] **Step 1：创建 Controller**
@@ -500,12 +514,14 @@ until lsof -nP -iTCP:6010 -sTCP:LISTEN 2>/dev/null | grep -q LISTEN; do sleep 2;
 ```
 
 登录拿 token（手动浏览器登录后 F12 复制 accessToken），然后：
+
 ```bash
 TOKEN="<贴你的 access token>"
 curl -s -H "Authorization: Bearer $TOKEN" "http://localhost:6010/admin/Upload/Config" | jq
 ```
 
 预期：
+
 ```json
 {
   "code": 0,
@@ -538,6 +554,7 @@ git push
 ## Task 6：FileUploadService.Upload 返回值加 size + name
 
 **Files:**
+
 - Modify: `SB.Services/FileUploadService.cs`
 
 - [ ] **Step 1：检查现状并补 size/name 字段**
@@ -591,6 +608,7 @@ git push
 ## Task 7：ChunkUploadService.Merge 返回值加 size + name
 
 **Files:**
+
 - Modify: `SB.Services/ChunkUploadService.cs`
 
 - [ ] **Step 1：补字段**
@@ -633,6 +651,7 @@ git push
 ## Task 8：删除 ChunkUploadController 与 AuthController.Upload
 
 **Files:**
+
 - Delete: `SB.API/Controllers/ChunkUploadController.cs`
 - Modify: `SB.API/Controllers/AuthController.cs`
 
@@ -680,6 +699,7 @@ git push
 ## Task 9：前端 - 新建 api/core/upload.ts 统一上传 API
 
 **Files:**
+
 - Create: `apps/web-antd/src/api/core/upload.ts`
 
 - [ ] **Step 1：创建文件**
@@ -844,6 +864,7 @@ git push
 ## Task 10：新建 components/Upload/internal/types.ts
 
 **Files:**
+
 - Create: `apps/web-antd/src/components/Upload/internal/types.ts`
 
 - [ ] **Step 1：创建文件**
@@ -942,6 +963,7 @@ git push
 ## Task 11：新建 useUploadConfig（拉配置单例缓存）
 
 **Files:**
+
 - Create: `apps/web-antd/src/components/Upload/internal/useUploadConfig.ts`
 
 - [ ] **Step 1：创建文件**
@@ -985,9 +1007,11 @@ export function useUploadConfig() {
         const data = await getUploadConfigApi();
         cache.value = {
           maxFileSizeMB: data.maxFileSizeMB ?? DEFAULT_CONFIG.maxFileSizeMB,
-          chunkThresholdMB: data.chunkThresholdMB ?? DEFAULT_CONFIG.chunkThresholdMB,
+          chunkThresholdMB:
+            data.chunkThresholdMB ?? DEFAULT_CONFIG.chunkThresholdMB,
           maxConcurrent: data.maxConcurrent ?? DEFAULT_CONFIG.maxConcurrent,
-          allowedExtensions: data.allowedExtensions ?? DEFAULT_CONFIG.allowedExtensions,
+          allowedExtensions:
+            data.allowedExtensions ?? DEFAULT_CONFIG.allowedExtensions,
           urlPrefix: data.urlPrefix || DEFAULT_CONFIG.urlPrefix,
         };
         return cache.value;
@@ -1023,6 +1047,7 @@ git push
 ## Task 12：新建 useDirectUpload（单文件直传 hook）
 
 **Files:**
+
 - Create: `apps/web-antd/src/components/Upload/internal/useDirectUpload.ts`
 
 - [ ] **Step 1：创建文件**
@@ -1047,7 +1072,9 @@ export function useDirectUpload() {
   /** 上传进度 0-100 */
   const progress = ref(0);
   /** 当前状态 */
-  const status = ref<'idle' | 'uploading' | 'done' | 'error' | 'cancelled'>('idle');
+  const status = ref<'idle' | 'uploading' | 'done' | 'error' | 'cancelled'>(
+    'idle',
+  );
   /** 错误信息 */
   const errorMsg = ref('');
 
@@ -1149,6 +1176,7 @@ git push
 ## Task 13：新建 useChunkUpload（单文件切片 hook）
 
 **Files:**
+
 - Create: `apps/web-antd/src/components/Upload/internal/useChunkUpload.ts`
 
 - [ ] **Step 1：创建文件**
@@ -1158,16 +1186,15 @@ import { ref } from 'vue';
 
 import SparkMD5 from 'spark-md5';
 
-import {
-  chunkInitApi,
-  chunkMergeApi,
-  chunkUploadApi,
-} from '#/api/core/upload';
+import { chunkInitApi, chunkMergeApi, chunkUploadApi } from '#/api/core/upload';
 
 import type { UploadDetail } from './types';
 
 /** 计算文件 MD5（增量分片，不阻塞 UI） */
-async function hashFile(file: File, onProgress?: (p: number) => void): Promise<string> {
+async function hashFile(
+  file: File,
+  onProgress?: (p: number) => void,
+): Promise<string> {
   const spark = new SparkMD5.ArrayBuffer();
   const chunkSize = 2 * 1024 * 1024;
   let offset = 0;
@@ -1188,7 +1215,15 @@ export function useChunkUpload(options?: { maxConcurrent?: number }) {
   /** 上传总进度 0-100 */
   const progress = ref(0);
   /** 当前状态 */
-  const status = ref<'idle' | 'hashing' | 'uploading' | 'merging' | 'done' | 'error' | 'cancelled'>('idle');
+  const status = ref<
+    | 'idle'
+    | 'hashing'
+    | 'uploading'
+    | 'merging'
+    | 'done'
+    | 'error'
+    | 'cancelled'
+  >('idle');
   /** MD5 计算进度 */
   const hashProgress = ref(0);
   /** 错误信息 */
@@ -1308,6 +1343,7 @@ git push
 ## Task 14：useUploadQueue 单元测试（TDD）
 
 **Files:**
+
 - Create: `apps/web-antd/src/components/Upload/internal/__tests__/useUploadQueue.test.ts`
 
 - [ ] **Step 1：写测试（先 fail）**
@@ -1330,7 +1366,11 @@ function makeItem(uid: string): UploadItem {
 
 describe('useUploadQueue', () => {
   it('同时只有一个 uploading，其它保持 queued', async () => {
-    const items = ref<UploadItem[]>([makeItem('a'), makeItem('b'), makeItem('c')]);
+    const items = ref<UploadItem[]>([
+      makeItem('a'),
+      makeItem('b'),
+      makeItem('c'),
+    ]);
     const runUpload = vi.fn(async () => {
       await new Promise((r) => setTimeout(r, 20));
     });
@@ -1419,6 +1459,7 @@ git push
 ## Task 15：实现 useUploadQueue
 
 **Files:**
+
 - Create: `apps/web-antd/src/components/Upload/internal/useUploadQueue.ts`
 
 - [ ] **Step 1：实现**
@@ -1494,6 +1535,7 @@ git push
 ## Task 16：新建 UploadUi.vue（默认 UI 模板）
 
 **Files:**
+
 - Create: `apps/web-antd/src/components/Upload/internal/UploadUi.vue`
 
 - [ ] **Step 1：创建文件**
@@ -1502,7 +1544,14 @@ git push
 <script lang="ts" setup>
 import { computed, ref } from 'vue';
 
-import { Button, Image, Modal, Progress, Upload, message } from 'ant-design-vue';
+import {
+  Button,
+  Image,
+  Modal,
+  Progress,
+  Upload,
+  message,
+} from 'ant-design-vue';
 
 import type { UploadItem, UploadType } from './types';
 
@@ -1533,14 +1582,20 @@ const emit = defineEmits<{
 /** 是否多文件类型 */
 const isMulti = computed(() => /s$/.test(props.type));
 /** 是否图片类型 */
-const isImage = computed(() => props.type === 'image' || props.type === 'images');
+const isImage = computed(
+  () => props.type === 'image' || props.type === 'images',
+);
 /** 是否视频类型 */
-const isVideo = computed(() => props.type === 'video' || props.type === 'videos');
+const isVideo = computed(
+  () => props.type === 'video' || props.type === 'videos',
+);
 /** 是否文件类型 */
 const isFile = computed(() => props.type === 'file' || props.type === 'files');
 
 /** 是否还能添加（未达到 maxCount） */
-const canAdd = computed(() => props.items.length < props.maxCount && !props.disabled);
+const canAdd = computed(
+  () => props.items.length < props.maxCount && !props.disabled,
+);
 
 /** 视频预览弹窗 */
 const videoPreviewUrl = ref('');
@@ -1606,17 +1661,16 @@ function handleBeforeUpload(file: File) {
               danger
               size="small"
               @click="emit('cancel', item.uid)"
-            >取消</Button>
+              >取消</Button
+            >
             <Button
               v-else-if="item.status === 'error'"
               type="primary"
               size="small"
               @click="emit('retry', item.uid)"
-            >重试</Button>
-            <Button
-              size="small"
-              @click="emit('remove', item.uid)"
-            >删除</Button>
+              >重试</Button
+            >
+            <Button size="small" @click="emit('remove', item.uid)">删除</Button>
           </div>
         </div>
         <!-- + 添加按钮 -->
@@ -1651,7 +1705,9 @@ function handleBeforeUpload(file: File) {
           <div class="file-meta">
             <div class="file-name">{{ item.name }}</div>
             <div class="file-sub">
-              <span v-if="item.size">{{ (item.size / 1024).toFixed(1) }} KB</span>
+              <span v-if="item.size"
+                >{{ (item.size / 1024).toFixed(1) }} KB</span
+              >
               <span v-else>--</span>
               <span v-if="item.status === 'error'" class="err">
                 · {{ item.error || '上传失败' }}
@@ -1676,24 +1732,25 @@ function handleBeforeUpload(file: File) {
                   a.click();
                 }
               "
-            >下载</Button>
+              >下载</Button
+            >
             <Button
               v-if="item.status === 'uploading'"
               danger
               size="small"
               @click="emit('cancel', item.uid)"
-            >取消</Button>
+              >取消</Button
+            >
             <Button
               v-if="item.status === 'error'"
               type="primary"
               size="small"
               @click="emit('retry', item.uid)"
-            >重试</Button>
-            <Button
-              danger
-              size="small"
-              @click="emit('remove', item.uid)"
-            >删除</Button>
+              >重试</Button
+            >
+            <Button danger size="small" @click="emit('remove', item.uid)"
+              >删除</Button
+            >
           </div>
         </div>
         <Upload
@@ -1704,9 +1761,7 @@ function handleBeforeUpload(file: File) {
           :multiple="isMulti"
           :disabled="disabled"
         >
-          <Button :disabled="disabled" type="dashed" block>
-            + 上传文件
-          </Button>
+          <Button :disabled="disabled" type="dashed" block> + 上传文件 </Button>
         </Upload>
       </div>
     </template>
@@ -1912,6 +1967,7 @@ git push
 ## Task 17：新建 SmartUpload.vue / DirectUpload.vue / ChunkUpload.vue
 
 **Files:**
+
 - Create: `apps/web-antd/src/components/Upload/SmartUpload.vue`
 - Create: `apps/web-antd/src/components/Upload/DirectUpload.vue`
 - Create: `apps/web-antd/src/components/Upload/ChunkUpload.vue`
@@ -1987,8 +2043,10 @@ const items = ref<UploadItem[]>([]);
 
 /** 解析 v-model 初始值为 items（status=done） */
 function syncFromValue(v: string | string[]) {
-  const list = Array.isArray(v) ? v : (v ? [v] : []);
-  const existingFileNames = new Set(items.value.filter(i => i.fileName).map(i => i.fileName));
+  const list = Array.isArray(v) ? v : v ? [v] : [];
+  const existingFileNames = new Set(
+    items.value.filter((i) => i.fileName).map((i) => i.fileName),
+  );
   const incoming: UploadItem[] = [];
   for (const url of list) {
     if (existingFileNames.has(url)) continue;
@@ -2005,19 +2063,23 @@ function syncFromValue(v: string | string[]) {
   }
   // 用 v-model 重置（去掉非 done 的，保留 done 与 incoming）
   items.value = [
-    ...items.value.filter(i => list.includes(i.fileName ?? '')),
+    ...items.value.filter((i) => list.includes(i.fileName ?? '')),
     ...incoming,
   ];
 }
 
-watch(() => props.value, (v) => syncFromValue(v as any), { immediate: true });
+watch(
+  () => props.value,
+  (v) => syncFromValue(v as any),
+  { immediate: true },
+);
 
 /** 把 items 转成 v-model 值 + detail */
 function emitChange() {
-  const dones = items.value.filter(i => i.status === 'done');
+  const dones = items.value.filter((i) => i.status === 'done');
   if (isMulti.value) {
-    const fileNames = dones.map(i => i.fileName!);
-    const details: UploadDetail[] = dones.map(i => ({
+    const fileNames = dones.map((i) => i.fileName!);
+    const details: UploadDetail[] = dones.map((i) => ({
       fileName: i.fileName!,
       absfileName: i.absfileName!,
       name: i.name,
@@ -2048,9 +2110,14 @@ function pickHook(file: File) {
 /** 校验文件 */
 function validate(file: File): string | null {
   const accept = effectiveAccept.value;
-  if (accept && accept !== '*' && !accept.startsWith('image/') && !accept.startsWith('video/')) {
+  if (
+    accept &&
+    accept !== '*' &&
+    !accept.startsWith('image/') &&
+    !accept.startsWith('video/')
+  ) {
     const ext = '.' + (file.name.split('.').pop() ?? '').toLowerCase();
-    const accepted = accept.split(',').map(s => s.trim().toLowerCase());
+    const accepted = accept.split(',').map((s) => s.trim().toLowerCase());
     if (!accepted.includes(ext)) return `不支持的文件类型: ${ext}`;
   }
   const maxBytes = cfg.get().maxFileSizeMB * 1024 * 1024;
@@ -2087,9 +2154,12 @@ function addFiles(files: File[]) {
 useUploadQueue(items, async (item) => {
   if (!item.file) return;
   const useChunk = pickHook(item.file);
-  const hook = useChunk === 'chunk'
-    ? useChunkUpload({ maxConcurrent: props.maxConcurrent || cfg.get().maxConcurrent })
-    : useDirectUpload();
+  const hook =
+    useChunk === 'chunk'
+      ? useChunkUpload({
+          maxConcurrent: props.maxConcurrent || cfg.get().maxConcurrent,
+        })
+      : useDirectUpload();
 
   item.status = 'uploading';
   item.cancel = () => hook.cancel();
@@ -2121,15 +2191,15 @@ useUploadQueue(items, async (item) => {
 
 /** Slot 暴露的方法 */
 function cancel(uid: string) {
-  const it = items.value.find(i => i.uid === uid);
+  const it = items.value.find((i) => i.uid === uid);
   it?.cancel?.();
   // 取消后从列表移除（G1 语义）
-  items.value = items.value.filter(i => i.uid !== uid);
+  items.value = items.value.filter((i) => i.uid !== uid);
   emitChange();
 }
 
 function retry(uid: string) {
-  const it = items.value.find(i => i.uid === uid);
+  const it = items.value.find((i) => i.uid === uid);
   if (!it || !it.file) return;
   it.status = 'queued';
   it.progress = 0;
@@ -2137,11 +2207,11 @@ function retry(uid: string) {
 }
 
 function remove(uid: string) {
-  const it = items.value.find(i => i.uid === uid);
+  const it = items.value.find((i) => i.uid === uid);
   if (it?.status === 'uploading') {
     it.cancel?.();
   }
-  items.value = items.value.filter(i => i.uid !== uid);
+  items.value = items.value.filter((i) => i.uid !== uid);
   emitChange();
 }
 
@@ -2149,11 +2219,15 @@ function remove(uid: string) {
 defineExpose({
   /** 取消所有进行中的上传 */
   cancelAll() {
-    items.value.filter(i => i.status === 'uploading').forEach(i => i.cancel?.());
+    items.value
+      .filter((i) => i.status === 'uploading')
+      .forEach((i) => i.cancel?.());
   },
   /** 清空整个列表 */
   clear() {
-    items.value.filter(i => i.status === 'uploading').forEach(i => i.cancel?.());
+    items.value
+      .filter((i) => i.status === 'uploading')
+      .forEach((i) => i.cancel?.());
     items.value = [];
     emitChange();
   },
@@ -2279,17 +2353,21 @@ const emit = defineEmits<{
 回到 SmartUpload.vue 的 `<script setup>` 顶部，扩展 props（添加 `forceMode`，仅内部使用，不在 spec 中暴露给业务）：
 
 ```ts
-const props = withDefaults(defineProps<UploadProps & { forceMode?: 'auto' | 'direct' | 'chunk' }>(), {
-  value: () => '' as any,
-  type: 'file',
-  maxConcurrent: 0,
-  accept: '',
-  disabled: false,
-  forceMode: 'auto',
-});
+const props = withDefaults(
+  defineProps<UploadProps & { forceMode?: 'auto' | 'direct' | 'chunk' }>(),
+  {
+    value: () => '' as any,
+    type: 'file',
+    maxConcurrent: 0,
+    accept: '',
+    disabled: false,
+    forceMode: 'auto',
+  },
+);
 ```
 
 修改 `pickHook(file)`：
+
 ```ts
 function pickHook(file: File) {
   if (props.forceMode === 'direct') return 'direct';
@@ -2320,6 +2398,7 @@ git push
 ## Task 18：新建 components/Upload/index.ts
 
 **Files:**
+
 - Create: `apps/web-antd/src/components/Upload/index.ts`
 
 - [ ] **Step 1：创建文件**
@@ -2360,6 +2439,7 @@ git push
 修改 `apps/web-antd/src/views/_core/upload-stress/index.vue` 的 script 顶部 + template：
 
 把整个 `<script setup>` 替换为：
+
 ```ts
 import { ref } from 'vue';
 
@@ -2379,21 +2459,36 @@ function onChange(label: string, d: any) {
 ```
 
 `<template>` 替换为：
+
 ```vue
 <template>
   <div style="padding: 24px; max-width: 1200px; margin: 0 auto">
     <h1>新组件回归测试</h1>
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px">
+    <div
+      style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px"
+    >
       <Card title="DirectUpload (强制直传)" size="small">
-        <DirectUpload type="files" v-model:value="v1" @change="(d) => onChange('direct', d)" />
+        <DirectUpload
+          type="files"
+          v-model:value="v1"
+          @change="(d) => onChange('direct', d)"
+        />
         <pre>{{ v1 }}</pre>
       </Card>
       <Card title="ChunkUpload (强制切片)" size="small">
-        <ChunkUpload type="files" v-model:value="v2" @change="(d) => onChange('chunk', d)" />
+        <ChunkUpload
+          type="files"
+          v-model:value="v2"
+          @change="(d) => onChange('chunk', d)"
+        />
         <pre>{{ v2 }}</pre>
       </Card>
       <Card title="SmartUpload (按 10MB 自动选)" size="small">
-        <SmartUpload type="files" v-model:value="v3" @change="(d) => onChange('smart', d)" />
+        <SmartUpload
+          type="files"
+          v-model:value="v3"
+          @change="(d) => onChange('smart', d)"
+        />
         <pre>{{ v3 }}</pre>
       </Card>
     </div>
@@ -2406,6 +2501,7 @@ function onChange(label: string, d: any) {
 确保 dev server + API 都在运行。访问 `http://localhost:6012/test/upload-stress`：
 
 测试矩阵：
+
 1. 三个组件各拖入一个 < 10MB 文件 → DirectUpload 走直传，ChunkUpload 走切片，SmartUpload 走直传，全部成功并显示在 `<pre>`
 2. 三个组件各拖入一个 > 10MB 文件 → SmartUpload 走切片
 3. 多文件排队：拖 3 个文件，观察 status 依次 queued → uploading → done
@@ -2418,6 +2514,7 @@ function onChange(label: string, d: any) {
 如果任何步骤失败，回到对应 task 修复后再继续。
 
 如全部通过，**不 commit 这次临时改的测试页面**（Task 27 会再做最终版）。把 upload-stress/index.vue 还原到 commit ce4813d3 的版本：
+
 ```bash
 cd /Users/tianlong/projects/sb/sb-admin
 git checkout ce4813d3 -- apps/web-antd/src/views/_core/upload-stress/index.vue
@@ -2428,6 +2525,7 @@ git checkout ce4813d3 -- apps/web-antd/src/views/_core/upload-stress/index.vue
 ## Task 20：业务页迁移 - avatar-setting.vue
 
 **Files:**
+
 - Modify: `apps/web-antd/src/views/_core/profile/avatar-setting.vue`
 
 - [ ] **Step 1：读取现状**
@@ -2441,11 +2539,13 @@ cat /Users/tianlong/projects/sb/sb-admin/apps/web-antd/src/views/_core/profile/a
 - [ ] **Step 2：替换为 DirectUpload**
 
 把 `<script setup>` 中：
+
 - 删除 `import { uploadFileApi } from '#/api/core/admin'`
 - 改为 `import { DirectUpload } from '#/components/Upload'`
 - 删除手写 customRequest handler；保留 `changeAvatarApi`
 
 把 `<template>` 中现有 `<Upload>` 块换成：
+
 ```vue
 <DirectUpload
   type="image"
@@ -2455,8 +2555,12 @@ cat /Users/tianlong/projects/sb/sb-admin/apps/web-antd/src/views/_core/profile/a
 ```
 
 `form.avatar` 现在存相对路径。新增：
+
 ```ts
-async function onAvatarUploaded(detail: { absfileName: string; fileName: string }) {
+async function onAvatarUploaded(detail: {
+  absfileName: string;
+  fileName: string;
+}) {
   // changeAvatarApi 习惯用绝对 URL（保持后端兼容）
   await changeAvatarApi(detail.absfileName);
   message.success('头像更新成功');
@@ -2466,6 +2570,7 @@ async function onAvatarUploaded(detail: { absfileName: string; fileName: string 
 - [ ] **Step 3：兼容旧绝对 URL**
 
 如果初始 `form.avatar` 来自后端是绝对 URL（http://...），加一次性 strip：
+
 ```ts
 const stripHost = (url: string) => url.replace(/^https?:\/\/[^/]+/, '');
 // 在加载用户信息后：
@@ -2493,6 +2598,7 @@ git push
 ## Task 21：业务页迁移 - SettingRender.vue（系统设置 3 种 DisplayType）
 
 **Files:**
+
 - Modify: `apps/web-antd/src/views/system-setting/SettingRender.vue`
 
 - [ ] **Step 1：读取现状**
@@ -2502,11 +2608,13 @@ git push
 - [ ] **Step 2：替换三个 case 为 DirectUpload**
 
 把 `import { uploadFileApi } from '#/api/core/admin'` 删除，加：
+
 ```ts
 import { DirectUpload } from '#/components/Upload';
 ```
 
 DisplayType 6 (ImageUpload):
+
 ```vue
 <DirectUpload
   type="image"
@@ -2516,6 +2624,7 @@ DisplayType 6 (ImageUpload):
 ```
 
 DisplayType 17 (MultiImageUpload):
+
 ```vue
 <DirectUpload
   type="images"
@@ -2525,6 +2634,7 @@ DisplayType 17 (MultiImageUpload):
 ```
 
 DisplayType 18 (FileUpload):
+
 ```vue
 <DirectUpload
   type="files"
@@ -2536,6 +2646,7 @@ DisplayType 18 (FileUpload):
 注意：原 modelValue 可能是绝对 URL，新组件期望相对路径。SettingRender 是受控组件，调用方传什么就显示什么；推荐**在 List.vue / Form.vue 加载设置时把绝对 URL strip 为相对**（或者后续单独迁移设置项数据）。先保留兼容：
 
 在 `<DirectUpload>` 上方加一个 computed：
+
 ```ts
 const stripHost = (url: string) => url.replace(/^https?:\/\/[^/]+/, '');
 const valueComputed = computed({
@@ -2555,6 +2666,7 @@ DirectUpload 用 `v-model:value="valueComputed"`。
 - [ ] **Step 3：浏览器验证**
 
 访问系统设置页面，测试 ImageUpload/MultiImageUpload/FileUpload 三种类型字段：
+
 - 点击编辑设置项
 - 上传图/多图/文件
 - 确认保存后值正确
@@ -2576,6 +2688,7 @@ git push
 ## Task 22：业务页迁移 - setup.vue（安装向导）
 
 **Files:**
+
 - Modify: `apps/web-antd/src/views/_core/setup/setup.vue`
 
 - [ ] **Step 1：读取现状**
@@ -2608,32 +2721,41 @@ git push
 ## Task 23：业务页迁移 - deploy/List.vue（API + 项目部署）
 
 **Files:**
+
 - Modify: `apps/web-antd/src/views/deploy/List.vue`
 
 - [ ] **Step 1：读取现状**
 
 `deploy/List.vue` 当前使用 `useSmartUpload({forceChunk: true})` + 手写 syncState/UploadState/setInterval 三件套（已修过 bug）。共两块：
+
 - API 上传（顶部 Card）
 - 项目部署（下方 Card，per-target）
 
 - [ ] **Step 2：完全重写为 ChunkUpload**
 
 删除以下代码：
+
 - `import { formatSpeed, useSmartUpload } from '#/components/SmartUpload/useSmartUpload'`
 - `interface UploadState`、`function createUploadState`、`function syncState`
 - `apiUploader` / `apiState` / `apiTimer` / `clearApiTimer` / `handleUploadApi` / `handleCancelApi`
 - `projectStates` / `projectUploaderMap` / `projectTimerMap` / `getProjectState` / `getProjectUploader` / `clearProjectTimer` / `handleUploadProject` / `handleCancelProject`
 
 加新 import：
+
 ```ts
 import { ChunkUpload } from '#/components/Upload';
 ```
 
 新增简洁的处理函数（API 部署用）：
+
 ```ts
 const apiUploadValue = ref<string>('');
 
-async function onApiZipUploaded(detail: { fileName: string; absfileName: string; size: number }) {
+async function onApiZipUploaded(detail: {
+  fileName: string;
+  absfileName: string;
+  size: number;
+}) {
   apiState.deploying = true;
   try {
     await postDeployApiByPath(detail.fileName, detail.name, detail.size);
@@ -2653,6 +2775,7 @@ async function onApiZipUploaded(detail: { fileName: string; absfileName: string;
 类似地处理项目部署：每个 target 一个 v-model（用 Record<string, string>），@success 调 postDeployProjectByPath。
 
 模板：
+
 ```vue
 <!-- API Card 内部 -->
 <ChunkUpload
@@ -2677,6 +2800,7 @@ async function onApiZipUploaded(detail: { fileName: string; absfileName: string;
 - [ ] **Step 3：浏览器验证**
 
 访问"部署"页面：
+
 - 上传 API zip → 应该能上传 + 部署 + 触发重启 polling
 - 多 target 同时上传项目 zip → 各自独立显示，互不干扰
 - 取消按钮工作
@@ -2699,6 +2823,7 @@ git push
 ## Task 24：业务页迁移 - upload-stress/index.vue（最终版）
 
 **Files:**
+
 - Modify: `apps/web-antd/src/views/_core/upload-stress/index.vue`
 
 - [ ] **Step 1：完全重写为新组件演示**
@@ -2737,14 +2862,18 @@ function logChange(label: string, d: any) {
       description="同时在 3 个组件触发上传，预期：每个组件独立显示进度；取消按钮只取消自己；重试可恢复失败项；多文件排队（同时仅 1 个 uploading）。"
       style="margin-bottom: 16px"
     />
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px">
+    <div
+      style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px"
+    >
       <Card title="DirectUpload 单图" size="small">
         <DirectUpload
           type="image"
           v-model:value="single"
           @change="(d: any) => logChange('direct-img', d)"
         />
-        <pre style="margin-top: 12px; font-size: 11px">v-model: {{ single }}</pre>
+        <pre style="margin-top: 12px; font-size: 11px">
+v-model: {{ single }}</pre
+        >
       </Card>
       <Card title="ChunkUpload 多文件" size="small">
         <ChunkUpload
@@ -2752,7 +2881,9 @@ function logChange(label: string, d: any) {
           v-model:value="multi"
           @change="(d: any) => logChange('chunk-files', d)"
         />
-        <pre style="margin-top: 12px; font-size: 11px">v-model: {{ multi }}</pre>
+        <pre style="margin-top: 12px; font-size: 11px">
+v-model: {{ multi }}</pre
+        >
       </Card>
       <Card title="SmartUpload 自动" size="small">
         <SmartUpload
@@ -2760,12 +2891,14 @@ function logChange(label: string, d: any) {
           v-model:value="smart"
           @change="(d: any) => logChange('smart-files', d)"
         />
-        <pre style="margin-top: 12px; font-size: 11px">v-model: {{ smart }}</pre>
+        <pre style="margin-top: 12px; font-size: 11px">
+v-model: {{ smart }}</pre
+        >
       </Card>
     </div>
     <div style="margin-top: 24px; font-size: 12px; color: rgba(0, 0, 0, 0.45)">
-      路由：<code>/test/upload-stress</code>（dev 调试用）。
-      后端 dev 限速：1500ms/片（appsettings.Development.json
+      路由：<code>/test/upload-stress</code>（dev 调试用）。 后端 dev
+      限速：1500ms/片（appsettings.Development.json
       UploadConfig.DebugThrottleMs）。
     </div>
   </div>
@@ -2816,6 +2949,7 @@ grep -rn "/admin/Auth/Upload\|/admin/ChunkUpload\|/Auth/Upload\|/ChunkUpload" ap
 ## Task 26：删除前端旧文件
 
 **Files:**
+
 - Delete: `apps/web-antd/src/components/SmartUpload/` 整目录
 - Delete: `apps/web-antd/src/api/core/chunkUpload.ts`
 - Modify: `apps/web-antd/src/api/core/admin.ts`（删 `uploadFileApi`）
@@ -2904,6 +3038,7 @@ dotnet build 2>&1 | tail -10
 - [ ] **Step 4：浏览器矩阵测试**
 
 逐一验证：
+
 - 个人头像（avatar-setting）：上传/查看/重新上传
 - 系统设置（SettingRender）：3 种类型字段都能上传
 - 安装向导（setup）：如能访问，logo 上传

@@ -96,7 +96,9 @@ onUnmounted(() => {
       <div v-if="newMessageEnabled" class="setting-control">
         <Select v-model="newMessageSound" class="flex-1">
           <SelectTrigger class="h-8">
-            <SelectValue :placeholder="$t('preferences.userSettings.sound.selectSound')" />
+            <SelectValue
+              :placeholder="$t('preferences.userSettings.sound.selectSound')"
+            />
           </SelectTrigger>
           <SelectContent>
             <SelectItem
@@ -139,7 +141,9 @@ onUnmounted(() => {
       <div v-if="systemNotificationEnabled" class="setting-control">
         <Select v-model="systemNotificationSound" class="flex-1">
           <SelectTrigger class="h-8">
-            <SelectValue :placeholder="$t('preferences.userSettings.sound.selectSound')" />
+            <SelectValue
+              :placeholder="$t('preferences.userSettings.sound.selectSound')"
+            />
           </SelectTrigger>
           <SelectContent>
             <SelectItem

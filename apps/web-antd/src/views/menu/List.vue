@@ -143,9 +143,7 @@ const treeVisible = ref(false);
   <Page auto-content-height>
     <Grid>
       <template #toolbar-tools>
-        <Button @click="treeVisible = true">
-          树型视图
-        </Button>
+        <Button @click="treeVisible = true"> 树型视图 </Button>
       </template>
       <template #icon="{ row }">
         <div style="display: flex; align-items: center">

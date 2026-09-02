@@ -52,13 +52,7 @@ export interface UploadItem {
   /** 内部唯一 id */
   uid: string;
   /** 当前状态 */
-  status:
-    | 'queued'
-    | 'hashing'
-    | 'uploading'
-    | 'done'
-    | 'error'
-    | 'cancelled';
+  status: 'queued' | 'hashing' | 'uploading' | 'done' | 'error' | 'cancelled';
   /** 进度 0-100 */
   progress: number;
   /** 用户选择的本地 File（done 后保留以便重试） */

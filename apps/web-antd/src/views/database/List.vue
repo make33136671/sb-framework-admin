@@ -241,7 +241,10 @@ function fmtTime(v: string) {
   const hasTz = /[Zz]|[+-]\d\d:?\d\d$/.test(v);
   const d = new Date(hasTz ? v : `${v}Z`);
   if (Number.isNaN(d.getTime())) return '-';
-  return d.toLocaleString('zh-CN', { hour12: false, timeZone: appTimeZone.value || 'UTC' });
+  return d.toLocaleString('zh-CN', {
+    hour12: false,
+    timeZone: appTimeZone.value || 'UTC',
+  });
 }
 
 // ============ 表格 ============
@@ -249,12 +252,37 @@ interface RowType {}
 
 const gridOptions: VxeGridProps<RowType> = {
   columns: [
-    { field: 'source', title: '状态', width: 150, slots: { default: 'source' } },
-    { field: 'fileName', title: '文件名 / MD5', minWidth: 320, slots: { default: 'fileName' } },
-    { field: 'fileSize', title: '文件大小', width: 120, slots: { default: 'fileSize' } },
-    { field: 'duration', title: '耗时', width: 100, slots: { default: 'duration' } },
+    {
+      field: 'source',
+      title: '状态',
+      width: 150,
+      slots: { default: 'source' },
+    },
+    {
+      field: 'fileName',
+      title: '文件名 / MD5',
+      minWidth: 320,
+      slots: { default: 'fileName' },
+    },
+    {
+      field: 'fileSize',
+      title: '文件大小',
+      width: 120,
+      slots: { default: 'fileSize' },
+    },
+    {
+      field: 'duration',
+      title: '耗时',
+      width: 100,
+      slots: { default: 'duration' },
+    },
     { field: 'createdBy', title: '操作人', width: 120 },
-    { field: 'createdTime', title: '备份时间', width: 180, slots: { default: 'createdTime' } },
+    {
+      field: 'createdTime',
+      title: '备份时间',
+      width: 180,
+      slots: { default: 'createdTime' },
+    },
     { title: '操作', width: 290, fixed: 'right', slots: { default: 'action' } },
   ],
   height: 'auto',
@@ -289,7 +317,11 @@ onMounted(() => {
     <Grid>
       <!-- 表格上方：数据库信息卡片 -->
       <template #top>
-        <Card title="数据库备份" :loading="infoLoading" style="margin-bottom: -2px">
+        <Card
+          title="数据库备份"
+          :loading="infoLoading"
+          style="margin-bottom: -2px"
+        >
           <Descriptions
             v-if="dbInfo"
             :column="{ xs: 1, sm: 2, md: 2, lg: 3, xl: 3, xxl: 3 }"
@@ -363,10 +395,7 @@ onMounted(() => {
             </Descriptions.Item>
           </Descriptions>
 
-          <div
-            v-else
-            style=" padding: 16px; color: #999;text-align: center"
-          >
+          <div v-else style="padding: 16px; color: #999; text-align: center">
             无法获取数据库信息
           </div>
 
@@ -384,7 +413,14 @@ onMounted(() => {
       </template>
 
       <template #source="{ row }">
-        <div style="display: flex; flex-direction: column; gap: 4px; align-items: flex-start">
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+            align-items: flex-start;
+          "
+        >
           <Tag
             :color="SOURCE_META[row.source]?.color || 'default'"
             :title="SOURCE_META[row.source]?.tooltip || row.source"
@@ -404,7 +440,9 @@ onMounted(() => {
           >
             <Tag color="red" style="margin: 0">云端 ✗</Tag>
           </Tooltip>
-          <Tag v-else style="margin: 0">{{ cloudUploadEnabled ? '云端 ○' : '云端未启用' }}</Tag>
+          <Tag v-else style="margin: 0">{{
+            cloudUploadEnabled ? '云端 ○' : '云端未启用'
+          }}</Tag>
         </div>
       </template>
 
@@ -445,9 +483,7 @@ onMounted(() => {
             type="primary"
             size="small"
             :disabled="row.source === 'db_only'"
-            :title="
-              row.source === 'db_only' ? '磁盘文件不存在，无法下载' : ''
-            "
+            :title="row.source === 'db_only' ? '磁盘文件不存在，无法下载' : ''"
             @click="handleDownload(row)"
           >
             下载
@@ -457,9 +493,7 @@ onMounted(() => {
             size="small"
             danger
             :disabled="row.source === 'db_only'"
-            :title="
-              row.source === 'db_only' ? '磁盘文件不存在，无法恢复' : ''
-            "
+            :title="row.source === 'db_only' ? '磁盘文件不存在，无法恢复' : ''"
             @click="handleRestoreClick(row)"
           >
             恢复
@@ -469,29 +503,21 @@ onMounted(() => {
             size="small"
             type="primary"
             ghost
-            :disabled="
-              row.source === 'db_only' || !cloudUploadEnabled
-            "
+            :disabled="row.source === 'db_only' || !cloudUploadEnabled"
             :title="
               !cloudUploadEnabled
                 ? '系统设置未启用云端备份'
                 : row.source === 'db_only'
-                ? '磁盘文件不存在'
-                : row.remoteUploadStatus === 'failed'
-                ? '上次上传失败，点击重试'
-                : '点击上传到云端'
+                  ? '磁盘文件不存在'
+                  : row.remoteUploadStatus === 'failed'
+                    ? '上次上传失败，点击重试'
+                    : '点击上传到云端'
             "
             @click="uploadToCloud(row.id)"
           >
             {{ row.remoteUploadStatus === 'failed' ? '重试上传' : '上传云端' }}
           </Button>
-          <Button
-            size="small"
-            danger
-            @click="handleDel(row)"
-          >
-            删除
-          </Button>
+          <Button size="small" danger @click="handleDel(row)"> 删除 </Button>
         </Space>
       </template>
     </Grid>
@@ -524,7 +550,9 @@ onMounted(() => {
         >
           <Descriptions.Item label="目标数据库">
             <Tag color="red">{{ dbInfo.database }}</Tag>
-            <span style=" font-size: 12px;color: var(--ant-color-text-tertiary)">
+            <span
+              style="font-size: 12px; color: var(--ant-color-text-tertiary)"
+            >
               ({{ dbInfo.server }})
             </span>
           </Descriptions.Item>

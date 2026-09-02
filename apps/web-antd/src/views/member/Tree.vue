@@ -107,9 +107,12 @@ async function init() {
 onMounted(init);
 
 // 路由参数变化时重新加载（从架构页内部跳转时）
-watch(() => route.query.id, () => {
-  init();
-});
+watch(
+  () => route.query.id,
+  () => {
+    init();
+  },
+);
 
 const switchToOverview = () => {
   focusMemberId.value = 0;
@@ -124,7 +127,9 @@ const switchToOverview = () => {
     <div class="tree-page">
       <!-- 顶部栏 -->
       <div class="tree-header">
-        <Button v-if="focusMemberId > 0" @click="switchToOverview">全部会员</Button>
+        <Button v-if="focusMemberId > 0" @click="switchToOverview"
+          >全部会员</Button
+        >
         <span class="tree-title">会员架构</span>
       </div>
 
@@ -136,9 +141,13 @@ const switchToOverview = () => {
             <span class="focus-name-sub">{{ focusMember.name }}</span>
           </div>
           <Tag color="blue">ID: {{ focusMember.id }}</Tag>
-          <Tag v-if="focusMember.invitationCode" color="orange">邀请码: {{ focusMember.invitationCode }}</Tag>
+          <Tag v-if="focusMember.invitationCode" color="orange"
+            >邀请码: {{ focusMember.invitationCode }}</Tag
+          >
           <Tag color="green">直推: {{ focusMember.directChildCount }} 人</Tag>
-          <span class="focus-time">注册: {{ fmtTime(focusMember.createTime) }}</span>
+          <span class="focus-time"
+            >注册: {{ fmtTime(focusMember.createTime) }}</span
+          >
         </div>
       </div>
 
@@ -175,7 +184,9 @@ const switchToOverview = () => {
                   type="link"
                   size="small"
                   class="node-link"
-                  @click.stop="router.push({ name: 'MemberTree', query: { id: node.id } })"
+                  @click.stop="
+                    router.push({ name: 'MemberTree', query: { id: node.id } })
+                  "
                 >
                   查看架构
                 </Button>
@@ -252,7 +263,6 @@ const switchToOverview = () => {
   border-radius: 8px;
 }
 
-
 .tree-node {
   display: inline-flex;
   gap: 8px;
@@ -300,7 +310,9 @@ const switchToOverview = () => {
   border-bottom: 1px solid rgb(128 128 128 / 15%);
 }
 
-.tree-container .ant-tree-list-holder-inner > .ant-tree-treenode:nth-child(odd) {
+.tree-container
+  .ant-tree-list-holder-inner
+  > .ant-tree-treenode:nth-child(odd) {
   background: rgb(128 128 128 / 6%);
 }
 </style>

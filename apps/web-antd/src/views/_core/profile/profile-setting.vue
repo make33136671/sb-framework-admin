@@ -3,7 +3,15 @@ import { onMounted, ref } from 'vue';
 
 import { useUserStore } from '@vben/stores';
 
-import { Button, Card, Form, FormItem, Input, message, Spin } from 'ant-design-vue';
+import {
+  Button,
+  Card,
+  Form,
+  FormItem,
+  Input,
+  message,
+  Spin,
+} from 'ant-design-vue';
 
 import { getUserInfoApi } from '#/api/core/user';
 import { updateProfileApi } from '#/api/core/admin';

@@ -82,7 +82,10 @@ const chartTabs = [
     </AnalysisChartsTabs>
 
     <div class="mt-5 w-full md:flex">
-      <AnalysisChartCard class="mt-5 md:mr-4 md:mt-0 md:w-1/2" title="会员状态分布">
+      <AnalysisChartCard
+        class="mt-5 md:mr-4 md:mt-0 md:w-1/2"
+        title="会员状态分布"
+      >
         <AnalyticsStatusPie />
       </AnalysisChartCard>
       <AnalysisChartCard class="mt-5 md:mt-0 md:w-1/2" title="实名认证分布">

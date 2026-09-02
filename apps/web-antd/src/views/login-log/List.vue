@@ -73,11 +73,21 @@ const gridOptions: VxeGridProps<RowType> = {
   columns: [
     { field: 'id', title: 'ID', width: 80 },
     { field: 'username', title: '用户名', minWidth: 150 },
-    { field: 'userType', title: '用户类型', width: 100, slots: { default: 'userType' } },
+    {
+      field: 'userType',
+      title: '用户类型',
+      width: 100,
+      slots: { default: 'userType' },
+    },
     { field: 'ipAddress', title: 'IP地址', width: 140 },
     { field: 'userAgent', title: 'User Agent', minWidth: 200 },
     { field: 'status', title: '状态', width: 80, slots: { default: 'status' } },
-    { field: 'createTime', title: '登录时间', width: 180, slots: { default: 'createTime' } },
+    {
+      field: 'createTime',
+      title: '登录时间',
+      width: 180,
+      slots: { default: 'createTime' },
+    },
   ],
   height: 'auto',
   keepSource: true,

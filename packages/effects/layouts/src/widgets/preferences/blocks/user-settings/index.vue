@@ -59,10 +59,7 @@ function toggleSection(section: string) {
 
     <!-- 声音设置 -->
     <div class="settings-section">
-      <div
-        class="section-header"
-        @click="toggleSection('sound')"
-      >
+      <div class="section-header" @click="toggleSection('sound')">
         <div class="flex items-center gap-2">
           <Volume2 class="h-4 w-4 text-primary" />
           <span class="font-medium">

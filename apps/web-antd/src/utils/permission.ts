@@ -7,10 +7,7 @@ export class PermissionUtil {
   /**
    * 检查用户是否有访问指定菜单的权限
    */
-  static hasMenuPermission(
-    userType: AdminType,
-    menuPath: string,
-  ): boolean {
+  static hasMenuPermission(userType: AdminType, menuPath: string): boolean {
     // 系统管理员拥有所有权限
     if (userType === AdminType.SystemAdmin) {
       return true;
@@ -92,10 +89,7 @@ export class PermissionUtil {
   /**
    * 检查用户是否有执行指定操作的权限
    */
-  static hasActionPermission(
-    userType: AdminType,
-    action: string,
-  ): boolean {
+  static hasActionPermission(userType: AdminType, action: string): boolean {
     // 系统管理员拥有所有权限
     if (userType === AdminType.SystemAdmin) {
       return true;
@@ -107,10 +101,7 @@ export class PermissionUtil {
       'admin:add': [AdminType.RegularAdmin, AdminType.SiteOwner],
       'admin:edit': [AdminType.RegularAdmin, AdminType.SiteOwner],
       'admin:delete': [AdminType.RegularAdmin, AdminType.SiteOwner],
-      'admin:resetPassword': [
-        AdminType.RegularAdmin,
-        AdminType.SiteOwner,
-      ],
+      'admin:resetPassword': [AdminType.RegularAdmin, AdminType.SiteOwner],
 
       // 客户管理
       'chatuser:view': [
@@ -146,9 +137,7 @@ export class PermissionUtil {
   /**
    * 检查数据范围权限
    */
-  static getDataScope(
-    userType: AdminType,
-  ): 'all' | 'self' | 'subordinate' {
+  static getDataScope(userType: AdminType): 'all' | 'self' | 'subordinate' {
     const scopeMap: Record<AdminType, 'all' | 'self' | 'subordinate'> = {
       [AdminType.SystemAdmin]: 'all',
       [AdminType.RegularAdmin]: 'all',

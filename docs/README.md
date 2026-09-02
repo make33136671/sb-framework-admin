@@ -17,23 +17,23 @@ pnpm run dev:antd        # http://localhost:5173
 
 ## 项目信息
 
-| 项 | 值 |
-|---|---|
-| **版本** | v5.5.9 (Vben Admin) |
-| **框架** | Vue 3.5.24 + TypeScript 5.9.3 |
-| **构建** | Vite (最新版) |
-| **UI** | Ant Design Vue 4.2.6 |
-| **状态管理** | Pinia 3.0.4 |
-| **路由** | Vue Router 4.6.3 |
+| 项           | 值                            |
+| ------------ | ----------------------------- |
+| **版本**     | v5.5.9 (Vben Admin)           |
+| **框架**     | Vue 3.5.24 + TypeScript 5.9.3 |
+| **构建**     | Vite (最新版)                 |
+| **UI**       | Ant Design Vue 4.2.6          |
+| **状态管理** | Pinia 3.0.4                   |
+| **路由**     | Vue Router 4.6.3              |
 
 ## 支持的 UI 框架
 
-| 框架 | 命令 |
-|------|------|
-| Ant Design (推荐) | `pnpm run dev:antd` |
-| Element Plus | `pnpm run dev:ele` |
-| Naive UI | `pnpm run dev:naive` |
-| TDesign | `pnpm run dev:tdesign` |
+| 框架              | 命令                   |
+| ----------------- | ---------------------- |
+| Ant Design (推荐) | `pnpm run dev:antd`    |
+| Element Plus      | `pnpm run dev:ele`     |
+| Naive UI          | `pnpm run dev:naive`   |
+| TDesign           | `pnpm run dev:tdesign` |
 
 ## 构建命令
 

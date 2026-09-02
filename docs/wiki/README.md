@@ -20,12 +20,12 @@ pnpm run dev:antd        # http://localhost:5173
 
 ## UI 框架
 
-| 框架 | 命令 |
-|------|------|
-| Ant Design (推荐) | `pnpm run dev:antd` |
-| Element Plus | `pnpm run dev:ele` |
-| Naive UI | `pnpm run dev:naive` |
-| TDesign | `pnpm run dev:tdesign` |
+| 框架              | 命令                   |
+| ----------------- | ---------------------- |
+| Ant Design (推荐) | `pnpm run dev:antd`    |
+| Element Plus      | `pnpm run dev:ele`     |
+| Naive UI          | `pnpm run dev:naive`   |
+| TDesign           | `pnpm run dev:tdesign` |
 
 ## 常见问题
 

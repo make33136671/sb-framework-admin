@@ -23,7 +23,12 @@ import { useVbenVxeGrid } from '#/adapter/vxe-table';
 
 import { TimeTag } from '#/components/TimeTag';
 
-import { deleteClient, getClientList, getRecordList, revokeLicense } from './api';
+import {
+  deleteClient,
+  getClientList,
+  getRecordList,
+  revokeLicense,
+} from './api';
 import IssueForm from './IssueForm.vue';
 import { deriveVerifyMode } from './utils';
 
@@ -75,9 +80,30 @@ const formOptions = {
 const gridOptions: VxeGridProps = {
   columns: [
     { field: 'id', title: 'ID', width: 60, visible: false, align: 'left' },
-    { field: 'productEn', title: '产品信息', minWidth: 340, align: 'left', showOverflow: false, slots: { default: 'productCard' } },
-    { field: 'createdTime', title: '时间 / 状态', width: 230, align: 'left', showOverflow: false, slots: { default: 'timeStatusCol' } },
-    { title: '操作', width: 100, align: 'left', showOverflow: false, slots: { default: 'action' }, fixed: 'right' },
+    {
+      field: 'productEn',
+      title: '产品信息',
+      minWidth: 340,
+      align: 'left',
+      showOverflow: false,
+      slots: { default: 'productCard' },
+    },
+    {
+      field: 'createdTime',
+      title: '时间 / 状态',
+      width: 230,
+      align: 'left',
+      showOverflow: false,
+      slots: { default: 'timeStatusCol' },
+    },
+    {
+      title: '操作',
+      width: 100,
+      align: 'left',
+      showOverflow: false,
+      slots: { default: 'action' },
+      fixed: 'right',
+    },
   ],
   height: 'auto',
   keepSource: true,
@@ -184,7 +210,11 @@ async function openRecords(row: any) {
 async function loadRecords() {
   recordLoading.value = true;
   try {
-    const res = await getRecordList({ page: 1, pageSize: 100, clientId: recordClient.value.id });
+    const res = await getRecordList({
+      page: 1,
+      pageSize: 100,
+      clientId: recordClient.value.id,
+    });
     recordList.value = res?.items ?? res ?? [];
   } catch {
     recordList.value = [];
@@ -209,7 +239,13 @@ async function handleRevoke(record: any) {
         <div class="product-card">
           <div class="product-card-row">
             <div class="product-card-label">产品</div>
-            <div class="product-card-value" style="font-weight: 600;">{{ row.productCn ? `${row.productCn}（${row.productEn}）` : row.productEn || '-' }}</div>
+            <div class="product-card-value" style="font-weight: 600">
+              {{
+                row.productCn
+                  ? `${row.productCn}（${row.productEn}）`
+                  : row.productEn || '-'
+              }}
+            </div>
           </div>
           <div class="product-card-row">
             <div class="product-card-label">声明域名</div>
@@ -218,7 +254,12 @@ async function handleRevoke(record: any) {
           <div
             v-if="row.lastActualDomain"
             class="product-card-row"
-            :class="{ 'product-card-row-warn': row.domain && row.lastActualDomain && row.domain.toLowerCase() !== row.lastActualDomain.toLowerCase() }"
+            :class="{
+              'product-card-row-warn':
+                row.domain &&
+                row.lastActualDomain &&
+                row.domain.toLowerCase() !== row.lastActualDomain.toLowerCase(),
+            }"
           >
             <div class="product-card-label">最近访问</div>
             <div class="product-card-value">{{ row.lastActualDomain }}</div>
@@ -227,50 +268,78 @@ async function handleRevoke(record: any) {
             <div class="product-card-label">机器名</div>
             <div class="product-card-value">{{ row.machineName || '-' }}</div>
             <div class="product-card-label product-card-label-inner">CPU</div>
-            <div class="product-card-value" style=" flex: none;width: 40px;">{{ row.processorCount || '-' }}</div>
+            <div class="product-card-value" style="flex: none; width: 40px">
+              {{ row.processorCount || '-' }}
+            </div>
           </div>
           <div class="product-card-row">
             <div class="product-card-label">操作系统</div>
-            <div class="product-card-value" style="font-size: 11px;">{{ row.osDescription || '-' }}</div>
+            <div class="product-card-value" style="font-size: 11px">
+              {{ row.osDescription || '-' }}
+            </div>
           </div>
           <div class="product-card-row">
             <div class="product-card-label">MAC</div>
-            <div class="product-card-value" style="font-family: monospace;">{{ row.macAddresses || '-' }}</div>
+            <div class="product-card-value" style="font-family: monospace">
+              {{ row.macAddresses || '-' }}
+            </div>
           </div>
           <div class="product-card-row">
             <div class="product-card-label">CK</div>
-            <div class="product-card-value" style="font-family: monospace; word-break: break-all;">{{ row.clientKey || '-' }}</div>
+            <div
+              class="product-card-value"
+              style="font-family: monospace; word-break: break-all"
+            >
+              {{ row.clientKey || '-' }}
+            </div>
           </div>
           <div class="product-card-row">
             <div class="product-card-label">HW</div>
-            <div class="product-card-value" style="font-family: monospace; word-break: break-all;">{{ row.hardwareId || '-' }}</div>
+            <div
+              class="product-card-value"
+              style="font-family: monospace; word-break: break-all"
+            >
+              {{ row.hardwareId || '-' }}
+            </div>
           </div>
         </div>
       </template>
 
       <!-- 时间 + 验证状态合并列 -->
       <template #timeStatusCol="{ row }">
-        <div style="padding: 8px 0; line-height: 1.9;">
+        <div style="padding: 8px 0; line-height: 1.9">
           <div>
-            <span style=" font-size: 12px;color: var(--ant-color-text-tertiary);">创建　</span>
+            <span style="font-size: 12px; color: var(--ant-color-text-tertiary)"
+              >创建　</span
+            >
             <TimeTag color="cyan" :time="fmtTime(row.createdTime)" />
           </div>
           <div>
-            <span style=" font-size: 12px;color: var(--ant-color-text-tertiary);">验证　</span>
-            <TimeTag v-if="row.lastVerifyTime" color="blue" :time="fmtTime(row.lastVerifyTime)" />
-            <Tag v-else color="default" style="margin: 0;">未验证</Tag>
+            <span style="font-size: 12px; color: var(--ant-color-text-tertiary)"
+              >验证　</span
+            >
+            <TimeTag
+              v-if="row.lastVerifyTime"
+              color="blue"
+              :time="fmtTime(row.lastVerifyTime)"
+            />
+            <Tag v-else color="default" style="margin: 0">未验证</Tag>
           </div>
-          <div style=" margin-top: 2px;font-size: 13px;">
-            <span>验证 <strong>{{ row.verifyCount }}</strong> 次</span>
-            <Tag v-if="row.status === 0" color="green" style="margin-left: 8px;">正常</Tag>
-            <Tag v-else color="red" style="margin-left: 8px;">禁用</Tag>
+          <div style="margin-top: 2px; font-size: 13px">
+            <span
+              >验证 <strong>{{ row.verifyCount }}</strong> 次</span
+            >
+            <Tag v-if="row.status === 0" color="green" style="margin-left: 8px"
+              >正常</Tag
+            >
+            <Tag v-else color="red" style="margin-left: 8px">禁用</Tag>
           </div>
         </div>
       </template>
 
       <!-- 操作列 (按钮竖排, 中号) -->
       <template #action="{ row }">
-        <Space direction="vertical" :size="6" style="display: flex;">
+        <Space direction="vertical" :size="6" style="display: flex">
           <Button type="primary" block @click="openIssue(row)">签发</Button>
           <Button block @click="openRecords(row)">记录</Button>
           <Popconfirm
@@ -290,7 +359,11 @@ async function handleRevoke(record: any) {
       :width="issueModalWidth"
       destroy-on-close
     >
-      <IssueForm v-if="issueVisible" :client="issueClient" @success="onIssueSuccess" />
+      <IssueForm
+        v-if="issueVisible"
+        :client="issueClient"
+        @success="onIssueSuccess"
+      />
     </Modal>
 
     <!-- 授权记录弹窗 -->
@@ -301,7 +374,10 @@ async function handleRevoke(record: any) {
       :width="recordModalWidth"
     >
       <Spin :spinning="recordLoading">
-        <div v-if="recordList.length === 0 && !recordLoading" style="padding: 40px 0">
+        <div
+          v-if="recordList.length === 0 && !recordLoading"
+          style="padding: 40px 0"
+        >
           <Empty description="暂无授权记录" />
         </div>
         <div class="modal-record-cards">
@@ -315,7 +391,12 @@ async function handleRevoke(record: any) {
               <div class="modal-card-title">
                 <span>
                   #{{ row.id }}
-                  <Tag v-if="row.status === 0" color="green" style="margin-left: 8px">有效</Tag>
+                  <Tag
+                    v-if="row.status === 0"
+                    color="green"
+                    style="margin-left: 8px"
+                    >有效</Tag
+                  >
                   <Tag v-else color="red" style="margin-left: 8px">已吊销</Tag>
                   <Tag :color="row.isDownloaded ? 'blue' : 'default'">
                     {{ row.isDownloaded ? '已下载' : '未下载' }}
@@ -337,28 +418,44 @@ async function handleRevoke(record: any) {
               :label-style="{ width: '110px', whiteSpace: 'nowrap' }"
             >
               <DescriptionsItem label="验证模式">
-                <Tag :color="deriveVerifyMode(row).color">{{ deriveVerifyMode(row).text }}</Tag>
+                <Tag :color="deriveVerifyMode(row).color">{{
+                  deriveVerifyMode(row).text
+                }}</Tag>
               </DescriptionsItem>
               <DescriptionsItem label="产品标识">
-                <span style="font-family: monospace">{{ row.productEn || '-' }}</span>
+                <span style="font-family: monospace">{{
+                  row.productEn || '-'
+                }}</span>
               </DescriptionsItem>
               <DescriptionsItem label="绑定域名">
-                <span style="font-family: monospace; font-size: 12px">{{ parseJson(row.domains) }}</span>
+                <span style="font-family: monospace; font-size: 12px">{{
+                  parseJson(row.domains)
+                }}</span>
               </DescriptionsItem>
 
               <DescriptionsItem label="ClientKey" :span="2">
-                <span style="font-family: monospace; font-size: 12px" :title="row.clientKey">
+                <span
+                  style="font-family: monospace; font-size: 12px"
+                  :title="row.clientKey"
+                >
                   {{ shortId(row.clientKey, 36) }}
                 </span>
               </DescriptionsItem>
               <DescriptionsItem label="HardwareId">
-                <span style="font-family: monospace; font-size: 12px" :title="row.hardwareId">
+                <span
+                  style="font-family: monospace; font-size: 12px"
+                  :title="row.hardwareId"
+                >
                   {{ shortId(row.hardwareId, 36) }}
                 </span>
               </DescriptionsItem>
 
               <DescriptionsItem label="签发时间">
-                <TimeTag color="cyan" :time="fmtTime(row.issuedAt)" :timezone="localTimezone" />
+                <TimeTag
+                  color="cyan"
+                  :time="fmtTime(row.issuedAt)"
+                  :timezone="localTimezone"
+                />
               </DescriptionsItem>
               <DescriptionsItem label="到期时间">
                 <TimeTag
@@ -368,7 +465,11 @@ async function handleRevoke(record: any) {
                 />
               </DescriptionsItem>
               <DescriptionsItem label="生成时间">
-                <TimeTag color="default" :time="fmtTime(row.createdTime)" :timezone="localTimezone" />
+                <TimeTag
+                  color="default"
+                  :time="fmtTime(row.createdTime)"
+                  :timezone="localTimezone"
+                />
               </DescriptionsItem>
 
               <DescriptionsItem label="到期后行为" :span="3">
@@ -377,7 +478,11 @@ async function handleRevoke(record: any) {
                 </Tag>
                 <span
                   v-if="parseJson(row.allowedRoutes) !== '-'"
-                  style=" margin-left: 8px;font-family: monospace; font-size: 12px"
+                  style="
+                    margin-left: 8px;
+                    font-family: monospace;
+                    font-size: 12px;
+                  "
                 >
                   自定义放行: {{ parseJson(row.allowedRoutes) }}
                 </span>

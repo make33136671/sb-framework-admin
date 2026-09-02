@@ -20,9 +20,7 @@ const newAvatarPath = ref<string>('');
 const newAvatarUrl = ref('');
 
 /** 显示的头像：优先新上传，否则当前 */
-const displayAvatar = computed(
-  () => newAvatarUrl.value || currentAvatar.value,
-);
+const displayAvatar = computed(() => newAvatarUrl.value || currentAvatar.value);
 
 const saving = ref(false);
 
@@ -92,7 +90,9 @@ async function handleSave() {
         <Button
           type="primary"
           :loading="saving"
-          :disabled="!newAvatarUrl || newAvatarUrl === userStore.userInfo?.avatar"
+          :disabled="
+            !newAvatarUrl || newAvatarUrl === userStore.userInfo?.avatar
+          "
           @click="handleSave"
         >
           保存头像

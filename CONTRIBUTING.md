@@ -5,7 +5,7 @@
 ## 1. 基座代码三不准
 
 | 禁止 | 检查机制 |
-|------|---------|
+| --- | --- |
 | **不准引入派生业务** — 基座代码（`apps/web-antd/src/views/_system/` 等基座目录）中不允许出现派生项目专有 view（Project / Requirement / TaskItem / 等） | CI |
 | **不准硬编码颜色 / 品牌** — `#fff` `rgb(...)` 类十六进制色禁用；走 antd token 或 `__APP_INFO__` | CI（lint） |
 | **不准用 `<a>` / 文字链做操作入口** — 用 antd 实体按钮 | Code Review |
@@ -30,13 +30,13 @@
 
 **禁止硬编码颜色** — 一律用 antd v5 cssVar token：
 
-| 用途 | Token |
-|------|-------|
-| 容器背景 | `var(--ant-color-bg-container)` |
-| 次级填充 | `var(--ant-color-fill-secondary)` |
-| 警告色 | `var(--ant-color-warning-bg)` / `--ant-color-warning-text` |
-| 文字 | `var(--ant-color-text)` / `--ant-color-text-secondary` |
-| 边框 | `var(--ant-color-border)` |
+| 用途     | Token                                                      |
+| -------- | ---------------------------------------------------------- |
+| 容器背景 | `var(--ant-color-bg-container)`                            |
+| 次级填充 | `var(--ant-color-fill-secondary)`                          |
+| 警告色   | `var(--ant-color-warning-bg)` / `--ant-color-warning-text` |
+| 文字     | `var(--ant-color-text)` / `--ant-color-text-secondary`     |
+| 边框     | `var(--ant-color-border)`                                  |
 
 **覆盖第三方组件内部样式**：`:deep(.xxx) > 子元素 + !important`（如 antd Table 行背景必须 `:deep(.row-class) > td !important`）。
 
@@ -51,6 +51,7 @@
 ## 6. 跟随上游 Vben Admin
 
 本仓库是 Vben Admin 的 fork。如要合并上游 Vben 新功能：
+
 ```bash
 git remote add vben https://github.com/vbenjs/vue-vben-admin.git
 git fetch vben

@@ -5,11 +5,28 @@ import { ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
 
-import { Button, message, Modal, Space, Tabs, Tag, Timeline } from 'ant-design-vue';
+import {
+  Button,
+  message,
+  Modal,
+  Space,
+  Tabs,
+  Tag,
+  Timeline,
+} from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 
-import { getLogs, getLogList, getList, postReloadParameters, postRestart, postRunOnce, postStart, postStop } from './api';
+import {
+  getLogs,
+  getLogList,
+  getList,
+  postReloadParameters,
+  postRestart,
+  postRunOnce,
+  postStart,
+  postStop,
+} from './api';
 
 const activeTab = ref('task');
 
@@ -25,7 +42,12 @@ interface RowType {}
 
 const gridOptions: VxeGridProps<RowType> = {
   columns: [
-    { field: 'displayName', title: '任务名称', minWidth: 180, slots: { default: 'displayName' } },
+    {
+      field: 'displayName',
+      title: '任务名称',
+      minWidth: 180,
+      slots: { default: 'displayName' },
+    },
     {
       field: 'status',
       title: '状态',
@@ -186,10 +208,31 @@ const logFormOptions = {
 
 const logGridOptions: VxeGridProps<RowType> = {
   columns: [
-    { field: 'source', title: '来源/级别/名称', width: 220, slots: { default: 'log_source' } },
-    { field: 'message', title: '消息/异常', minWidth: 300, slots: { default: 'log_message' } },
-    { field: 'createdTime', title: '时间', width: 180, slots: { default: 'log_createdTime' } },
-    { field: 'action', title: '操作', width: 80, fixed: 'right', slots: { default: 'log_action' } },
+    {
+      field: 'source',
+      title: '来源/级别/名称',
+      width: 220,
+      slots: { default: 'log_source' },
+    },
+    {
+      field: 'message',
+      title: '消息/异常',
+      minWidth: 300,
+      slots: { default: 'log_message' },
+    },
+    {
+      field: 'createdTime',
+      title: '时间',
+      width: 180,
+      slots: { default: 'log_createdTime' },
+    },
+    {
+      field: 'action',
+      title: '操作',
+      width: 80,
+      fixed: 'right',
+      slots: { default: 'log_action' },
+    },
   ],
   height: 'auto',
   keepSource: true,
@@ -210,7 +253,10 @@ const logGridOptions: VxeGridProps<RowType> = {
   toolbarConfig: { refresh: true },
 };
 
-const [LogGrid] = useVbenVxeGrid({ formOptions: logFormOptions, gridOptions: logGridOptions });
+const [LogGrid] = useVbenVxeGrid({
+  formOptions: logFormOptions,
+  gridOptions: logGridOptions,
+});
 
 // 日志详情弹窗
 const detailVisible = ref(false);
@@ -243,8 +289,16 @@ const copy = (text: string) => {
       <Tabs.TabPane key="task" tab="任务列表" class="h-full">
         <Grid>
           <template #displayName="{ row }">
-            <div style="font-weight: 500">{{ row.displayName || row.name }}</div>
-            <div style=" font-family: monospace;font-size: 11px; color: var(--ant-color-text-tertiary)">
+            <div style="font-weight: 500">
+              {{ row.displayName || row.name }}
+            </div>
+            <div
+              style="
+                font-family: monospace;
+                font-size: 11px;
+                color: var(--ant-color-text-tertiary);
+              "
+            >
               {{ row.name }}
             </div>
           </template>
@@ -257,7 +311,9 @@ const copy = (text: string) => {
 
           <template #lastExecution="{ row }">
             <span v-if="getLastRecord(row)">
-              {{ new Date(getLastRecord(row).startTime).toLocaleString('zh-CN') }}
+              {{
+                new Date(getLastRecord(row).startTime).toLocaleString('zh-CN')
+              }}
             </span>
             <span v-else style="color: #999">-</span>
           </template>
@@ -325,9 +381,7 @@ const copy = (text: string) => {
               >
                 立即执行
               </Button>
-              <Button size="small" @click="showLogs(row.name)">
-                日志
-              </Button>
+              <Button size="small" @click="showLogs(row.name)"> 日志 </Button>
             </Space>
           </template>
         </Grid>
@@ -336,20 +390,30 @@ const copy = (text: string) => {
       <Tabs.TabPane key="log" tab="任务日志" class="h-full">
         <LogGrid>
           <template #log_source="{ row }">
-            <div style=" font-size: 12px;line-height: 1.5;">
+            <div style="font-size: 12px; line-height: 1.5">
               <div>
-                <Tag :color="sourceMap[row.source]?.color" style="margin: 0;">{{ sourceMap[row.source]?.label || '未知' }}</Tag>
-                <Tag :color="logLevelMap[row.logLevel]?.color" style="margin: 0 0 0 4px;">{{ logLevelMap[row.logLevel]?.label }}</Tag>
+                <Tag :color="sourceMap[row.source]?.color" style="margin: 0">{{
+                  sourceMap[row.source]?.label || '未知'
+                }}</Tag>
+                <Tag
+                  :color="logLevelMap[row.logLevel]?.color"
+                  style="margin: 0 0 0 4px"
+                  >{{ logLevelMap[row.logLevel]?.label }}</Tag
+                >
               </div>
-              <div style=" margin-top: 2px;color: #666;">{{ row.taskName }}</div>
+              <div style="margin-top: 2px; color: #666">{{ row.taskName }}</div>
             </div>
           </template>
 
           <template #log_message="{ row }">
-            <div style=" font-size: 12px;line-height: 1.5;">
+            <div style="font-size: 12px; line-height: 1.5">
               <div>{{ row.message }}</div>
-              <div v-if="row.exception" style=" margin-top: 2px;color: #ff4d4f;">
-                {{ row.exception.length > 80 ? row.exception.substring(0, 80) + '...' : row.exception }}
+              <div v-if="row.exception" style="margin-top: 2px; color: #ff4d4f">
+                {{
+                  row.exception.length > 80
+                    ? row.exception.substring(0, 80) + '...'
+                    : row.exception
+                }}
               </div>
             </div>
           </template>
@@ -372,12 +436,12 @@ const copy = (text: string) => {
       width="700px"
       :footer="null"
     >
-      <div v-if="logLoading" style=" padding: 24px;text-align: center">
+      <div v-if="logLoading" style="padding: 24px; text-align: center">
         加载中...
       </div>
       <div
         v-else-if="logList.length === 0"
-        style=" padding: 24px; color: #999;text-align: center"
+        style="padding: 24px; color: #999; text-align: center"
       >
         暂无日志
       </div>
@@ -388,11 +452,18 @@ const copy = (text: string) => {
             :key="log.id"
             :color="logLevelMap[log.logLevel]?.color || 'blue'"
           >
-            <div style="display: flex; gap: 8px; align-items: center; margin-bottom: 4px">
+            <div
+              style="
+                display: flex;
+                gap: 8px;
+                align-items: center;
+                margin-bottom: 4px;
+              "
+            >
               <Tag :color="logLevelMap[log.logLevel]?.color" size="small">
                 {{ logLevelMap[log.logLevel]?.label || 'Unknown' }}
               </Tag>
-              <span style=" font-size: 12px;color: #999">
+              <span style="font-size: 12px; color: #999">
                 {{ new Date(log.createdTime).toLocaleString('zh-CN') }}
               </span>
             </div>
@@ -424,37 +495,85 @@ const copy = (text: string) => {
       width="750px"
       :footer="null"
     >
-      <div v-if="detailRow" style="font-size: 13px; line-height: 1.8;">
-        <div style="margin-bottom: 12px;">
-          <Tag :color="sourceMap[detailRow.source]?.color">{{ sourceMap[detailRow.source]?.label }}</Tag>
-          <Tag :color="logLevelMap[detailRow.logLevel]?.color">{{ logLevelMap[detailRow.logLevel]?.label }}</Tag>
-          <span style=" margin-left: 8px;color: #999;">{{ fmtTime(detailRow.createdTime) }}</span>
+      <div v-if="detailRow" style="font-size: 13px; line-height: 1.8">
+        <div style="margin-bottom: 12px">
+          <Tag :color="sourceMap[detailRow.source]?.color">{{
+            sourceMap[detailRow.source]?.label
+          }}</Tag>
+          <Tag :color="logLevelMap[detailRow.logLevel]?.color">{{
+            logLevelMap[detailRow.logLevel]?.label
+          }}</Tag>
+          <span style="margin-left: 8px; color: #999">{{
+            fmtTime(detailRow.createdTime)
+          }}</span>
         </div>
 
-        <div style=" display: flex; gap: 4px; align-items: center;margin-bottom: 8px;">
+        <div
+          style="
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            margin-bottom: 8px;
+          "
+        >
           <strong>来源名称：</strong>{{ detailRow.taskName }}
           <Button size="small" @click="copy(detailRow.taskName)">复制</Button>
         </div>
 
-        <div style=" display: flex; gap: 4px; align-items: center;margin-bottom: 8px;">
+        <div
+          style="
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            margin-bottom: 8px;
+          "
+        >
           <strong>消息：</strong>{{ detailRow.message }}
           <Button size="small" @click="copy(detailRow.message)">复制</Button>
         </div>
 
-        <div v-if="detailInfo" style="margin-bottom: 8px;">
-          <div style="display: flex; gap: 4px; align-items: center;">
+        <div v-if="detailInfo" style="margin-bottom: 8px">
+          <div style="display: flex; gap: 4px; align-items: center">
             <strong>异常信息：</strong>
             <Button size="small" @click="copy(detailInfo)">复制</Button>
           </div>
-          <pre style=" max-height: 200px; padding: 12px;margin-top: 4px; overflow-y: auto; font-size: 12px; color: #d4d4d4; word-break: break-all; white-space: pre-wrap; background: #1e1e1e; border-radius: 6px;">{{ detailInfo }}</pre>
+          <pre
+            style="
+              max-height: 200px;
+              padding: 12px;
+              margin-top: 4px;
+              overflow-y: auto;
+              font-size: 12px;
+              color: #d4d4d4;
+              word-break: break-all;
+              white-space: pre-wrap;
+              background: #1e1e1e;
+              border-radius: 6px;
+            "
+            >{{ detailInfo }}</pre
+          >
         </div>
 
         <div v-if="detailStack">
-          <div style="display: flex; gap: 4px; align-items: center;">
+          <div style="display: flex; gap: 4px; align-items: center">
             <strong>堆栈信息：</strong>
             <Button size="small" @click="copy(detailStack)">复制</Button>
           </div>
-          <pre style=" max-height: 300px; padding: 12px;margin-top: 4px; overflow-y: auto; font-size: 12px; color: #d4d4d4; word-break: break-all; white-space: pre-wrap; background: #1e1e1e; border-radius: 6px;">{{ detailStack }}</pre>
+          <pre
+            style="
+              max-height: 300px;
+              padding: 12px;
+              margin-top: 4px;
+              overflow-y: auto;
+              font-size: 12px;
+              color: #d4d4d4;
+              word-break: break-all;
+              white-space: pre-wrap;
+              background: #1e1e1e;
+              border-radius: 6px;
+            "
+            >{{ detailStack }}</pre
+          >
         </div>
       </div>
     </Modal>

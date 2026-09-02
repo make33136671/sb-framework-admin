@@ -183,7 +183,7 @@ async function onDelete(row: any) {
         />
       </template>
       <template #action="{ row }">
-        <Space style=" justify-content: space-around;width: 100%">
+        <Space style="justify-content: space-around; width: 100%">
           <Button type="primary" @click="onEdit(row)" style="flex: 1">
             {{ $t('common.edit') }}
           </Button>

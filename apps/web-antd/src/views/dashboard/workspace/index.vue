@@ -4,10 +4,7 @@ import type { WorkbenchQuickNavItem } from '@vben/common-ui';
 import { onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
-import {
-  WorkbenchHeader,
-  WorkbenchQuickNav,
-} from '@vben/common-ui';
+import { WorkbenchHeader, WorkbenchQuickNav } from '@vben/common-ui';
 import { preferences } from '@vben/preferences';
 import { useUserStore } from '@vben/stores';
 
@@ -51,12 +48,42 @@ onMounted(async () => {
 });
 
 const quickNavItems: WorkbenchQuickNavItem[] = [
-  { color: '#1890ff', icon: 'lucide:users', title: '会员管理', url: '/member/list' },
-  { color: '#52c41a', icon: 'lucide:git-branch', title: '会员架构', url: '/member/tree' },
-  { color: '#faad14', icon: 'lucide:shield-check', title: '实名审核', url: '/member/real-name' },
-  { color: '#722ed1', icon: 'lucide:settings', title: '系统设置', url: '/system/setting' },
-  { color: '#13c2c2', icon: 'lucide:mail', title: '邮件配置', url: '/email/config' },
-  { color: '#eb2f96', icon: 'lucide:activity', title: '登录日志', url: '/system/devtools/login-log' },
+  {
+    color: '#1890ff',
+    icon: 'lucide:users',
+    title: '会员管理',
+    url: '/member/list',
+  },
+  {
+    color: '#52c41a',
+    icon: 'lucide:git-branch',
+    title: '会员架构',
+    url: '/member/tree',
+  },
+  {
+    color: '#faad14',
+    icon: 'lucide:shield-check',
+    title: '实名审核',
+    url: '/member/real-name',
+  },
+  {
+    color: '#722ed1',
+    icon: 'lucide:settings',
+    title: '系统设置',
+    url: '/system/setting',
+  },
+  {
+    color: '#13c2c2',
+    icon: 'lucide:mail',
+    title: '邮件配置',
+    url: '/email/config',
+  },
+  {
+    color: '#eb2f96',
+    icon: 'lucide:activity',
+    title: '登录日志',
+    url: '/system/devtools/login-log',
+  },
 ];
 
 function navTo(nav: WorkbenchQuickNavItem) {
@@ -67,7 +94,12 @@ function navTo(nav: WorkbenchQuickNavItem) {
 
 const loginColumns = [
   { title: '用户名', dataIndex: 'username', width: 120 },
-  { title: '类型', dataIndex: 'userType', width: 70, customRender: ({ text }: any) => text === 0 ? '会员' : '管理员' },
+  {
+    title: '类型',
+    dataIndex: 'userType',
+    width: 70,
+    customRender: ({ text }: any) => (text === 0 ? '会员' : '管理员'),
+  },
   { title: 'IP', dataIndex: 'ipAddress', width: 130 },
   { title: '状态', dataIndex: 'status', width: 70 },
   { title: '时间', dataIndex: 'createTime', width: 120 },
@@ -90,8 +122,8 @@ const memberColumns = [
         早安, {{ userStore.userInfo?.realName }}, 开始您一天的工作吧！
       </template>
       <template #description>
-        当前共有 {{ overview.totalMembers ?? '-' }} 位会员，
-        今日新增 {{ overview.todayNewMembers ?? 0 }} 人，
+        当前共有 {{ overview.totalMembers ?? '-' }} 位会员， 今日新增
+        {{ overview.todayNewMembers ?? 0 }} 人，
         {{ overview.pendingReviewCount ?? 0 }} 条实名认证待审核
       </template>
     </WorkbenchHeader>
@@ -103,13 +135,30 @@ const memberColumns = [
           <Statistic title="总会员数" :value="overview.totalMembers ?? 0" />
         </Card>
         <Card>
-          <Statistic title="今日新增" :value="overview.todayNewMembers ?? 0" suffix="人" :value-style="{ color: '#1890ff' }" />
+          <Statistic
+            title="今日新增"
+            :value="overview.todayNewMembers ?? 0"
+            suffix="人"
+            :value-style="{ color: '#1890ff' }"
+          />
         </Card>
         <Card>
-          <Statistic title="今日活跃" :value="overview.todayLogins ?? 0" suffix="人" :value-style="{ color: '#52c41a' }" />
+          <Statistic
+            title="今日活跃"
+            :value="overview.todayLogins ?? 0"
+            suffix="人"
+            :value-style="{ color: '#52c41a' }"
+          />
         </Card>
         <Card>
-          <Statistic title="待审核实名" :value="overview.pendingReviewCount ?? 0" suffix="条" :value-style="overview.pendingReviewCount > 0 ? { color: '#faad14' } : {}" />
+          <Statistic
+            title="待审核实名"
+            :value="overview.pendingReviewCount ?? 0"
+            suffix="条"
+            :value-style="
+              overview.pendingReviewCount > 0 ? { color: '#faad14' } : {}
+            "
+          />
         </Card>
       </div>
 
@@ -134,12 +183,18 @@ const memberColumns = [
             >
               <template #bodyCell="{ column, record }">
                 <template v-if="column.dataIndex === 'status'">
-                  <Tag :color="record.status === 0 ? 'success' : 'error'" style="margin: 0;">
+                  <Tag
+                    :color="record.status === 0 ? 'success' : 'error'"
+                    style="margin: 0"
+                  >
                     {{ record.status === 0 ? '成功' : '失败' }}
                   </Tag>
                 </template>
                 <template v-if="column.dataIndex === 'userType'">
-                  <Tag :color="record.userType === 0 ? 'blue' : 'purple'" style="margin: 0;">
+                  <Tag
+                    :color="record.userType === 0 ? 'blue' : 'purple'"
+                    style="margin: 0"
+                  >
                     {{ record.userType === 0 ? '会员' : '管理员' }}
                   </Tag>
                 </template>
@@ -156,29 +211,46 @@ const memberColumns = [
           <!-- 待审核实名 -->
           <Card title="待审核实名认证" class="mt-4 lg:mt-0">
             <template v-if="pendingRealNames.length === 0">
-              <div style=" padding: 16px;color: #999; text-align: center;">暂无待审核</div>
+              <div style="padding: 16px; color: #999; text-align: center">
+                暂无待审核
+              </div>
             </template>
-            <div v-for="item in pendingRealNames" :key="item.id" class="pending-item">
+            <div
+              v-for="item in pendingRealNames"
+              :key="item.id"
+              class="pending-item"
+            >
               <div class="pending-info">
                 <span class="pending-name">{{ item.memberUsername }}</span>
                 <span class="pending-real">{{ item.realName }}</span>
               </div>
               <span class="pending-time">{{ fmtTime(item.submitTime) }}</span>
             </div>
-            <a v-if="pendingRealNames.length > 0" class="view-all" @click="router.push('/member/real-name')">
+            <a
+              v-if="pendingRealNames.length > 0"
+              class="view-all"
+              @click="router.push('/member/real-name')"
+            >
               查看全部 →
             </a>
           </Card>
 
           <!-- 最近注册 -->
           <Card title="最近注册会员" class="mt-4">
-            <div v-for="item in recentMembers" :key="item.id" class="member-item">
+            <div
+              v-for="item in recentMembers"
+              :key="item.id"
+              class="member-item"
+            >
               <div class="member-info">
                 <span class="member-username">{{ item.username }}</span>
                 <span class="member-name">{{ item.name }}</span>
               </div>
               <div class="member-meta">
-                <Tag :color="item.status === 'Active' ? 'success' : 'error'" style="margin: 0; font-size: 11px;">
+                <Tag
+                  :color="item.status === 'Active' ? 'success' : 'error'"
+                  style="margin: 0; font-size: 11px"
+                >
                   {{ item.status === 'Active' ? '正常' : '封禁' }}
                 </Tag>
                 <span class="member-time">{{ fmtTime(item.createdTime) }}</span>

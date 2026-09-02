@@ -230,9 +230,20 @@ const delSetting = (id: number) => {
 const catGridOptions: VxeGridProps<RowType> = {
   columns: [
     { field: 'id', title: 'Id', width: 60 },
-    { field: 'name', title: '分类名称', minWidth: 150, editRender: { name: 'input' } },
+    {
+      field: 'name',
+      title: '分类名称',
+      minWidth: 150,
+      editRender: { name: 'input' },
+    },
     { field: 'icon', title: '图标', width: 120, editRender: { name: 'input' } },
-    { field: 'sort', title: '排序', width: 100, sortable: true, editRender: { name: 'input' } },
+    {
+      field: 'sort',
+      title: '排序',
+      width: 100,
+      sortable: true,
+      editRender: { name: 'input' },
+    },
     {
       field: 'action',
       fixed: 'right',
@@ -290,7 +301,11 @@ async function addCategory() {
 <template>
   <Page auto-content-height>
     <Spin :spinning="loading">
-      <Tabs v-model:activeKey="activeTab" tab-position="left" class="setting-tabs">
+      <Tabs
+        v-model:activeKey="activeTab"
+        tab-position="left"
+        class="setting-tabs"
+      >
         <!-- Category tabs -->
         <TabPane
           v-for="cat in categories"
@@ -307,16 +322,14 @@ async function addCategory() {
                 <SettingRender
                   :setting="item"
                   :model-value="getSettingValue(cat.id, item.id)"
-                  @update:model-value="(val: any) => setSettingValue(cat.id, item.id, val)"
+                  @update:model-value="
+                    (val: any) => setSettingValue(cat.id, item.id, val)
+                  "
                 />
               </FormItem>
             </Form>
             <div class="setting-form-actions">
-              <Button
-                type="primary"
-                :loading="saving"
-                @click="handleSave(cat)"
-              >
+              <Button type="primary" :loading="saving" @click="handleSave(cat)">
                 保存
               </Button>
             </div>

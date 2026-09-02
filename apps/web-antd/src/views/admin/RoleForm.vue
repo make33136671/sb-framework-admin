@@ -156,7 +156,7 @@ async function onSubmit(values: Record<string, any>) {
       <BaseForm />
     </Card>
 
-    <Card title="菜单权限配置" style=" flex: 1; min-height: 0;margin-top: 20px">
+    <Card title="菜单权限配置" style="flex: 1; min-height: 0; margin-top: 20px">
       <template #extra>
         <span style="font-size: 12px; color: #999">
           已选择 {{ checkedMenuKeys.length }} 个菜单

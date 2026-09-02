@@ -76,7 +76,7 @@ const formOptions: VbenFormProps = {
 const gridOptions: VxeGridProps<RowType> = {
   columns: [
     { fixed: 'left', field: 'id', title: 'Id', width: 50 },
-    { field: 'username', title: '用户信息',  slots: { default: 'userInfo' } },
+    { field: 'username', title: '用户信息', slots: { default: 'userInfo' } },
     {
       field: 'role',
       title: '角色',
@@ -161,9 +161,7 @@ const delAdmin = (id: number) => {
     <Grid>
       <template #toolbar-tools>
         <Space>
-          <Button @click="router.push({ name: 'LoginLog' })">
-            登录日志
-          </Button>
+          <Button @click="router.push({ name: 'LoginLog' })"> 登录日志 </Button>
           <Button v-if="canAdd" type="primary" @click="handleAdd">
             新增管理员
           </Button>
@@ -176,7 +174,14 @@ const delAdmin = (id: number) => {
       </template>
 
       <template #userInfo="{ row }">
-        <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
+        <div
+          style="
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            align-items: center;
+          "
+        >
           <Image
             :src="row.avatar"
             :style="{
@@ -187,22 +192,30 @@ const delAdmin = (id: number) => {
             }"
             :preview="{ mask: '查看' }"
           />
-          <div style=" font-size: 13px;text-align: center;">
-            <div style="font-weight: 500;">{{ row.username }}</div>
-            <div style=" font-size: 12px;color: #999;">{{ row.name }}</div>
+          <div style="font-size: 13px; text-align: center">
+            <div style="font-weight: 500">{{ row.username }}</div>
+            <div style="font-size: 12px; color: #999">{{ row.name }}</div>
           </div>
         </div>
       </template>
 
       <template #createdTime="{ row }">
-        <div style="display: flex; flex-direction: column; gap: 4px;">
+        <div style="display: flex; flex-direction: column; gap: 4px">
           <div>
-            <span style=" font-size: 12px;color: #999;"></span>
-            {{ row.createdTime ? new Date(row.createdTime).toLocaleString('zh-CN') : '-' }}
+            <span style="font-size: 12px; color: #999"></span>
+            {{
+              row.createdTime
+                ? new Date(row.createdTime).toLocaleString('zh-CN')
+                : '-'
+            }}
           </div>
           <div>
-            <span style=" font-size: 12px;color: #999;"></span>
-            {{ row.lastOnlineTime ? new Date(row.lastOnlineTime).toLocaleString('zh-CN') : '未登录' }}
+            <span style="font-size: 12px; color: #999"></span>
+            {{
+              row.lastOnlineTime
+                ? new Date(row.lastOnlineTime).toLocaleString('zh-CN')
+                : '未登录'
+            }}
           </div>
         </div>
       </template>
@@ -214,17 +227,26 @@ const delAdmin = (id: number) => {
 
       <template #action="{ row }">
         <Space>
-          <Button v-if="canEdit" type="primary" @click="
-            router.push({
-              name: 'AdminEdit',
-              query: { id: row.id },
-              params: { id: row.id },
-            })
-            ">
+          <Button
+            v-if="canEdit"
+            type="primary"
+            @click="
+              router.push({
+                name: 'AdminEdit',
+                query: { id: row.id },
+                params: { id: row.id },
+              })
+            "
+          >
             编辑
           </Button>
 
-          <Button v-if="canDelete && row.id != 1" type="primary" danger @click="delAdmin(row.id)">
+          <Button
+            v-if="canDelete && row.id != 1"
+            type="primary"
+            danger
+            @click="delAdmin(row.id)"
+          >
             删除
           </Button>
         </Space>

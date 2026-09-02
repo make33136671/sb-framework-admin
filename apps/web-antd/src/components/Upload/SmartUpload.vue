@@ -102,7 +102,11 @@ function syncFromValue(v: string | string[]) {
   ];
 }
 
-watch(() => props.value, (v) => syncFromValue(v as any), { immediate: true });
+watch(
+  () => props.value,
+  (v) => syncFromValue(v as any),
+  { immediate: true },
+);
 
 /**
  * 把当前 items 反向同步为 v-model 值 + emit change
@@ -198,8 +202,7 @@ useUploadQueue(items, async (item) => {
   const hook =
     mode === 'chunk'
       ? useChunkUpload({
-          maxConcurrent:
-            (props.maxConcurrent || cfg.get().maxConcurrent) || 4,
+          maxConcurrent: props.maxConcurrent || cfg.get().maxConcurrent || 4,
         })
       : useDirectUpload();
 
@@ -213,13 +216,10 @@ useUploadQueue(items, async (item) => {
   // 进度桥接
   const stopProgress = watch(hook.progress, (p) => (item.progress = p));
   // 状态桥接（仅切片 hook 有 'hashing' 阶段）
-  const stopStatus = watch(
-    hook.status as any,
-    (s: string) => {
-      if (s === 'hashing') item.status = 'hashing';
-      else if (s === 'uploading') item.status = 'uploading';
-    },
-  );
+  const stopStatus = watch(hook.status as any, (s: string) => {
+    if (s === 'hashing') item.status = 'hashing';
+    else if (s === 'uploading') item.status = 'uploading';
+  });
 
   try {
     const detail = await hook.upload(item.file);

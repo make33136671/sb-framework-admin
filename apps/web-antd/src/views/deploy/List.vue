@@ -205,7 +205,12 @@ const deployTargets = ref<DeployTarget[]>([]);
 const targetsLoading = ref(false);
 
 const allTargets = computed<TargetItem[]>(() => [
-  { key: 'api', name: 'API 程序', path: appInfo.value?.installPath || '', isApi: true },
+  {
+    key: 'api',
+    name: 'API 程序',
+    path: appInfo.value?.installPath || '',
+    isApi: true,
+  },
   ...deployTargets.value.map((t) => ({ ...t, isApi: false })),
 ]);
 
@@ -236,9 +241,7 @@ async function loadCurrentForTarget(targetKey: string) {
 }
 
 async function loadCurrentJobs() {
-  await Promise.all(
-    allTargets.value.map((t) => loadCurrentForTarget(t.key)),
-  );
+  await Promise.all(allTargets.value.map((t) => loadCurrentForTarget(t.key)));
 }
 
 // 部署中标志
@@ -312,7 +315,10 @@ function handleCancelDeploy() {
   confirmPreview.value = null;
 }
 
-async function onZipUploaded(targetKey: string, d: UploadDetail | UploadDetail[]) {
+async function onZipUploaded(
+  targetKey: string,
+  d: UploadDetail | UploadDetail[],
+) {
   const detail = Array.isArray(d) ? d[0] : d;
   if (!detail) return;
   const target = allTargets.value.find((t) => t.key === targetKey);
@@ -389,7 +395,10 @@ async function loadUploadRecords() {
     ].sort((a, b) => b.id - a.id);
     uploadRecordsTotal.value = merged.length;
     const from = (uploadRecordsPage.value - 1) * uploadRecordsPageSize.value;
-    uploadRecordsData.value = merged.slice(from, from + uploadRecordsPageSize.value);
+    uploadRecordsData.value = merged.slice(
+      from,
+      from + uploadRecordsPageSize.value,
+    );
   } finally {
     uploadRecordsLoading.value = false;
   }
@@ -448,7 +457,10 @@ async function loadDeployRecords() {
     ].sort((a, b) => b.id - a.id);
     deployRecordsTotal.value = merged.length;
     const from = (deployRecordsPage.value - 1) * deployRecordsPageSize.value;
-    deployRecordsData.value = merged.slice(from, from + deployRecordsPageSize.value);
+    deployRecordsData.value = merged.slice(
+      from,
+      from + deployRecordsPageSize.value,
+    );
   } finally {
     deployRecordsLoading.value = false;
   }
@@ -475,7 +487,8 @@ async function handleRollback(job: DeployJob) {
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  if (bytes < 1024 * 1024 * 1024)
+    return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
   return `${(bytes / 1024 / 1024 / 1024).toFixed(2)} GB`;
 }
 
@@ -593,7 +606,10 @@ onUnmounted(stopTimers);
             </template>
 
             <!-- 当前活动版本 -->
-            <div v-if="currentByTarget[target.key]" class="deploy-card__current">
+            <div
+              v-if="currentByTarget[target.key]"
+              class="deploy-card__current"
+            >
               <div class="deploy-card__row">
                 <span class="deploy-card__label">当前版本</span>
                 <Tag :color="STATUS_COLOR[currentByTarget[target.key]!.status]">
@@ -617,11 +633,15 @@ onUnmounted(stopTimers);
                   :time="currentByTarget[target.key]!.deployFinishedAt!"
                   :timezone="appInfo?.timeZone"
                 />
-                <span v-else style="color: var(--ant-color-text-tertiary)">—</span>
+                <span v-else style="color: var(--ant-color-text-tertiary)"
+                  >—</span
+                >
               </div>
               <div class="deploy-card__row">
                 <span class="deploy-card__label">部署人</span>
-                <span>{{ currentByTarget[target.key]!.deployedBy || '—' }}</span>
+                <span>{{
+                  currentByTarget[target.key]!.deployedBy || '—'
+                }}</span>
               </div>
             </div>
             <Empty
@@ -634,7 +654,9 @@ onUnmounted(stopTimers);
             <!-- 路径 -->
             <div class="deploy-card__path">
               <Tooltip :title="target.path">
-                <span class="deploy-card__file">📁 {{ target.path || '—' }}</span>
+                <span class="deploy-card__file"
+                  >📁 {{ target.path || '—' }}</span
+                >
               </Tooltip>
             </div>
 
@@ -678,10 +700,7 @@ onUnmounted(stopTimers);
                 @update:value="(v: any) => (uploadPaths[target.key] = v)"
                 @success="(d: any) => onZipUploaded(target.key, d)"
               />
-              <div
-                v-if="deployingMap[target.key]"
-                class="deploy-card__hint"
-              >
+              <div v-if="deployingMap[target.key]" class="deploy-card__hint">
                 部署中,请稍候...
               </div>
             </div>
@@ -737,7 +756,9 @@ onUnmounted(stopTimers);
                     </div>
                     <div class="cell-stack__line">
                       <Tooltip :title="record.fileName">
-                        <span class="deploy-card__file">{{ record.fileName }}</span>
+                        <span class="deploy-card__file">{{
+                          record.fileName
+                        }}</span>
                       </Tooltip>
                     </div>
                     <div class="cell-stack__line cell-stack__sub">
@@ -835,7 +856,9 @@ onUnmounted(stopTimers);
                     </div>
                     <div class="cell-stack__line">
                       <Tooltip :title="record.fileName">
-                        <span class="deploy-card__file">{{ record.fileName }}</span>
+                        <span class="deploy-card__file">{{
+                          record.fileName
+                        }}</span>
                       </Tooltip>
                     </div>
                     <div class="cell-stack__line cell-stack__sub">
@@ -859,7 +882,10 @@ onUnmounted(stopTimers);
                         :time="record.deployFinishedAt"
                         :timezone="appInfo?.timeZone"
                       />
-                      <span v-else style="color: var(--ant-color-text-tertiary)">
+                      <span
+                        v-else
+                        style="color: var(--ant-color-text-tertiary)"
+                      >
                         —
                       </span>
                     </div>
@@ -917,7 +943,9 @@ onUnmounted(stopTimers);
               <Tag style="margin-left: 8px">{{ confirmPreview.target }}</Tag>
             </Descriptions.Item>
             <Descriptions.Item label="路径">
-              <span class="deploy-card__file">{{ confirmPreview.targetPath }}</span>
+              <span class="deploy-card__file">{{
+                confirmPreview.targetPath
+              }}</span>
             </Descriptions.Item>
             <Descriptions.Item label="文件">
               {{ confirmPreview.fileName }}
@@ -948,7 +976,11 @@ onUnmounted(stopTimers);
                 :loading="confirmDeploying"
                 @click="handleConfirmDeploy"
               >
-                {{ confirmPreview.target === 'api' ? '确认部署并重启' : '确认部署' }}
+                {{
+                  confirmPreview.target === 'api'
+                    ? '确认部署并重启'
+                    : '确认部署'
+                }}
               </Button>
             </Space>
           </div>

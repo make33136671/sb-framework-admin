@@ -6,7 +6,10 @@
  * 数字 map 失配）。改为基于实际绑定字段推导，与运行时验证行为保持一致。
  */
 export function deriveVerifyMode(
-  row: { clientKey?: null | string; hardwareId?: null | string } | null | undefined,
+  row:
+    | { clientKey?: null | string; hardwareId?: null | string }
+    | null
+    | undefined,
 ): { color: string; text: string } {
   const hasClientKey = !!row?.clientKey;
   const hasHardwareId = !!row?.hardwareId;

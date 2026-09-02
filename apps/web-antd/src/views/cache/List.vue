@@ -176,10 +176,9 @@ onMounted(loadCacheInfo);
             <Tag v-if="cacheInfo.stats?.instance_name">
               {{ cacheInfo.stats.instance_name }}
             </Tag>
-            <span
-              v-else
-              style="color: var(--ant-color-text-tertiary)"
-            >(无前缀)</span>
+            <span v-else style="color: var(--ant-color-text-tertiary)"
+              >(无前缀)</span
+            >
           </Descriptions.Item>
 
           <template v-if="isRedis">
@@ -193,7 +192,8 @@ onMounted(loadCacheInfo);
               <span
                 v-if="(cacheInfo.stats?.instance_keys ?? -1) < 0"
                 style="color: var(--ant-color-text-tertiary)"
-              >—</span>
+                >—</span
+              >
               <span v-else>{{
                 formatNumber(cacheInfo.stats?.instance_keys)
               }}</span>
@@ -222,7 +222,7 @@ onMounted(loadCacheInfo);
                   cacheInfo.stats?.maxmemory_human &&
                   cacheInfo.stats.maxmemory_human !== '0B'
                 "
-                style=" margin-left: 4px;color: var(--ant-color-text-tertiary)"
+                style="margin-left: 4px; color: var(--ant-color-text-tertiary)"
               >
                 / {{ cacheInfo.stats.maxmemory_human }}
               </span>
@@ -247,10 +247,7 @@ onMounted(loadCacheInfo);
                   style="min-width: 80px; max-width: 120px"
                 />
                 <span
-                  style="
-                    font-size: 12px;
-                    color: var(--ant-color-text-tertiary);
-                  "
+                  style="font-size: 12px; color: var(--ant-color-text-tertiary)"
                 >
                   {{ formatNumber(cacheInfo.stats?.keyspace_hits) }} /
                   {{ formatNumber(cacheInfo.stats?.keyspace_misses) }}
@@ -288,7 +285,11 @@ onMounted(loadCacheInfo);
       </template>
 
       <div style="display: flex; flex-direction: column; gap: 12px">
-        <Card v-for="cat in cacheInfo.categories" :key="cat.prefix" size="small">
+        <Card
+          v-for="cat in cacheInfo.categories"
+          :key="cat.prefix"
+          size="small"
+        >
           <div
             style="
               display: flex;
@@ -298,7 +299,7 @@ onMounted(loadCacheInfo);
             "
           >
             <div style="flex: 1; min-width: 0">
-              <div style=" font-size: 15px;font-weight: 500">
+              <div style="font-size: 15px; font-weight: 500">
                 {{ cat.name }}
                 <Tag color="blue" style="margin-left: 8px">
                   {{ formatNumber(cat.count) }} keys
@@ -339,7 +340,7 @@ onMounted(loadCacheInfo);
             "
           >
             <div>
-              <div style=" font-size: 15px;font-weight: 500">
+              <div style="font-size: 15px; font-weight: 500">
                 未分类
                 <Tag style="margin-left: 8px">
                   {{ formatNumber(cacheInfo.uncategorized) }} keys

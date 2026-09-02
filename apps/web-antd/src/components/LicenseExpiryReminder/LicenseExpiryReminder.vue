@@ -47,7 +47,6 @@ const cells = computed(() => [
   { value: remaining.value?.cs ?? 0, label: '毫秒' },
 ]);
 
-
 function pad(n: number) {
   return String(n).padStart(2, '0');
 }
@@ -219,4 +218,3 @@ onUnmounted(() => {
     </div>
   </Modal>
 </template>
-

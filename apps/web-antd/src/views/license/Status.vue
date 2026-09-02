@@ -217,7 +217,9 @@ const licenseProductMismatch = computed(() => {
 
 // 产品身份：优先 statusData，后退 __APP_INFO__（和 /auth/license 保持一致）
 const appInfo = (window as any).__APP_INFO__ || {};
-const appLogo = computed<string>(() => appInfo.logo || '/storage/images/logo.png');
+const appLogo = computed<string>(
+  () => appInfo.logo || '/storage/images/logo.png',
+);
 const productCnText = computed<string>(
   () => statusData.value?.productCn || appInfo.nameCn || '管理系统',
 );
@@ -273,7 +275,9 @@ onUnmounted(() => {
                   "
                 />
                 <div style="min-width: 0">
-                  <div style="font-weight: 500; line-height: 1.3">{{ productCnText }}</div>
+                  <div style="font-weight: 500; line-height: 1.3">
+                    {{ productCnText }}
+                  </div>
                   <div
                     v-if="productEnText"
                     style="
@@ -289,16 +293,10 @@ onUnmounted(() => {
             </DescriptionsItem>
             <DescriptionsItem label="授权状态">
               <Tag v-if="statusData?.isValid" color="green">有效</Tag>
-              <Tag
-                v-else-if="statusData?.isExpired"
-                color="orange"
-              >
+              <Tag v-else-if="statusData?.isExpired" color="orange">
                 已过期
               </Tag>
-              <Tag
-                v-else-if="statusData?.isEnabled === false"
-                color="blue"
-              >
+              <Tag v-else-if="statusData?.isEnabled === false" color="blue">
                 未启用
               </Tag>
               <Tag v-else color="red">无效</Tag>
@@ -335,28 +333,72 @@ onUnmounted(() => {
 
             <!-- 第 4 行: 配置域名（兜底 __APP_INFO__.domain） + 当前访问域名 (各自独立判断"已授权/未授权") -->
             <DescriptionsItem label="配置域名">
-              <span :style="configDomainAllowed === false ? 'color: var(--ant-color-error); font-weight: 500' : ''">
+              <span
+                :style="
+                  configDomainAllowed === false
+                    ? 'color: var(--ant-color-error); font-weight: 500'
+                    : ''
+                "
+              >
                 {{ domainText || '-' }}
               </span>
-              <Tag v-if="configDomainAllowed === true" color="green" style="margin-left: 6px">已授权</Tag>
-              <Tag v-else-if="configDomainAllowed === false" color="red" style="margin-left: 6px">未授权</Tag>
+              <Tag
+                v-if="configDomainAllowed === true"
+                color="green"
+                style="margin-left: 6px"
+                >已授权</Tag
+              >
+              <Tag
+                v-else-if="configDomainAllowed === false"
+                color="red"
+                style="margin-left: 6px"
+                >未授权</Tag
+              >
             </DescriptionsItem>
 
             <DescriptionsItem label="当前访问域名">
-              <span :style="currentHostAllowed === false ? 'color: var(--ant-color-error); font-weight: 500' : ''">
+              <span
+                :style="
+                  currentHostAllowed === false
+                    ? 'color: var(--ant-color-error); font-weight: 500'
+                    : ''
+                "
+              >
                 {{ currentHost }}
               </span>
-              <Tag v-if="currentHostAllowed === true" color="green" style="margin-left: 6px">已授权</Tag>
-              <Tag v-else-if="currentHostAllowed === false" color="red" style="margin-left: 6px">未授权</Tag>
+              <Tag
+                v-if="currentHostAllowed === true"
+                color="green"
+                style="margin-left: 6px"
+                >已授权</Tag
+              >
+              <Tag
+                v-else-if="currentHostAllowed === false"
+                color="red"
+                style="margin-left: 6px"
+                >未授权</Tag
+              >
             </DescriptionsItem>
 
             <!-- 第 5 行: 授权允许域名 (整行, 多 tag 撑得开) -->
             <DescriptionsItem label="授权允许域名" :span="2">
               <template v-if="statusData?.licenseDomains?.length">
-                <Tag v-for="d in statusData.licenseDomains" :key="d" color="blue" style="margin-bottom: 2px">{{ d }}</Tag>
+                <Tag
+                  v-for="d in statusData.licenseDomains"
+                  :key="d"
+                  color="blue"
+                  style="margin-bottom: 2px"
+                  >{{ d }}</Tag
+                >
               </template>
-              <span v-else-if="statusData?.licenseDomain" style="font-family: monospace">{{ statusData.licenseDomain }}</span>
-              <span v-else style="color: var(--ant-color-text-tertiary)">未限定 (不验证)</span>
+              <span
+                v-else-if="statusData?.licenseDomain"
+                style="font-family: monospace"
+                >{{ statusData.licenseDomain }}</span
+              >
+              <span v-else style="color: var(--ant-color-text-tertiary)"
+                >未限定 (不验证)</span
+              >
             </DescriptionsItem>
 
             <!-- 第 5 行: 云端中心地址 | 启用的验证项 -->
@@ -366,37 +408,78 @@ onUnmounted(() => {
             <DescriptionsItem label="启用的验证项">
               <Tag v-if="statusData?.requiresProduct" color="blue">产品名</Tag>
               <Tag v-if="statusData?.requiresDomain" color="blue">域名</Tag>
-              <Tag v-if="statusData?.requiresClientKey" color="blue">ClientKey</Tag>
-              <Tag v-if="statusData?.requiresHardwareId" color="blue">HardwareId</Tag>
-              <span v-if="!statusData?.requiresProduct && !statusData?.requiresDomain && !statusData?.requiresClientKey && !statusData?.requiresHardwareId" style="color: var(--ant-color-text-tertiary)">
+              <Tag v-if="statusData?.requiresClientKey" color="blue"
+                >ClientKey</Tag
+              >
+              <Tag v-if="statusData?.requiresHardwareId" color="blue"
+                >HardwareId</Tag
+              >
+              <span
+                v-if="
+                  !statusData?.requiresProduct &&
+                  !statusData?.requiresDomain &&
+                  !statusData?.requiresClientKey &&
+                  !statusData?.requiresHardwareId
+                "
+                style="color: var(--ant-color-text-tertiary)"
+              >
                 仅验证到期时间
               </span>
             </DescriptionsItem>
 
             <!-- 第 6 行: 到期后行为 (独占整行) -->
             <DescriptionsItem label="到期后行为" :span="2">
-              <div style="display: flex; flex-wrap: wrap; gap: 16px; align-items: center;">
-                <span style="display: inline-flex; gap: 4px; align-items: center;">
+              <div
+                style="
+                  display: flex;
+                  flex-wrap: wrap;
+                  gap: 16px;
+                  align-items: center;
+                "
+              >
+                <span
+                  style="display: inline-flex; gap: 4px; align-items: center"
+                >
                   <IconifyIcon
-                    :icon="statusData?.allowClientApiAfterExpiry ? 'ant-design:check-circle-filled' : 'ant-design:close-circle-filled'"
+                    :icon="
+                      statusData?.allowClientApiAfterExpiry
+                        ? 'ant-design:check-circle-filled'
+                        : 'ant-design:close-circle-filled'
+                    "
                     :style="{
-                      color: statusData?.allowClientApiAfterExpiry ? 'hsl(var(--success))' : 'hsl(var(--destructive))',
+                      color: statusData?.allowClientApiAfterExpiry
+                        ? 'hsl(var(--success))'
+                        : 'hsl(var(--destructive))',
                       fontSize: '16px',
                     }"
                   />
-                  客户端{{ statusData?.allowClientApiAfterExpiry ? '可用' : '不可用' }}
+                  客户端{{
+                    statusData?.allowClientApiAfterExpiry ? '可用' : '不可用'
+                  }}
                 </span>
-                <span style="display: inline-flex; gap: 4px; align-items: center;">
+                <span
+                  style="display: inline-flex; gap: 4px; align-items: center"
+                >
                   <IconifyIcon
-                    :icon="statusData?.allowAdminAfterExpiry ? 'ant-design:check-circle-filled' : 'ant-design:close-circle-filled'"
+                    :icon="
+                      statusData?.allowAdminAfterExpiry
+                        ? 'ant-design:check-circle-filled'
+                        : 'ant-design:close-circle-filled'
+                    "
                     :style="{
-                      color: statusData?.allowAdminAfterExpiry ? 'hsl(var(--success))' : 'hsl(var(--destructive))',
+                      color: statusData?.allowAdminAfterExpiry
+                        ? 'hsl(var(--success))'
+                        : 'hsl(var(--destructive))',
                       fontSize: '16px',
                     }"
                   />
-                  管理端{{ statusData?.allowAdminAfterExpiry ? '可用' : '不可用' }}
+                  管理端{{
+                    statusData?.allowAdminAfterExpiry ? '可用' : '不可用'
+                  }}
                 </span>
-                <span style=" font-size: 12px;color: var(--ant-color-text-tertiary);">
+                <span
+                  style="font-size: 12px; color: var(--ant-color-text-tertiary)"
+                >
                   (登录页/授权管理始终可访问)
                 </span>
               </div>
@@ -436,8 +519,9 @@ onUnmounted(() => {
             <DescriptionsItem label="ClientKey" :span="2">
               <span
                 style="
-                  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco,
-                    Consolas, monospace;
+                  font-family:
+                    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+                    monospace;
                   word-break: break-all;
                 "
               >
@@ -449,8 +533,9 @@ onUnmounted(() => {
             <DescriptionsItem label="HardwareId" :span="2">
               <span
                 style="
-                  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco,
-                    Consolas, monospace;
+                  font-family:
+                    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+                    monospace;
                   word-break: break-all;
                 "
               >
@@ -460,7 +545,7 @@ onUnmounted(() => {
 
             <!-- 行 3: 机器名 | CPU 核心数 -->
             <DescriptionsItem label="机器名">
-              <span style="white-space: nowrap;">
+              <span style="white-space: nowrap">
                 {{ statusData?.identity?.hardwareInfo?.machineName || '-' }}
               </span>
             </DescriptionsItem>
@@ -470,14 +555,18 @@ onUnmounted(() => {
 
             <!-- 行 4: 操作系统 独占 -->
             <DescriptionsItem label="操作系统" :span="2">
-              <span style="word-break: break-word;">
+              <span style="word-break: break-word">
                 {{ statusData?.identity?.hardwareInfo?.osDescription || '-' }}
               </span>
             </DescriptionsItem>
 
             <!-- 行 5: MAC 地址 独占 -->
-            <DescriptionsItem v-if="statusData?.identity?.hardwareInfo?.macAddresses?.length" label="MAC 地址" :span="2">
-              <span style="font-family: monospace;">
+            <DescriptionsItem
+              v-if="statusData?.identity?.hardwareInfo?.macAddresses?.length"
+              label="MAC 地址"
+              :span="2"
+            >
+              <span style="font-family: monospace">
                 {{ statusData.identity.hardwareInfo.macAddresses.join(', ') }}
               </span>
             </DescriptionsItem>

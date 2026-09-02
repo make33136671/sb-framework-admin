@@ -17,15 +17,18 @@ import { usePreferences } from '@vben/preferences';
  *
  * 派生项目通过 `descLabel` 适配自己业务(默认 "描述")。
  */
-const props = withDefaults(defineProps<{
-  content: string;
-  descLabel?: string;
-}>(), {
-  descLabel: '描述',
-});
+const props = withDefaults(
+  defineProps<{
+    content: string;
+    descLabel?: string;
+  }>(),
+  {
+    descLabel: '描述',
+  },
+);
 
 const { isDark } = usePreferences();
-const mdTheme = computed(() => isDark.value ? 'dark' : 'light');
+const mdTheme = computed(() => (isDark.value ? 'dark' : 'light'));
 
 // 解析基本信息表格
 const meta = computed(() => {
@@ -51,7 +54,13 @@ const descContent = computed(() => {
 <template>
   <div class="doc-renderer">
     <!-- 基本信息 -->
-    <Descriptions v-if="meta.length > 0" bordered size="small" :column="3" class="doc-renderer-meta">
+    <Descriptions
+      v-if="meta.length > 0"
+      bordered
+      size="small"
+      :column="3"
+      class="doc-renderer-meta"
+    >
       <DescriptionsItem v-for="item in meta" :key="item.key" :label="item.key">
         {{ item.value }}
       </DescriptionsItem>
@@ -66,7 +75,11 @@ const descContent = computed(() => {
     </div>
 
     <!-- 无法解析时,直接渲染全部 -->
-    <div v-else-if="!meta.length" class="doc-renderer-desc-body" :class="{ dark: isDark }">
+    <div
+      v-else-if="!meta.length"
+      class="doc-renderer-desc-body"
+      :class="{ dark: isDark }"
+    >
       <MdPreview :model-value="content || '暂无内容'" :theme="mdTheme" />
     </div>
   </div>

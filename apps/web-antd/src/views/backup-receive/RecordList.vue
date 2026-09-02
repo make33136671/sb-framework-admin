@@ -2,9 +2,25 @@
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
-import { Button, Card, Empty, message, Modal, Space, Spin, Table, Tag } from 'ant-design-vue';
+import {
+  Button,
+  Card,
+  Empty,
+  message,
+  Modal,
+  Space,
+  Spin,
+  Table,
+  Tag,
+} from 'ant-design-vue';
 
-import { type BackupRemoteRecord, getDownloadUrl, getRecordList, postDelete, toServerUrl } from './api';
+import {
+  type BackupRemoteRecord,
+  getDownloadUrl,
+  getRecordList,
+  postDelete,
+  toServerUrl,
+} from './api';
 
 const route = useRoute();
 const router = useRouter();
@@ -69,7 +85,8 @@ async function downloadAsBlob(id: number) {
     });
     if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const blob = await resp.blob();
-    const fileName = records.value.find((r) => r.id === id)?.fileName || `backup_${id}.zip`;
+    const fileName =
+      records.value.find((r) => r.id === id)?.fileName || `backup_${id}.zip`;
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
     a.download = fileName;
@@ -84,8 +101,18 @@ const columns = [
   { title: '文件名', dataIndex: 'fileName', key: 'fileName' },
   { title: '客户端 IP', dataIndex: 'clientIp', key: 'clientIp', width: 140 },
   { title: '大小', dataIndex: 'fileSize', key: 'fileSize', width: 110 },
-  { title: '客户端备份时间', dataIndex: 'backupTime', key: 'backupTime', width: 180 },
-  { title: '服务端接收时间', dataIndex: 'receivedTime', key: 'receivedTime', width: 180 },
+  {
+    title: '客户端备份时间',
+    dataIndex: 'backupTime',
+    key: 'backupTime',
+    width: 180,
+  },
+  {
+    title: '服务端接收时间',
+    dataIndex: 'receivedTime',
+    key: 'receivedTime',
+    width: 180,
+  },
   { title: 'MD5', dataIndex: 'md5', key: 'md5', width: 250 },
   { title: '操作', key: 'action', width: 160, fixed: 'right' as const },
 ];
@@ -109,11 +136,20 @@ onMounted(load);
 </script>
 
 <template>
-  <div style="padding: 24px;">
-    <Button style="margin-bottom: 16px;" @click="router.back()">← 返回产品列表</Button>
+  <div style="padding: 24px">
+    <Button style="margin-bottom: 16px" @click="router.back()"
+      >← 返回产品列表</Button
+    >
 
     <Card>
-      <div style="display: flex; gap: 14px; align-items: center; margin-bottom: 16px;">
+      <div
+        style="
+          display: flex;
+          gap: 14px;
+          align-items: center;
+          margin-bottom: 16px;
+        "
+      >
         <img
           v-if="logoPath"
           :src="toServerUrl(logoPath)"
@@ -127,10 +163,10 @@ onMounted(load);
           "
         />
         <div>
-          <div style="font-size: 18px; font-weight: 600;">
+          <div style="font-size: 18px; font-weight: 600">
             {{ productCn || productEn }}
           </div>
-          <div style=" font-size: 12px;color: var(--ant-color-text-tertiary);">
+          <div style="font-size: 12px; color: var(--ant-color-text-tertiary)">
             {{ productEn }} · 共 {{ total }} 份备份
           </div>
         </div>
@@ -169,14 +205,20 @@ onMounted(load);
               {{ fmtTime(record.receivedTime) }}
             </template>
             <template v-else-if="column.key === 'md5'">
-              <span style="font-family: monospace; font-size: 11px;">{{ record.md5 || '-' }}</span>
+              <span style="font-family: monospace; font-size: 11px">{{
+                record.md5 || '-'
+              }}</span>
             </template>
             <template v-else-if="column.key === 'clientIp'">
               <Tag color="blue">{{ record.clientIp }}</Tag>
             </template>
             <template v-else-if="column.key === 'action'">
               <Space>
-                <Button type="primary" size="small" @click="download(record.id)">
+                <Button
+                  type="primary"
+                  size="small"
+                  @click="download(record.id)"
+                >
                   下载
                 </Button>
                 <Button danger size="small" @click="confirmDelete(record)">

@@ -157,9 +157,7 @@ const enumMatch = computed(() => {
   const raw = findEnumOptions(props.path, props.enumOptions);
   if (!raw || raw.length === 0) return null;
   // 归一化:string[] → SelectOption[]
-  return raw.map((o) =>
-    typeof o === 'string' ? { label: o, value: o } : o,
-  );
+  return raw.map((o) => (typeof o === 'string' ? { label: o, value: o } : o));
 });
 </script>
 
@@ -234,11 +232,7 @@ const enumMatch = computed(() => {
         description="空数组"
         :image="Empty.PRESENTED_IMAGE_SIMPLE"
       />
-      <div
-        v-for="(item, idx) in modelValue"
-        :key="idx"
-        class="array-item"
-      >
+      <div v-for="(item, idx) in modelValue" :key="idx" class="array-item">
         <div class="array-item-index">
           <Tag color="default">{{ idx }}</Tag>
         </div>

@@ -23,7 +23,7 @@ onMounted(async () => {
 const [BaseForm, baseFormApi] = useVbenForm({
   commonConfig: {
     colon: true,
-    componentProps: { class: 'w-full' }
+    componentProps: { class: 'w-full' },
   },
   handleSubmit: onSubmit,
   layout: 'horizontal',
@@ -35,8 +35,8 @@ const [BaseForm, baseFormApi] = useVbenForm({
       rules: 'required',
       componentProps: {
         placeholder: '如: smtp.gmail.com',
-        allowClear: true
-      }
+        allowClear: true,
+      },
     },
     {
       fieldName: 'smtpPort',
@@ -47,8 +47,8 @@ const [BaseForm, baseFormApi] = useVbenForm({
       componentProps: {
         placeholder: '如: 587 或 465',
         min: 1,
-        max: 65535
-      }
+        max: 65535,
+      },
     },
     {
       fieldName: 'username',
@@ -57,8 +57,8 @@ const [BaseForm, baseFormApi] = useVbenForm({
       rules: 'required',
       componentProps: {
         placeholder: '请输入SMTP用户名',
-        allowClear: true
-      }
+        allowClear: true,
+      },
     },
     {
       fieldName: 'password',
@@ -67,8 +67,8 @@ const [BaseForm, baseFormApi] = useVbenForm({
       componentProps: {
         placeholder: '请输入密码，不修改请留空',
         allowClear: true,
-        visibilityToggle: true
-      }
+        visibilityToggle: true,
+      },
     },
     {
       fieldName: 'fromEmail',
@@ -77,8 +77,8 @@ const [BaseForm, baseFormApi] = useVbenForm({
       rules: 'required',
       componentProps: {
         placeholder: '如: noreply@example.com',
-        allowClear: true
-      }
+        allowClear: true,
+      },
     },
     {
       fieldName: 'fromName',
@@ -87,8 +87,8 @@ const [BaseForm, baseFormApi] = useVbenForm({
       rules: 'required',
       componentProps: {
         placeholder: '如: System Support',
-        allowClear: true
-      }
+        allowClear: true,
+      },
     },
     {
       fieldName: 'enableSsl',
@@ -97,8 +97,8 @@ const [BaseForm, baseFormApi] = useVbenForm({
       defaultValue: true,
       componentProps: {
         checkedChildren: '是',
-        unCheckedChildren: '否'
-      }
+        unCheckedChildren: '否',
+      },
     },
     {
       fieldName: 'isActive',
@@ -107,8 +107,8 @@ const [BaseForm, baseFormApi] = useVbenForm({
       defaultValue: true,
       componentProps: {
         checkedChildren: '是',
-        unCheckedChildren: '否'
-      }
+        unCheckedChildren: '否',
+      },
     },
   ],
   wrapperClass: 'grid-cols-1 md:grid-cols-2',

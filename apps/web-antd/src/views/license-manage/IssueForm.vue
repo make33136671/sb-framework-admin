@@ -30,8 +30,8 @@ interface ClientInfo {
   id: number;
   productEn?: string;
   productCn?: string;
-  domain?: string;                // 客户声明的正式域名 (PrimaryDomain)
-  lastActualDomain?: string;      // 最近一次浏览器实际访问域名
+  domain?: string; // 客户声明的正式域名 (PrimaryDomain)
+  lastActualDomain?: string; // 最近一次浏览器实际访问域名
   clientKey?: string;
   hardwareId?: string;
   machineName?: string;
@@ -87,7 +87,9 @@ function setQuick(opt: { days?: number; months?: number; years?: number }) {
 
 // 每秒更新的当前时间，驱动倒计时
 const now = ref(dayjs());
-const ticker = setInterval(() => { now.value = dayjs(); }, 1000);
+const ticker = setInterval(() => {
+  now.value = dayjs();
+}, 1000);
 onBeforeUnmount(() => clearInterval(ticker));
 
 // 选择到期时间后显示距今剩余时间
@@ -104,15 +106,27 @@ const remainingText = computed(() => {
   let minutes = target.minute() - n.minute();
   let seconds = target.second() - n.second();
 
-  if (seconds < 0) { seconds += 60; minutes--; }
-  if (minutes < 0) { minutes += 60; hours--; }
-  if (hours < 0) { hours += 24; days--; }
+  if (seconds < 0) {
+    seconds += 60;
+    minutes--;
+  }
+  if (minutes < 0) {
+    minutes += 60;
+    hours--;
+  }
+  if (hours < 0) {
+    hours += 24;
+    days--;
+  }
   if (days < 0) {
     const prevMonth = target.subtract(1, 'month');
     days += prevMonth.daysInMonth();
     months--;
   }
-  if (months < 0) { months += 12; years--; }
+  if (months < 0) {
+    months += 12;
+    years--;
+  }
 
   const pad2 = (n: number) => String(n).padStart(2, '0');
   const pad4 = (n: number) => String(n).padStart(4, '0');
@@ -126,7 +140,10 @@ const remainingText = computed(() => {
   ];
   const start = units.findIndex((u) => u.v > 0);
   if (start === -1) return '00秒';
-  return units.slice(start).map((u) => `${u.pad(u.v)}${u.l}`).join(' ');
+  return units
+    .slice(start)
+    .map((u) => `${u.pad(u.v)}${u.l}`)
+    .join(' ');
 });
 
 const product = ref<string>('');
@@ -186,7 +203,8 @@ function addDomain() {
     // 通配输入联动: *.foo.com 同时把裸域 foo.com 加进列表, 让用户直观看到授权覆盖范围
     if (v.startsWith('*.')) {
       const bare = v.slice(2);
-      if (bare && !submitDomains.value.includes(bare)) extraDomains.value.push(bare);
+      if (bare && !submitDomains.value.includes(bare))
+        extraDomains.value.push(bare);
     }
   }
   domainInput.value = '';
@@ -215,7 +233,8 @@ function appendWildcard(d: string) {
   const w = toWildcard(d);
   if (w !== d && !submitDomains.value.includes(w)) extraDomains.value.push(w);
   const bare = w.slice(2);
-  if (bare && bare !== d && !submitDomains.value.includes(bare)) extraDomains.value.push(bare);
+  if (bare && bare !== d && !submitDomains.value.includes(bare))
+    extraDomains.value.push(bare);
 }
 
 /** +通配 按钮是否应该显示:
@@ -229,8 +248,7 @@ function showAppendWildcardBtn(domain: string): boolean {
 
 const productValid = computed(
   () =>
-    !enableProduct.value ||
-    /^[a-z][a-z0-9]{1,19}$/.test(product.value.trim()),
+    !enableProduct.value || /^[a-z][a-z0-9]{1,19}$/.test(product.value.trim()),
 );
 
 function fmtTime(v?: string) {
@@ -304,36 +322,71 @@ async function handleSubmit() {
         :column="1"
         :label-style="{ width: '110px', whiteSpace: 'nowrap' }"
       >
-        <DescriptionsItem label="产品中文名">{{ props.client.productCn || '—' }}</DescriptionsItem>
+        <DescriptionsItem label="产品中文名">{{
+          props.client.productCn || '—'
+        }}</DescriptionsItem>
         <DescriptionsItem label="产品英文名">
-          <span style="font-family: monospace">{{ props.client.productEn || '—' }}</span>
+          <span style="font-family: monospace">{{
+            props.client.productEn || '—'
+          }}</span>
         </DescriptionsItem>
         <DescriptionsItem label="声明域名">
           {{ props.client.domain || '—' }}
         </DescriptionsItem>
         <DescriptionsItem label="实际访问域名">
-          <span :style="domainMismatch ? 'color: var(--ant-color-warning); font-weight: 500' : ''">
+          <span
+            :style="
+              domainMismatch
+                ? 'color: var(--ant-color-warning); font-weight: 500'
+                : ''
+            "
+          >
             {{ props.client.lastActualDomain || '—' }}
           </span>
         </DescriptionsItem>
         <DescriptionsItem label="ClientKey">
-          <span style="font-family: monospace; word-break: break-all">{{ props.client.clientKey || '—' }}</span>
+          <span style="font-family: monospace; word-break: break-all">{{
+            props.client.clientKey || '—'
+          }}</span>
         </DescriptionsItem>
         <DescriptionsItem label="HardwareId">
-          <span style="font-family: monospace; word-break: break-all">{{ props.client.hardwareId || '—' }}</span>
+          <span style="font-family: monospace; word-break: break-all">{{
+            props.client.hardwareId || '—'
+          }}</span>
         </DescriptionsItem>
-        <DescriptionsItem label="机器名">{{ props.client.machineName || '—' }}</DescriptionsItem>
-        <DescriptionsItem label="CPU 核心">{{ props.client.processorCount || '—' }}</DescriptionsItem>
+        <DescriptionsItem label="机器名">{{
+          props.client.machineName || '—'
+        }}</DescriptionsItem>
+        <DescriptionsItem label="CPU 核心">{{
+          props.client.processorCount || '—'
+        }}</DescriptionsItem>
         <DescriptionsItem label="操作系统">
-          <span style="font-size: 12px">{{ props.client.osDescription || '—' }}</span>
+          <span style="font-size: 12px">{{
+            props.client.osDescription || '—'
+          }}</span>
         </DescriptionsItem>
         <DescriptionsItem label="MAC 地址">
-          <span style="font-family: monospace; font-size: 12px; word-break: break-all">{{ props.client.macAddresses || '—' }}</span>
+          <span
+            style="
+              font-family: monospace;
+              font-size: 12px;
+              word-break: break-all;
+            "
+            >{{ props.client.macAddresses || '—' }}</span
+          >
         </DescriptionsItem>
-        <DescriptionsItem label="服务器 IP">{{ props.client.serverIP || '—' }}</DescriptionsItem>
-        <DescriptionsItem label="验证次数">{{ props.client.verifyCount ?? 0 }}</DescriptionsItem>
-        <DescriptionsItem label="首次注册">{{ fmtTime(props.client.createdTime) }}</DescriptionsItem>
-        <DescriptionsItem label="最近验证">{{ fmtTime(props.client.lastVerifyTime) }}</DescriptionsItem>
+        <DescriptionsItem label="服务器 IP">{{
+          props.client.serverIP || '—'
+        }}</DescriptionsItem>
+        <DescriptionsItem label="验证次数">{{
+          props.client.verifyCount ?? 0
+        }}</DescriptionsItem>
+        <DescriptionsItem label="首次注册">{{
+          fmtTime(props.client.createdTime)
+        }}</DescriptionsItem>
+        <DescriptionsItem label="最近验证">{{
+          fmtTime(props.client.lastVerifyTime)
+        }}</DescriptionsItem>
       </Descriptions>
 
       <!-- 域名不一致提示 -->
@@ -351,193 +404,222 @@ async function handleSubmit() {
     <Col :xs="24" :md="12" class="issue-form-action">
       <div class="issue-form-section-title">签发参数</div>
       <Form layout="vertical">
-      <FormItem label="到期时间" required>
-        <DatePicker
-          v-model:value="expiresAt"
-          :show-time="{ defaultValue: dayjs('23:59:59', 'HH:mm:ss') }"
-          value-format="YYYY-MM-DDTHH:mm:ss"
-          style="width: 100%"
-        />
-        <div style="margin-top: 8px;">
-          <Space wrap :size="4">
-            <Button v-for="opt in quickOptions" :key="opt.label" size="small" @click="setQuick(opt)">{{ opt.label }}</Button>
-          </Space>
-        </div>
-        <div v-if="remainingText" style="margin-top: 6px; font-size: 13px; color: var(--ant-color-text-secondary);">
-          授权时长：<span style="font-weight: 500; color: var(--ant-color-primary);">{{ remainingText }}</span>
-        </div>
-      </FormItem>
-
-      <FormItem>
-        <Checkbox v-model:checked="enableProduct">
-          验证产品名 (仅小写字母+数字, 2-20 字符, 字母开头)
-        </Checkbox>
-        <Input
-          v-if="enableProduct"
-          v-model:value="product"
-          placeholder="产品英文名 (客户端 ProductEn, 不是授权服务器自己的)"
-          style="margin-top: 8px"
-        />
-        <Alert
-          v-if="enableProduct && !props.client?.productEn"
-          type="warning"
-          show-icon
-          style="margin-top: 8px"
-          message="客户端尚未上报产品名"
-          description="请填入客户端自己的 ProductEn, 不要填授权服务器自己的. 客户端发起过一次 Check 或 Verify 之后此字段会自动预填."
-        />
-      </FormItem>
-
-      <FormItem>
-        <Checkbox v-model:checked="enableDomain">
-          验证授权域名 (支持通配符 *.example.com)
-        </Checkbox>
-        <div v-if="enableDomain" style="margin-top: 8px">
-          <div style="display: flex; gap: 8px">
-            <Input
-              v-model:value="domainInput"
-              placeholder="回车添加域名, 如 example.com / *.x.com / api.y.com"
-              @press-enter="addDomain"
-            />
-            <Button @click="addDomain">添加</Button>
-          </div>
+        <FormItem label="到期时间" required>
+          <DatePicker
+            v-model:value="expiresAt"
+            :show-time="{ defaultValue: dayjs('23:59:59', 'HH:mm:ss') }"
+            value-format="YYYY-MM-DDTHH:mm:ss"
+            style="width: 100%"
+          />
           <div style="margin-top: 8px">
-            <!-- 初始化域名(从客户端预填): 不可真正删除, 只能切换"标记删除"防误操作 -->
-            <Tag
-              v-for="(d, i) in initialDomains"
-              :key="`init-${d.domain}`"
-              :closable="false"
-              :class="{ 'domain-tag-deleted': d.deleted }"
-              :color="d.deleted ? 'default' : 'blue'"
-              style="margin-bottom: 4px"
-            >
-              <span :style="d.deleted ? 'text-decoration: line-through; opacity: 0.65' : ''">{{ d.domain }}</span>
+            <Space wrap :size="4">
               <Button
-                v-if="!d.deleted && showAppendWildcardBtn(d.domain)"
+                v-for="opt in quickOptions"
+                :key="opt.label"
                 size="small"
-                style=" padding: 0 6px;margin-left: 4px"
-                @click="appendWildcard(d.domain)"
+                @click="setQuick(opt)"
+                >{{ opt.label }}</Button
               >
-                +通配
-              </Button>
-              <Button
-                size="small"
-                :type="d.deleted ? 'primary' : 'default'"
-                style=" padding: 0 6px;margin-left: 4px"
-                @click="toggleInitialDomain(i)"
-              >
-                {{ d.deleted ? '恢复' : '标记删除' }}
-              </Button>
-            </Tag>
-            <!-- 用户后续添加的域名: 普通可关闭 Tag -->
-            <Tag
-              v-for="(d, i) in extraDomains"
-              :key="`extra-${d}`"
-              closable
-              style="margin-bottom: 4px"
-              @close="removeExtraDomain(i)"
-            >
-              {{ d }}
-              <Button
-                v-if="showAppendWildcardBtn(d)"
-                size="small"
-                style=" padding: 0 6px;margin-left: 4px"
-                @click="appendWildcard(d)"
-              >
-                +通配
-              </Button>
-            </Tag>
+            </Space>
           </div>
           <div
+            v-if="remainingText"
             style="
-              margin-top: 4px;
+              margin-top: 6px;
+              font-size: 13px;
+              color: var(--ant-color-text-secondary);
+            "
+          >
+            授权时长：<span
+              style="font-weight: 500; color: var(--ant-color-primary)"
+              >{{ remainingText }}</span
+            >
+          </div>
+        </FormItem>
+
+        <FormItem>
+          <Checkbox v-model:checked="enableProduct">
+            验证产品名 (仅小写字母+数字, 2-20 字符, 字母开头)
+          </Checkbox>
+          <Input
+            v-if="enableProduct"
+            v-model:value="product"
+            placeholder="产品英文名 (客户端 ProductEn, 不是授权服务器自己的)"
+            style="margin-top: 8px"
+          />
+          <Alert
+            v-if="enableProduct && !props.client?.productEn"
+            type="warning"
+            show-icon
+            style="margin-top: 8px"
+            message="客户端尚未上报产品名"
+            description="请填入客户端自己的 ProductEn, 不要填授权服务器自己的. 客户端发起过一次 Check 或 Verify 之后此字段会自动预填."
+          />
+        </FormItem>
+
+        <FormItem>
+          <Checkbox v-model:checked="enableDomain">
+            验证授权域名 (支持通配符 *.example.com)
+          </Checkbox>
+          <div v-if="enableDomain" style="margin-top: 8px">
+            <div style="display: flex; gap: 8px">
+              <Input
+                v-model:value="domainInput"
+                placeholder="回车添加域名, 如 example.com / *.x.com / api.y.com"
+                @press-enter="addDomain"
+              />
+              <Button @click="addDomain">添加</Button>
+            </div>
+            <div style="margin-top: 8px">
+              <!-- 初始化域名(从客户端预填): 不可真正删除, 只能切换"标记删除"防误操作 -->
+              <Tag
+                v-for="(d, i) in initialDomains"
+                :key="`init-${d.domain}`"
+                :closable="false"
+                :class="{ 'domain-tag-deleted': d.deleted }"
+                :color="d.deleted ? 'default' : 'blue'"
+                style="margin-bottom: 4px"
+              >
+                <span
+                  :style="
+                    d.deleted
+                      ? 'text-decoration: line-through; opacity: 0.65'
+                      : ''
+                  "
+                  >{{ d.domain }}</span
+                >
+                <Button
+                  v-if="!d.deleted && showAppendWildcardBtn(d.domain)"
+                  size="small"
+                  style="padding: 0 6px; margin-left: 4px"
+                  @click="appendWildcard(d.domain)"
+                >
+                  +通配
+                </Button>
+                <Button
+                  size="small"
+                  :type="d.deleted ? 'primary' : 'default'"
+                  style="padding: 0 6px; margin-left: 4px"
+                  @click="toggleInitialDomain(i)"
+                >
+                  {{ d.deleted ? '恢复' : '标记删除' }}
+                </Button>
+              </Tag>
+              <!-- 用户后续添加的域名: 普通可关闭 Tag -->
+              <Tag
+                v-for="(d, i) in extraDomains"
+                :key="`extra-${d}`"
+                closable
+                style="margin-bottom: 4px"
+                @close="removeExtraDomain(i)"
+              >
+                {{ d }}
+                <Button
+                  v-if="showAppendWildcardBtn(d)"
+                  size="small"
+                  style="padding: 0 6px; margin-left: 4px"
+                  @click="appendWildcard(d)"
+                >
+                  +通配
+                </Button>
+              </Tag>
+            </div>
+            <div
+              style="
+                margin-top: 4px;
+                font-size: 12px;
+                color: var(--ant-color-text-secondary);
+              "
+            >
+              初始化域名只能"标记删除"防误操作; 子域 (api.foo.com) 旁的 +通配
+              按钮会一并追加 *.foo.com 和裸域 foo.com (可逆). 裸域 foo.com
+              不显示 +通配 — 签发时后端会自动展开为 foo.com + *.foo.com.
+            </div>
+          </div>
+        </FormItem>
+
+        <FormItem>
+          <Checkbox v-model:checked="enableClientKey">验证 ClientKey</Checkbox>
+          <Input
+            v-if="enableClientKey"
+            v-model:value="clientKey"
+            placeholder="ClientKey (UUID)"
+            style="margin-top: 8px"
+          />
+        </FormItem>
+
+        <FormItem>
+          <Checkbox v-model:checked="enableHardwareId"
+            >验证 HardwareId</Checkbox
+          >
+          <Input
+            v-if="enableHardwareId"
+            v-model:value="hardwareId"
+            placeholder="HardwareId (SHA256)"
+            style="margin-top: 8px"
+          />
+        </FormItem>
+
+        <FormItem label="到期后行为">
+          <div
+            style="
+              margin-bottom: 8px;
               font-size: 12px;
               color: var(--ant-color-text-secondary);
             "
           >
-            初始化域名只能"标记删除"防误操作; 子域 (api.foo.com) 旁的 +通配 按钮会一并追加 *.foo.com 和裸域 foo.com (可逆). 裸域 foo.com 不显示 +通配 — 签发时后端会自动展开为 foo.com + *.foo.com.
+            授权过期后是否保留以下功能 (白名单路径如登录/授权页始终可用):
           </div>
-        </div>
-      </FormItem>
+          <Space direction="vertical" :size="4">
+            <Checkbox v-model:checked="allowAdminAfterExpiry">
+              到期后管理后台仍可用 (/admin/* 非白名单)
+            </Checkbox>
+            <Checkbox v-model:checked="allowClientApiAfterExpiry">
+              到期后客户端 API 仍可用 (/api/* 非白名单)
+            </Checkbox>
+          </Space>
+          <Alert
+            v-if="bothExpiryAllowed"
+            type="error"
+            show-icon
+            style="margin-top: 8px"
+            message="两个都勾等于无到期限制, 没有意义"
+            description="请至少留一项被拦截 (默认两个都不勾 = 到期全禁用)"
+          />
+          <div
+            v-else
+            style="
+              margin-top: 6px;
+              font-size: 12px;
+              color: var(--ant-color-text-tertiary);
+            "
+          >
+            当前策略:
+            <span
+              style="font-weight: 500; color: var(--ant-color-text-secondary)"
+            >
+              {{
+                allowAdminAfterExpiry
+                  ? '到期后仅管理后台可用'
+                  : allowClientApiAfterExpiry
+                    ? '到期后仅客户端 API 可用'
+                    : '到期后全部禁用 (默认)'
+              }}
+            </span>
+          </div>
+        </FormItem>
 
-      <FormItem>
-        <Checkbox v-model:checked="enableClientKey">验证 ClientKey</Checkbox>
-        <Input
-          v-if="enableClientKey"
-          v-model:value="clientKey"
-          placeholder="ClientKey (UUID)"
-          style="margin-top: 8px"
-        />
-      </FormItem>
-
-      <FormItem>
-        <Checkbox v-model:checked="enableHardwareId">验证 HardwareId</Checkbox>
-        <Input
-          v-if="enableHardwareId"
-          v-model:value="hardwareId"
-          placeholder="HardwareId (SHA256)"
-          style="margin-top: 8px"
-        />
-      </FormItem>
-
-      <FormItem label="到期后行为">
-        <div
-          style="
-            margin-bottom: 8px;
-            font-size: 12px;
-            color: var(--ant-color-text-secondary);
-          "
-        >
-          授权过期后是否保留以下功能 (白名单路径如登录/授权页始终可用):
-        </div>
-        <Space direction="vertical" :size="4">
-          <Checkbox v-model:checked="allowAdminAfterExpiry">
-            到期后管理后台仍可用 (/admin/* 非白名单)
-          </Checkbox>
-          <Checkbox v-model:checked="allowClientApiAfterExpiry">
-            到期后客户端 API 仍可用 (/api/* 非白名单)
-          </Checkbox>
-        </Space>
-        <Alert
-          v-if="bothExpiryAllowed"
-          type="error"
-          show-icon
-          style="margin-top: 8px"
-          message="两个都勾等于无到期限制, 没有意义"
-          description="请至少留一项被拦截 (默认两个都不勾 = 到期全禁用)"
-        />
-        <div
-          v-else
-          style="
-            margin-top: 6px;
-            font-size: 12px;
-            color: var(--ant-color-text-tertiary);
-          "
-        >
-          当前策略:
-          <span style=" font-weight: 500;color: var(--ant-color-text-secondary)">
-            {{
-              allowAdminAfterExpiry
-                ? '到期后仅管理后台可用'
-                : allowClientApiAfterExpiry
-                ? '到期后仅客户端 API 可用'
-                : '到期后全部禁用 (默认)'
-            }}
-          </span>
-        </div>
-      </FormItem>
-
-      <FormItem>
-        <Button
-          type="primary"
-          :loading="submitting"
-          :disabled="bothExpiryAllowed"
-          @click="handleSubmit"
-        >
-          生成授权
-        </Button>
-      </FormItem>
-    </Form>
+        <FormItem>
+          <Button
+            type="primary"
+            :loading="submitting"
+            :disabled="bothExpiryAllowed"
+            @click="handleSubmit"
+          >
+            生成授权
+          </Button>
+        </FormItem>
+      </Form>
     </Col>
   </Row>
 </template>

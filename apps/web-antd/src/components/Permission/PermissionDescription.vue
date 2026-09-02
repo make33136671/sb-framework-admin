@@ -4,10 +4,7 @@ import { computed } from 'vue';
 import { Card, Descriptions, DescriptionsItem, Tag } from 'ant-design-vue';
 
 import { usePermission } from '#/composables/usePermission';
-import {
-  getAdminTypeColor,
-  getAdminTypeLabel,
-} from '#/types/admin';
+import { getAdminTypeColor, getAdminTypeLabel } from '#/types/admin';
 
 const { userType, dataScope, isSuperAdmin, isAdmin, isZhanzhang, isKefu } =
   usePermission();

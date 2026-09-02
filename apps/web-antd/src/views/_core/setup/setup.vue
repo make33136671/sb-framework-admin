@@ -40,16 +40,31 @@ const router = useRouter();
 const currentStep = ref(0);
 const installed = ref(false);
 const installing = ref(false);
-const installResult = ref<null | { message: string; success: boolean; data?: any }>(null);
+const installResult = ref<null | {
+  message: string;
+  success: boolean;
+  data?: any;
+}>(null);
 
 // 数据库
 const dbType = ref('MySql');
 const dbServer = ref('127.0.0.1');
 const dbPort = ref('3306');
-const dbName = ref((() => { const n = extractNameFromDomain(extractRootDomain(window.location.hostname)); return n.charAt(0).toUpperCase() + n.slice(1); })());
+const dbName = ref(
+  (() => {
+    const n = extractNameFromDomain(
+      extractRootDomain(window.location.hostname),
+    );
+    return n.charAt(0).toUpperCase() + n.slice(1);
+  })(),
+);
 const dbUser = ref('root');
 const dbPassword = ref('');
-const dbTestResult = ref<null | { message: string; success: boolean; data?: any }>(null);
+const dbTestResult = ref<null | {
+  message: string;
+  success: boolean;
+  data?: any;
+}>(null);
 const dbTesting = ref(false);
 const wipeDatabase = ref(false);
 
@@ -88,9 +103,13 @@ const commonTimeZones = [
 const productCn = ref('管理系统');
 const corsAllowAll = ref(true);
 const corsOrigins = ref<string[]>(
-  /^(\d{1,3}\.){3}\d{1,3}$/.test(extractRootDomain(window.location.hostname)) || window.location.hostname === 'localhost'
+  /^(\d{1,3}\.){3}\d{1,3}$/.test(extractRootDomain(window.location.hostname)) ||
+    window.location.hostname === 'localhost'
     ? []
-    : [`https://${extractRootDomain(window.location.hostname)}`, `https://*.${extractRootDomain(window.location.hostname)}`]
+    : [
+        `https://${extractRootDomain(window.location.hostname)}`,
+        `https://*.${extractRootDomain(window.location.hostname)}`,
+      ],
 );
 const corsOriginInput = ref('');
 
@@ -105,7 +124,11 @@ function extractRootDomain(hostname: string): string {
 
 // 从域名提取产品英文名：去掉后缀(.com等)和子域名，只保留主体
 function extractNameFromDomain(domain: string): string {
-  if (!domain || /^(\d{1,3}\.){3}\d{1,3}$/.test(domain) || domain === 'localhost') {
+  if (
+    !domain ||
+    /^(\d{1,3}\.){3}\d{1,3}$/.test(domain) ||
+    domain === 'localhost'
+  ) {
     return 'sb';
   }
   const parts = domain.split('.');
@@ -246,7 +269,7 @@ function onProductEnChange() {
   cachePrefix.value = name ? `${name}:` : 'sb:';
   // 联动站点路径 — Docker 模式使用容器预设路径，跳过
   if (!isDocker.value) {
-    sitePaths.value.forEach(s => {
+    sitePaths.value.forEach((s) => {
       s.path = `/www/wwwroot/${name}_${s.type}`;
     });
   }
@@ -256,7 +279,12 @@ function onProductEnChange() {
 function handleLogoUpload(event: Event) {
   const file = (event.target as HTMLInputElement).files?.[0];
   if (!file) return;
-  const allowed = ['image/png', 'image/jpeg', 'image/x-icon', 'image/vnd.microsoft.icon'];
+  const allowed = [
+    'image/png',
+    'image/jpeg',
+    'image/x-icon',
+    'image/vnd.microsoft.icon',
+  ];
   if (!allowed.includes(file.type)) {
     message.error('仅支持 PNG、JPG、ICO 格式');
     return;
@@ -418,8 +446,8 @@ async function doInstall() {
       logoBase64: logoBase64.value || undefined,
       cloudServerUrl: cloudServerUrl.value.trim() || undefined,
       deployProjects: sitePaths.value
-        .filter(s => s.type && s.path)
-        .map(s => ({ name: s.type, key: s.type, path: s.path })),
+        .filter((s) => s.type && s.path)
+        .map((s) => ({ name: s.type, key: s.type, path: s.path })),
     };
     const r = await installApi(payload);
     installResult.value = {
@@ -467,7 +495,7 @@ async function checkServerReady() {
     } catch {
       // 服务器还没启动，继续等
     }
-    await new Promise(r => setTimeout(r, 1000));
+    await new Promise((r) => setTimeout(r, 1000));
   }
   serverChecking.value = false;
 }
@@ -571,8 +599,7 @@ function fillFormFromConfig(config: any) {
   enableCache.value = !!cache.enabled;
   if (cache.provider) cacheProvider.value = cache.provider;
   if (cache.redis?.connection) redisConnection.value = cache.redis.connection;
-  if (cache.redis?.instanceName)
-    cachePrefix.value = cache.redis.instanceName;
+  if (cache.redis?.instanceName) cachePrefix.value = cache.redis.instanceName;
 
   const app = config.app || {};
   if (app.productCn) productCn.value = app.productCn;
@@ -607,7 +634,11 @@ function fillFormFromConfig(config: any) {
     <div class="setup-container">
       <!-- 已安装状态 -->
       <Card v-if="installed" class="setup-card">
-        <Result status="success" title="系统已安装" sub-title="系统已完成安装配置。">
+        <Result
+          status="success"
+          title="系统已安装"
+          sub-title="系统已完成安装配置。"
+        >
           <template #extra>
             <Button type="primary" @click="router.push('/auth/login')">
               前往登录
@@ -636,9 +667,17 @@ function fillFormFromConfig(config: any) {
             title="系统安装完成"
           >
             <template #subTitle>
-              <div style="display: flex; gap: 8px; align-items: center; justify-content: center;">
+              <div
+                style="
+                  display: flex;
+                  gap: 8px;
+                  align-items: center;
+                  justify-content: center;
+                "
+              >
                 <template v-if="serverReady">
-                  <span style="color: var(--ant-color-success);">&#10003;</span> 系统初始化完成
+                  <span style="color: var(--ant-color-success)">&#10003;</span>
+                  系统初始化完成
                 </template>
                 <template v-else>
                   <Spin size="small" /> 系统正在启动...
@@ -647,8 +686,12 @@ function fillFormFromConfig(config: any) {
             </template>
             <template #extra>
               <Space>
-                <Button type="primary" :disabled="!serverReady" @click="goHome">前往首页</Button>
-                <Button :disabled="!serverReady" @click="goLicense">前往授权</Button>
+                <Button type="primary" :disabled="!serverReady" @click="goHome"
+                  >前往首页</Button
+                >
+                <Button :disabled="!serverReady" @click="goLicense"
+                  >前往授权</Button
+                >
               </Space>
             </template>
           </Result>
@@ -683,13 +726,14 @@ function fillFormFromConfig(config: any) {
         <!-- Step 1: 数据库配置 -->
         <Card v-if="currentStep === 1" class="setup-card">
           <h3>数据库配置</h3>
-          <p class="step-desc">
-            配置 {{ dbTypeLabel }} 数据库连接信息
-          </p>
+          <p class="step-desc">配置 {{ dbTypeLabel }} 数据库连接信息</p>
 
           <div class="form-item">
             <label>数据库类型</label>
-            <RadioGroup :value="dbType" @change="(e: any) => onDbTypeChange(e.target.value)">
+            <RadioGroup
+              :value="dbType"
+              @change="(e: any) => onDbTypeChange(e.target.value)"
+            >
               <Radio v-if="!isDocker" value="MySql">MySQL</Radio>
               <Radio value="PostgreSql">PostgreSQL</Radio>
             </RadioGroup>
@@ -702,7 +746,10 @@ function fillFormFromConfig(config: any) {
             </div>
             <div class="form-item">
               <label>端口</label>
-              <Input v-model:value="dbPort" :placeholder="dbType === 'PostgreSql' ? '5432' : '3306'" />
+              <Input
+                v-model:value="dbPort"
+                :placeholder="dbType === 'PostgreSql' ? '5432' : '3306'"
+              />
             </div>
           </div>
 
@@ -718,7 +765,10 @@ function fillFormFromConfig(config: any) {
             </div>
             <div class="form-item">
               <label>密码</label>
-              <InputPassword v-model:value="dbPassword" placeholder="数据库密码" />
+              <InputPassword
+                v-model:value="dbPassword"
+                placeholder="数据库密码"
+              />
             </div>
           </div>
 
@@ -733,21 +783,29 @@ function fillFormFromConfig(config: any) {
 
           <!-- 数据库已存在时：抹除选项 -->
           <template v-if="dbTestResult?.success && dbTestResult.data?.dbExists">
-            <Alert
-              class="test-alert"
-              type="warning"
-              show-icon
-            >
+            <Alert class="test-alert" type="warning" show-icon>
               <template #message>
-                <div style="display: flex; gap: 8px; align-items: center;">
-                  <label style=" display: flex; gap: 6px; align-items: center; margin: 0;cursor: pointer;">
-                    <input type="checkbox" :checked="wipeDatabase" @change="wipeDatabase = !wipeDatabase" />
+                <div style="display: flex; gap: 8px; align-items: center">
+                  <label
+                    style="
+                      display: flex;
+                      gap: 6px;
+                      align-items: center;
+                      margin: 0;
+                      cursor: pointer;
+                    "
+                  >
+                    <input
+                      type="checkbox"
+                      :checked="wipeDatabase"
+                      @change="wipeDatabase = !wipeDatabase"
+                    />
                     <strong>抹除现有数据，重新安装</strong>
                   </label>
                 </div>
               </template>
               <template #description>
-                <span v-if="wipeDatabase" style="color: var(--ant-color-error);">
+                <span v-if="wipeDatabase" style="color: var(--ant-color-error)">
                   将删除数据库中所有现有表和数据，此操作不可逆！
                 </span>
                 <span v-else>
@@ -789,7 +847,10 @@ function fillFormFromConfig(config: any) {
             <template v-if="cacheProvider === 'Redis'">
               <div class="form-item">
                 <label>Redis 连接字符串</label>
-                <Input v-model:value="redisConnection" :placeholder="`${dbServer}:6379`" />
+                <Input
+                  v-model:value="redisConnection"
+                  :placeholder="`${dbServer}:6379`"
+                />
               </div>
               <Button :loading="redisTesting" @click="testRedis">
                 测试连接
@@ -807,7 +868,9 @@ function fillFormFromConfig(config: any) {
           <div class="form-item">
             <label>缓存 Key 前缀</label>
             <Input v-model:value="cachePrefix" :placeholder="`${productEn}:`" />
-            <div class="form-hint">缓存键前缀，默认基于产品英文名。多项目共享 Redis 时用于隔离</div>
+            <div class="form-hint">
+              缓存键前缀，默认基于产品英文名。多项目共享 Redis 时用于隔离
+            </div>
           </div>
 
           <Divider />
@@ -834,11 +897,21 @@ function fillFormFromConfig(config: any) {
             <div class="form-item">
               <label>允许的来源</label>
               <div class="cors-input-row">
-                <Input v-model:value="corsOriginInput" placeholder="例如: https://example.com" @press-enter="addCorsOrigin" />
+                <Input
+                  v-model:value="corsOriginInput"
+                  placeholder="例如: https://example.com"
+                  @press-enter="addCorsOrigin"
+                />
                 <Button @click="addCorsOrigin">添加</Button>
               </div>
               <div v-if="corsOrigins.length" class="cors-tags">
-                <Tag v-for="(origin, i) in corsOrigins" :key="origin" closable @close="removeCorsOrigin(i)">{{ origin }}</Tag>
+                <Tag
+                  v-for="(origin, i) in corsOrigins"
+                  :key="origin"
+                  closable
+                  @close="removeCorsOrigin(i)"
+                  >{{ origin }}</Tag
+                >
               </div>
             </div>
           </template>
@@ -847,11 +920,32 @@ function fillFormFromConfig(config: any) {
 
           <div class="form-item">
             <label>站点路径配置</label>
-            <div class="form-hint" style="margin-bottom: 8px;">配置前端站点部署路径，安装时自动创建 storage 软连接</div>
-            <div v-for="(site, idx) in sitePaths" :key="idx" style="display: flex; gap: 8px; align-items: center; margin-bottom: 8px;">
-              <Input v-model:value="site.type" placeholder="类型 (admin/h5)" style="width: 120px;" />
-              <Input v-model:value="site.path" placeholder="站点根目录路径" style="flex: 1;" />
-              <Button danger size="small" @click="removeSitePath(idx)">删除</Button>
+            <div class="form-hint" style="margin-bottom: 8px">
+              配置前端站点部署路径，安装时自动创建 storage 软连接
+            </div>
+            <div
+              v-for="(site, idx) in sitePaths"
+              :key="idx"
+              style="
+                display: flex;
+                gap: 8px;
+                align-items: center;
+                margin-bottom: 8px;
+              "
+            >
+              <Input
+                v-model:value="site.type"
+                placeholder="类型 (admin/h5)"
+                style="width: 120px"
+              />
+              <Input
+                v-model:value="site.path"
+                placeholder="站点根目录路径"
+                style="flex: 1"
+              />
+              <Button danger size="small" @click="removeSitePath(idx)"
+                >删除</Button
+              >
             </div>
             <Button size="small" @click="addSitePath">+ 添加站点</Button>
           </div>
@@ -860,8 +954,15 @@ function fillFormFromConfig(config: any) {
 
           <div class="form-item">
             <label>云端中心地址</label>
-            <Input v-model:value="cloudServerUrl" placeholder="例如: https://cloud.saibo.club" />
-            <div class="form-hint">授权 / 数据库备份 等所有云端服务的统一根地址（只填一次）。只填基地址，不要带 /api/xxx 子路径。留空表示不启用云端功能。</div>
+            <Input
+              v-model:value="cloudServerUrl"
+              placeholder="例如: https://cloud.saibo.club"
+            />
+            <div class="form-hint">
+              授权 / 数据库备份
+              等所有云端服务的统一根地址（只填一次）。只填基地址，不要带
+              /api/xxx 子路径。留空表示不启用云端功能。
+            </div>
           </div>
 
           <Divider />
@@ -874,18 +975,37 @@ function fillFormFromConfig(config: any) {
         <!-- Step 0: 产品信息 -->
         <Card v-if="currentStep === 0" class="setup-card">
           <h3>产品信息</h3>
-          <p class="step-desc">配置产品品牌信息、主域名、跨域策略和站点部署路径</p>
+          <p class="step-desc">
+            配置产品品牌信息、主域名、跨域策略和站点部署路径
+          </p>
 
           <div class="form-item">
             <label>主域名</label>
-            <Input v-model:value="primaryDomain" placeholder="example.com" @change="onPrimaryDomainChange" />
-            <div class="form-hint">系统主域名，用于 CORS、授权绑定和产品英文名推导。自动识别当前访问域名（去掉子域名前缀）</div>
+            <Input
+              v-model:value="primaryDomain"
+              placeholder="example.com"
+              @change="onPrimaryDomainChange"
+            />
+            <div class="form-hint">
+              系统主域名，用于
+              CORS、授权绑定和产品英文名推导。自动识别当前访问域名（去掉子域名前缀）
+            </div>
           </div>
 
           <div class="form-item">
-            <label>产品英文名称 <span style="color: var(--ant-color-error);">*</span></label>
-            <Input v-model:value="productEn" placeholder="小写字母+数字，如 sb" @change="onProductEnChange" />
-            <div class="form-hint">默认从主域名提取。用于数据库名、路径前缀、缓存前缀、授权标识。仅小写字母和数字，字母开头，2-20 字符</div>
+            <label
+              >产品英文名称
+              <span style="color: var(--ant-color-error)">*</span></label
+            >
+            <Input
+              v-model:value="productEn"
+              placeholder="小写字母+数字，如 sb"
+              @change="onProductEnChange"
+            />
+            <div class="form-hint">
+              默认从主域名提取。用于数据库名、路径前缀、缓存前缀、授权标识。仅小写字母和数字，字母开头，2-20
+              字符
+            </div>
           </div>
 
           <div class="form-item">
@@ -895,21 +1015,45 @@ function fillFormFromConfig(config: any) {
 
           <div class="form-item">
             <label>产品 Logo</label>
-            <div style="display: flex; gap: 16px; align-items: center;">
+            <div style="display: flex; gap: 16px; align-items: center">
               <div v-if="logoPreviewUrl" class="logo-preview">
-                <img :src="logoPreviewUrl" style="max-width: 100%; max-height: 100%;" />
+                <img
+                  :src="logoPreviewUrl"
+                  style="max-width: 100%; max-height: 100%"
+                />
               </div>
-              <input type="file" accept=".png,.jpg,.jpeg,.ico" @change="handleLogoUpload" />
+              <input
+                type="file"
+                accept=".png,.jpg,.jpeg,.ico"
+                @change="handleLogoUpload"
+              />
             </div>
-            <div class="form-hint">支持 PNG/JPG/ICO，建议 512x512 以上正方形图片，最大 2MB。将自动生成 favicon 和各尺寸图标</div>
+            <div class="form-hint">
+              支持 PNG/JPG/ICO，建议 512x512 以上正方形图片，最大
+              2MB。将自动生成 favicon 和各尺寸图标
+            </div>
           </div>
 
           <div class="form-item">
             <label>系统时区</label>
-            <select v-model="timeZone" style="width: 100%; padding: 6px 8px; color: var(--ant-color-text); background: var(--ant-color-bg-container); border: 1px solid var(--ant-color-border); border-radius: 6px;">
-              <option v-for="tz in commonTimeZones" :key="tz" :value="tz">{{ tz }}</option>
+            <select
+              v-model="timeZone"
+              style="
+                width: 100%;
+                padding: 6px 8px;
+                color: var(--ant-color-text);
+                background: var(--ant-color-bg-container);
+                border: 1px solid var(--ant-color-border);
+                border-radius: 6px;
+              "
+            >
+              <option v-for="tz in commonTimeZones" :key="tz" :value="tz">
+                {{ tz }}
+              </option>
             </select>
-            <div class="form-hint">系统业务时间基准时区，影响日期显示和时间计算</div>
+            <div class="form-hint">
+              系统业务时间基准时区，影响日期显示和时间计算
+            </div>
           </div>
 
           <Divider />
@@ -924,18 +1068,18 @@ function fillFormFromConfig(config: any) {
           <h3>密码存储方式</h3>
           <p class="step-desc">选择密码的存储方式（安装后不可修改）</p>
 
-          <Alert
-            class="password-warning"
-            type="warning"
-            show-icon
-          >
+          <Alert class="password-warning" type="warning" show-icon>
             <template #message>
               <strong>重要提示：此选择安装后将无法修改</strong>
             </template>
             <template #description>
               <ul class="warning-list">
-                <li>选择"加密"后，所有密码均采用BCrypt加密存储（推荐生产环境）</li>
-                <li>选择"明文"后，密码以明文形式存储（仅用于开发/测试，不安全）</li>
+                <li>
+                  选择"加密"后，所有密码均采用BCrypt加密存储（推荐生产环境）
+                </li>
+                <li>
+                  选择"明文"后，密码以明文形式存储（仅用于开发/测试，不安全）
+                </li>
                 <li>修改此设置会导致已有密码无法验证，请谨慎选择</li>
               </ul>
             </template>
@@ -967,11 +1111,17 @@ function fillFormFromConfig(config: any) {
           </div>
           <div class="form-item">
             <label>密码（至少6位）</label>
-            <InputPassword v-model:value="adminPassword" placeholder="管理员密码" />
+            <InputPassword
+              v-model:value="adminPassword"
+              placeholder="管理员密码"
+            />
           </div>
           <div class="form-item">
             <label>确认密码</label>
-            <InputPassword v-model:value="adminPasswordConfirm" placeholder="再次输入密码" />
+            <InputPassword
+              v-model:value="adminPasswordConfirm"
+              placeholder="再次输入密码"
+            />
           </div>
           <div class="form-item">
             <label>显示名称</label>
@@ -1009,7 +1159,10 @@ function fillFormFromConfig(config: any) {
             <DescriptionsItem label="缓存方式">
               {{ enableCache ? cacheProvider : '未启用' }}
             </DescriptionsItem>
-            <DescriptionsItem v-if="enableCache && cacheProvider === 'Redis'" label="Redis 连接">
+            <DescriptionsItem
+              v-if="enableCache && cacheProvider === 'Redis'"
+              label="Redis 连接"
+            >
               {{ redisConnection || `${dbServer}:6379` }}
             </DescriptionsItem>
             <DescriptionsItem label="应用名称">
@@ -1035,7 +1188,9 @@ function fillFormFromConfig(config: any) {
                   border-radius: 4px;
                 "
               />
-              <span v-else style="color: var(--ant-color-text-tertiary);">使用默认 Logo</span>
+              <span v-else style="color: var(--ant-color-text-tertiary)"
+                >使用默认 Logo</span
+              >
             </DescriptionsItem>
             <DescriptionsItem label="系统时区">
               {{ timeZone }}
@@ -1044,7 +1199,9 @@ function fillFormFromConfig(config: any) {
               {{ cachePrefix || 'sb:' }}
             </DescriptionsItem>
             <DescriptionsItem label="CORS 策略">
-              {{ corsAllowAll ? '允许所有来源' : corsOrigins.join(', ') || '无' }}
+              {{
+                corsAllowAll ? '允许所有来源' : corsOrigins.join(', ') || '无'
+              }}
             </DescriptionsItem>
             <DescriptionsItem label="密码存储方式">
               {{ passwordStorageMode === 'Encrypted' ? '加密' : '明文' }}
@@ -1059,10 +1216,17 @@ function fillFormFromConfig(config: any) {
               {{ cloudServerUrl || '未配置' }}
             </DescriptionsItem>
             <DescriptionsItem label="站点路径">
-              <div v-for="site in sitePaths.filter(s => s.type && s.path)" :key="site.type">
+              <div
+                v-for="site in sitePaths.filter((s) => s.type && s.path)"
+                :key="site.type"
+              >
                 {{ site.type }}: {{ site.path }}
               </div>
-              <span v-if="!sitePaths.some(s => s.type && s.path)" style="color: var(--ant-color-text-tertiary);">未配置</span>
+              <span
+                v-if="!sitePaths.some((s) => s.type && s.path)"
+                style="color: var(--ant-color-text-tertiary)"
+                >未配置</span
+              >
             </DescriptionsItem>
           </Descriptions>
 

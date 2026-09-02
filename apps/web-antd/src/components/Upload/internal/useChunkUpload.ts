@@ -2,11 +2,7 @@ import { reactive, ref } from 'vue';
 
 import SparkMD5 from 'spark-md5';
 
-import {
-  chunkInitApi,
-  chunkMergeApi,
-  chunkUploadApi,
-} from '#/api/core/upload';
+import { chunkInitApi, chunkMergeApi, chunkUploadApi } from '#/api/core/upload';
 
 import type { ThreadState, UploadDetail } from './types';
 

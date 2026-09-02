@@ -102,10 +102,7 @@ _client.addResponseInterceptor(
 _client.addResponseInterceptor({
   rejected: (error: any) => {
     const { response } = error;
-    if (
-      response?.status === 503 &&
-      response?.data?.type === 'setup_required'
-    ) {
+    if (response?.status === 503 && response?.data?.type === 'setup_required') {
       // 使用 location 跳转，兼容 hash / history 两种路由模式
       const base = window.location.pathname;
       const hash = window.location.hash;

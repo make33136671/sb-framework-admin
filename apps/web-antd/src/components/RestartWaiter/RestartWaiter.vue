@@ -120,7 +120,7 @@ function close() {
     width="420px"
     @update:open="(v: boolean) => emit('update:open', v)"
   >
-    <div style=" padding: 24px 0;text-align: center">
+    <div style="padding: 24px 0; text-align: center">
       <div v-if="status === 'polling'">
         <div class="restart-pulse">
           <div class="restart-pulse-ring" />

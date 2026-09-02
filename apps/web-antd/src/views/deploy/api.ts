@@ -59,7 +59,12 @@ export async function postDeployApiByPath(
   return api.post('/App/DeployApiByPath', formData, { silent: true });
 }
 
-export async function postDeployProjectByPath(key: string, filePath: string, fileName: string, fileSize: number) {
+export async function postDeployProjectByPath(
+  key: string,
+  filePath: string,
+  fileName: string,
+  fileSize: number,
+) {
   const formData = new FormData();
   formData.append('key', key);
   formData.append('filePath', filePath);
@@ -68,7 +73,11 @@ export async function postDeployProjectByPath(key: string, filePath: string, fil
   return api.post('/App/DeployProjectByPath', formData);
 }
 
-export async function getDeployRecords(params: { target?: string; page?: number; pageSize?: number }) {
+export async function getDeployRecords(params: {
+  target?: string;
+  page?: number;
+  pageSize?: number;
+}) {
   return api.get('/App/DeployRecords', { params });
 }
 

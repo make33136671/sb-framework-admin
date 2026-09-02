@@ -127,10 +127,7 @@ const delAdminRole = (id: number) => {
   <Page auto-content-height>
     <Grid>
       <template #toolbar-tools>
-        <Button
-          type="primary"
-          @click="router.push({ name: 'AdminRoleAdd' })"
-        >
+        <Button type="primary" @click="router.push({ name: 'AdminRoleAdd' })">
           添加角色
         </Button>
       </template>
@@ -172,9 +169,7 @@ const delAdminRole = (id: number) => {
             编辑
           </Button>
 
-          <Button type="primary" @click="delAdminRole(row.id)">
-            删除
-          </Button>
+          <Button type="primary" @click="delAdminRole(row.id)"> 删除 </Button>
         </Space>
       </template>
     </Grid>

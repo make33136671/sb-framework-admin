@@ -1,6 +1,14 @@
 <script setup lang="ts">
 import { computed, ref, h } from 'vue';
-import { Card, Button, Input, message, Space, Modal, Spin } from 'ant-design-vue';
+import {
+  Card,
+  Button,
+  Input,
+  message,
+  Space,
+  Modal,
+  Spin,
+} from 'ant-design-vue';
 import { IconifyIcon } from '@vben/icons';
 
 import {
@@ -57,7 +65,10 @@ async function handleBind() {
 
   try {
     loading.value = true;
-    const res = await bindGoogleCodeApi(bindTotpCode.value, currentPassword.value);
+    const res = await bindGoogleCodeApi(
+      bindTotpCode.value,
+      currentPassword.value,
+    );
     if (res?.code === 0) {
       message.success('绑定成功');
       showQRModal.value = false;
@@ -99,7 +110,10 @@ async function handleUnbind() {
     async onOk() {
       try {
         loading.value = true;
-        const res = await unbindGoogleCodeApi(totpCode.value, currentPassword.value);
+        const res = await unbindGoogleCodeApi(
+          totpCode.value,
+          currentPassword.value,
+        );
         if (res?.code === 0) {
           message.success('解绑成功');
           totpCode.value = '';
@@ -122,11 +136,7 @@ async function handleUnbind() {
 
 <template>
   <div class="flex justify-center w-full">
-    <Card
-      v-if="!isBound"
-      title="绑定谷歌验证器"
-      class="w-full max-w-md"
-    >
+    <Card v-if="!isBound" title="绑定谷歌验证器" class="w-full max-w-md">
       <Spin :spinning="loading">
         <div class="flex flex-col gap-6">
           <div class="text-sm text-gray-600">
@@ -166,16 +176,20 @@ async function handleUnbind() {
                   或手动输入以下密钥到谷歌验证器应用中：
                 </div>
                 <div class="flex gap-2 items-center">
-                  <code class="flex-1 p-2 bg-gray-200 rounded text-sm break-all text-gray-900 font-mono">
+                  <code
+                    class="flex-1 p-2 bg-gray-200 rounded text-sm break-all text-gray-900 font-mono"
+                  >
                     {{ manualEntryKey }}
                   </code>
                   <Button
                     type="text"
                     size="small"
-                    @click="() => {
-                      navigator.clipboard.writeText(manualEntryKey);
-                      message.success('已复制到剪贴板');
-                    }"
+                    @click="
+                      () => {
+                        navigator.clipboard.writeText(manualEntryKey);
+                        message.success('已复制到剪贴板');
+                      }
+                    "
                   >
                     复制
                   </Button>
@@ -183,9 +197,7 @@ async function handleUnbind() {
               </div>
 
               <div class="w-full">
-                <label class="block text-sm font-medium mb-2">
-                  当前密码
-                </label>
+                <label class="block text-sm font-medium mb-2"> 当前密码 </label>
                 <Input
                   v-model:value="currentPassword"
                   type="password"
@@ -195,9 +207,7 @@ async function handleUnbind() {
               </div>
 
               <div class="w-full">
-                <label class="block text-sm font-medium mb-2">
-                  验证码
-                </label>
+                <label class="block text-sm font-medium mb-2"> 验证码 </label>
                 <Input
                   v-model:value="bindTotpCode"
                   placeholder="请输入6位数字验证码"
@@ -220,14 +230,12 @@ async function handleUnbind() {
       </Spin>
     </Card>
 
-    <Card
-      v-else
-      title="解绑谷歌验证器"
-      class="w-full max-w-md"
-    >
+    <Card v-else title="解绑谷歌验证器" class="w-full max-w-md">
       <Spin :spinning="loading">
         <div class="flex flex-col gap-4">
-          <div class="p-3 bg-green-50 border border-green-200 rounded text-sm text-green-700">
+          <div
+            class="p-3 bg-green-50 border border-green-200 rounded text-sm text-green-700"
+          >
             ✓ 您已绑定谷歌验证器
           </div>
 
@@ -245,9 +253,7 @@ async function handleUnbind() {
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-2">
-              当前密码
-            </label>
+            <label class="block text-sm font-medium mb-2"> 当前密码 </label>
             <Input
               v-model:value="currentPassword"
               type="password"
@@ -257,9 +263,7 @@ async function handleUnbind() {
           </div>
 
           <div>
-            <label class="block text-sm font-medium mb-2">
-              验证码
-            </label>
+            <label class="block text-sm font-medium mb-2"> 验证码 </label>
             <Input
               v-model:value="totpCode"
               placeholder="请输入6位数字验证码"

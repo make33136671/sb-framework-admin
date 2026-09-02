@@ -17,8 +17,7 @@ export const permissionDirective: Directive = {
 
     const userStore = useUserStore();
     const userType =
-      (userStore.userInfo?.adminType as AdminType) ??
-      AdminType.CustomerService;
+      (userStore.userInfo?.adminType as AdminType) ?? AdminType.CustomerService;
 
     const hasPermission = PermissionUtil.hasActionPermission(userType, value);
 

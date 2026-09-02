@@ -76,7 +76,9 @@ const showTimezone = computed(() => {
     <div class="time-tag__time">{{ displayTime }}</div>
     <div v-if="showTimezone" class="time-tag__tz">
       <span class="time-tag__tz-iana">{{ timezone }}</span>
-      <span v-if="offsetText" class="time-tag__tz-offset">{{ offsetText }}</span>
+      <span v-if="offsetText" class="time-tag__tz-offset">{{
+        offsetText
+      }}</span>
     </div>
   </Tag>
 </template>

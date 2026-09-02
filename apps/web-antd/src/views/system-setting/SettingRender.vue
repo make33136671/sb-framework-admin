@@ -214,10 +214,7 @@ const uploadMode = computed<'auto' | 'chunk' | 'direct'>(() => {
   />
 
   <!-- Switch (5) -->
-  <Switch
-    v-else-if="setting.displayType === 5"
-    v-model:checked="switchValue"
-  />
+  <Switch v-else-if="setting.displayType === 5" v-model:checked="switchValue" />
 
   <!-- ImageUpload (6) -->
   <SmartUpload

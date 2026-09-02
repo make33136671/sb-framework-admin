@@ -41,9 +41,25 @@ const gridOptions: VxeGridProps<RowType> = {
     { field: 'code', title: '模板代码', minWidth: 160 },
     { field: 'name', title: '模板名称', minWidth: 160 },
     { field: 'subject', title: '邮件主题', minWidth: 200 },
-    { field: 'isActive', title: '状态', width: 100, slots: { default: 'isActive' } },
-    { field: 'updatedAt', title: '更新时间', formatter: 'formatDateTime', width: 170 },
-    { field: 'action', fixed: 'right', slots: { default: 'action' }, title: '操作', width: 150 },
+    {
+      field: 'isActive',
+      title: '状态',
+      width: 100,
+      slots: { default: 'isActive' },
+    },
+    {
+      field: 'updatedAt',
+      title: '更新时间',
+      formatter: 'formatDateTime',
+      width: 170,
+    },
+    {
+      field: 'action',
+      fixed: 'right',
+      slots: { default: 'action' },
+      title: '操作',
+      width: 150,
+    },
   ],
   height: 'auto',
   keepSource: true,
@@ -51,10 +67,13 @@ const gridOptions: VxeGridProps<RowType> = {
   proxyConfig: {
     ajax: {
       query: async ({ page }) => {
-        const result: any = await getEmailTemplates(page.currentPage, page.pageSize);
+        const result: any = await getEmailTemplates(
+          page.currentPage,
+          page.pageSize,
+        );
         return {
           items: result.list || [],
-          total: result.total || 0
+          total: result.total || 0,
         };
       },
     },
@@ -71,7 +90,7 @@ const formData = ref({
   name: '',
   subject: '',
   body: '',
-  isActive: true
+  isActive: true,
 });
 
 const handleAdd = () => {
@@ -82,7 +101,7 @@ const handleAdd = () => {
     name: '',
     subject: '',
     body: '',
-    isActive: true
+    isActive: true,
   };
   showModal.value = true;
 };
@@ -95,7 +114,7 @@ const handleEdit = (row: RowType) => {
     name: row.name,
     subject: row.subject,
     body: row.body || '',
-    isActive: row.isActive
+    isActive: row.isActive,
   };
   showModal.value = true;
 };
@@ -104,7 +123,7 @@ const handleSave = async () => {
   if (!formData.value.code || !formData.value.name || !formData.value.subject) {
     Modal.warning({
       title: '提示',
-      content: '请填写完整信息'
+      content: '请填写完整信息',
     });
     return;
   }
@@ -113,26 +132,26 @@ const handleSave = async () => {
   try {
     const data = {
       id: editingId.value,
-      ...formData.value
+      ...formData.value,
     };
     const result: any = await saveEmailTemplate(data);
     if (result.code === 0 || result.type === 'success') {
       Modal.success({
         title: '成功',
-        content: editingId.value ? '更新成功' : '新增成功'
+        content: editingId.value ? '更新成功' : '新增成功',
       });
       showModal.value = false;
       gridApi.query();
     } else {
       Modal.error({
         title: '失败',
-        content: result.message || '操作失败'
+        content: result.message || '操作失败',
       });
     }
   } catch (error) {
     Modal.error({
       title: '错误',
-      content: '操作失败，请检查网络连接'
+      content: '操作失败，请检查网络连接',
     });
   } finally {
     formLoading.value = false;
@@ -170,9 +189,11 @@ const handleCancel = () => {
       @ok="handleSave"
       @cancel="handleCancel"
     >
-      <div style="padding: 20px 0;">
+      <div style="padding: 20px 0">
         <div class="form-item">
-          <label class="form-label">模板代码 <span class="required">*</span></label>
+          <label class="form-label"
+            >模板代码 <span class="required">*</span></label
+          >
           <Input
             v-model:value="formData.code"
             placeholder="如: RegisterVerify"
@@ -183,7 +204,9 @@ const handleCancel = () => {
         </div>
 
         <div class="form-item">
-          <label class="form-label">模板名称 <span class="required">*</span></label>
+          <label class="form-label"
+            >模板名称 <span class="required">*</span></label
+          >
           <Input
             v-model:value="formData.name"
             placeholder="如: 注册验证码"
@@ -192,19 +215,31 @@ const handleCancel = () => {
         </div>
 
         <div class="form-item">
-          <label class="form-label">邮件主题 <span class="required">*</span></label>
+          <label class="form-label"
+            >邮件主题 <span class="required">*</span></label
+          >
           <Input
             v-model:value="formData.subject"
             placeholder="如: 您的注册验证码"
             allow-clear
           />
-          <div class="form-hint">可使用 &#123;&#123;code&#125;&#125; 作为验证码变量</div>
+          <div class="form-hint">
+            可使用 &#123;&#123;code&#125;&#125; 作为验证码变量
+          </div>
         </div>
 
         <div class="form-item">
           <label class="form-label">邮件内容</label>
-          <Input.TextArea v-model:value="formData.body" :rows="8" placeholder="请输入HTML邮件内容" />
-          <div class="form-hint">支持 HTML，可用变量: &#123;&#123;code&#125;&#125; - 验证码, &#123;&#123;email&#125;&#125; - 邮箱, &#123;&#123;expiryMinutes&#125;&#125; - 有效期</div>
+          <Input.TextArea
+            v-model:value="formData.body"
+            :rows="8"
+            placeholder="请输入HTML邮件内容"
+          />
+          <div class="form-hint">
+            支持 HTML，可用变量: &#123;&#123;code&#125;&#125; - 验证码,
+            &#123;&#123;email&#125;&#125; - 邮箱,
+            &#123;&#123;expiryMinutes&#125;&#125; - 有效期
+          </div>
         </div>
 
         <div class="form-item">

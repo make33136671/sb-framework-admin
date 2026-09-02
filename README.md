@@ -44,6 +44,7 @@ pnpm build:antd        # 生产构建
 详见 [CONTRIBUTING.md](./CONTRIBUTING.md)。
 
 强制规范：
+
 - 颜色不硬编码 — 用 antd v5 cssVar token（兼容暗黑模式）
 - 操作入口用实体按钮，不用文字链
 - 命名 kebab-case（views 目录） / PascalCase（组件）

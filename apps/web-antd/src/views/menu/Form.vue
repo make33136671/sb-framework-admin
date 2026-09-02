@@ -178,9 +178,7 @@ const [Drawer, drawerApi] = useVbenDrawer({
         };
 
         formApi.setValues(flattenedData);
-        titleSuffix.value = data.meta?.title
-          ? $t(data.meta.title)
-          : '';
+        titleSuffix.value = data.meta?.title ? $t(data.meta.title) : '';
       } else {
         formApi.resetForm();
         titleSuffix.value = '';

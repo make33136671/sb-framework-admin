@@ -40,7 +40,11 @@ const halfEnd = now + 5 * 24 * 60 * 60 * 1000;
     </header>
 
     <!-- 全局参数控制台 -->
-    <Card title="全局参数 (影响下方区间模式演示)" size="small" class="demo-control">
+    <Card
+      title="全局参数 (影响下方区间模式演示)"
+      size="small"
+      class="demo-control"
+    >
       <div class="demo-controls">
         <div class="demo-ctrl">
           <span class="demo-ctrl-label">天数</span>
@@ -208,10 +212,7 @@ const halfEnd = now + 5 * 24 * 60 * 60 * 1000;
 
       <!-- 8. 无限模式 (indeterminate 往复) -->
       <Card title="⑧ 无限模式 (indeterminate)" size="small">
-        <TimeProgress
-          :show-remaining="true"
-          :show-expires="false"
-        />
+        <TimeProgress :show-remaining="true" :show-expires="false" />
         <pre class="demo-code">不传 end-time → 一段亮条往复运动</pre>
       </Card>
 
@@ -242,7 +243,7 @@ const halfEnd = now + 5 * 24 * 60 * 60 * 1000;
           :show-remaining="false"
         >
           <template #center>
-            <span style="font-weight: 700; letter-spacing: 1px;">
+            <span style="font-weight: 700; letter-spacing: 1px">
               授权倒计时 ⏱
             </span>
           </template>
@@ -252,14 +253,10 @@ const halfEnd = now + 5 * 24 * 60 * 60 * 1000;
 
       <!-- 11. slot 自定义下方 -->
       <Card title="⑪ slot 自定义下方" size="small">
-        <TimeProgress
-          :start-time="start"
-          :end-time="end"
-          mode="remaining"
-        >
+        <TimeProgress :start-time="start" :end-time="end" mode="remaining">
           <template #sub>
             <span>📢 续费窗口已开放</span>
-            <a href="#" style="font-size: 12px;">立即续费 →</a>
+            <a href="#" style="font-size: 12px">立即续费 →</a>
           </template>
         </TimeProgress>
         <pre class="demo-code">slots.sub 替换下方一行</pre>
@@ -302,7 +299,9 @@ const halfEnd = now + 5 * 24 * 60 * 60 * 1000;
           :show-remaining="true"
           show-expires
         />
-        <pre class="demo-code">同样区间, mode=elapsed → 已耗 50%, 条从左填到一半</pre>
+        <pre class="demo-code">
+同样区间, mode=elapsed → 已耗 50%, 条从左填到一半</pre
+        >
       </Card>
 
       <!-- 15. 进度 50% rtl + elapsed -->

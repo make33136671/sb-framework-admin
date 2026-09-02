@@ -85,8 +85,7 @@ export async function postAdd(data: any) {
 }
 
 export async function postEdit(params: any) {
-  const hasId =
-    params instanceof FormData ? params.has('id') : !!params.id;
+  const hasId = params instanceof FormData ? params.has('id') : !!params.id;
   if (hasId) {
     return api.post('/Menu/Edit', params);
   } else {

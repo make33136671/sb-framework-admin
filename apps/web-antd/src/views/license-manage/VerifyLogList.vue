@@ -19,15 +19,40 @@ const fmtTime = (v: string) => {
 const gridOptions: VxeGridProps = {
   columns: [
     { field: 'id', title: 'ID', width: 60 },
-    { field: 'client.productCn', title: '客户', minWidth: 140, slots: { default: 'clientName' } },
+    {
+      field: 'client.productCn',
+      title: '客户',
+      minWidth: 140,
+      slots: { default: 'clientName' },
+    },
     { field: 'domain', title: '声明域名', minWidth: 160 },
-    { field: 'actualDomain', title: '实际访问', minWidth: 160, slots: { default: 'actualDomain' } },
+    {
+      field: 'actualDomain',
+      title: '实际访问',
+      minWidth: 160,
+      slots: { default: 'actualDomain' },
+    },
     { field: 'serverIP', title: 'IP', width: 130 },
     { field: 'clientKey', title: 'ClientKey', width: 140, showOverflow: true },
-    { field: 'hardwareId', title: 'HardwareId', width: 140, showOverflow: true },
-    { field: 'licenseValid', title: '授权有效', width: 90, slots: { default: 'valid' } },
+    {
+      field: 'hardwareId',
+      title: 'HardwareId',
+      width: 140,
+      showOverflow: true,
+    },
+    {
+      field: 'licenseValid',
+      title: '授权有效',
+      width: 90,
+      slots: { default: 'valid' },
+    },
     { field: 'message', title: '消息', minWidth: 200, showOverflow: true },
-    { field: 'createdTime', title: '验证时间', width: 170, slots: { default: 'createdTime' } },
+    {
+      field: 'createdTime',
+      title: '验证时间',
+      width: 170,
+      slots: { default: 'createdTime' },
+    },
   ],
   height: 'auto',
   keepSource: true,
@@ -54,18 +79,29 @@ const [Grid] = useVbenVxeGrid({ gridOptions });
   <Page auto-content-height>
     <Grid>
       <template #clientName="{ row }">
-        {{ row.client?.productCn ? `${row.client.productCn}（${row.client.productEn}）` : row.client?.productEn || '—' }}
-        <Tag v-if="row.client?.isDeleted" color="default" style="margin-left: 4px">已删除</Tag>
+        {{
+          row.client?.productCn
+            ? `${row.client.productCn}（${row.client.productEn}）`
+            : row.client?.productEn || '—'
+        }}
+        <Tag
+          v-if="row.client?.isDeleted"
+          color="default"
+          style="margin-left: 4px"
+          >已删除</Tag
+        >
       </template>
       <template #actualDomain="{ row }">
         <span
           v-if="row.actualDomain"
           :style="
-            row.domain && row.actualDomain.toLowerCase() !== row.domain.toLowerCase()
+            row.domain &&
+            row.actualDomain.toLowerCase() !== row.domain.toLowerCase()
               ? 'color: #faad14; font-weight: 500'
               : ''
           "
-        >{{ row.actualDomain }}</span>
+          >{{ row.actualDomain }}</span
+        >
         <span v-else style="color: var(--ant-color-text-tertiary)">—</span>
       </template>
       <template #valid="{ row }">

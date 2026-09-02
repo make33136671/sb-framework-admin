@@ -17,9 +17,9 @@ export function useDirectUpload() {
   /** 上传进度 0-100 */
   const progress = ref(0);
   /** 当前状态 */
-  const status = ref<
-    'idle' | 'uploading' | 'done' | 'error' | 'cancelled'
-  >('idle');
+  const status = ref<'idle' | 'uploading' | 'done' | 'error' | 'cancelled'>(
+    'idle',
+  );
   /** 错误信息 */
   const errorMsg = ref('');
 

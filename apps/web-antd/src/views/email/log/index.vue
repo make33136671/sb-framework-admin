@@ -1,7 +1,13 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
 import { Page } from '@vben/common-ui';
-import { Button, Tag, Modal, Descriptions, DescriptionsItem } from 'ant-design-vue';
+import {
+  Button,
+  Tag,
+  Modal,
+  Descriptions,
+  DescriptionsItem,
+} from 'ant-design-vue';
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import type { VxeGridProps } from '#/adapter/vxe-table';
 import { formatDateTime } from '@vben/utils';
@@ -54,10 +60,31 @@ const gridOptions: VxeGridProps<RowType> = {
     { fixed: 'left', field: 'id', title: 'ID', width: 80 },
     { field: 'toEmail', title: '收件人邮箱', minWidth: 200 },
     { field: 'subject', title: '邮件主题', minWidth: 250 },
-    { field: 'status', title: '状态', width: 100, slots: { default: 'status' } },
-    { field: 'sentAt', title: '发送时间', formatter: 'formatDateTime', width: 170 },
-    { field: 'createdAt', title: '创建时间', formatter: 'formatDateTime', width: 170 },
-    { field: 'action', fixed: 'right', slots: { default: 'action' }, title: '操作', width: 120 },
+    {
+      field: 'status',
+      title: '状态',
+      width: 100,
+      slots: { default: 'status' },
+    },
+    {
+      field: 'sentAt',
+      title: '发送时间',
+      formatter: 'formatDateTime',
+      width: 170,
+    },
+    {
+      field: 'createdAt',
+      title: '创建时间',
+      formatter: 'formatDateTime',
+      width: 170,
+    },
+    {
+      field: 'action',
+      fixed: 'right',
+      slots: { default: 'action' },
+      title: '操作',
+      width: 120,
+    },
   ],
   height: 'auto',
   keepSource: true,
@@ -68,13 +95,17 @@ const gridOptions: VxeGridProps<RowType> = {
         const params: any = {
           page: page.currentPage,
           pageSize: page.pageSize,
-          ...formValues
+          ...formValues,
         };
 
-        const result: any = await getEmailLogs(params.page, params.pageSize, params.status);
+        const result: any = await getEmailLogs(
+          params.page,
+          params.pageSize,
+          params.status,
+        );
         return {
           items: result.list || [],
-          total: result.total || 0
+          total: result.total || 0,
         };
       },
     },
@@ -88,19 +119,27 @@ const [Grid] = useVbenVxeGrid({ formOptions, gridOptions });
 
 const getStatusColor = (status: number) => {
   switch (status) {
-    case 0: return 'default';
-    case 1: return 'success';
-    case 2: return 'error';
-    default: return 'default';
+    case 0:
+      return 'default';
+    case 1:
+      return 'success';
+    case 2:
+      return 'error';
+    default:
+      return 'default';
   }
 };
 
 const getStatusText = (status: number) => {
   switch (status) {
-    case 0: return '待发送';
-    case 1: return '已发送';
-    case 2: return '发送失败';
-    default: return '未知';
+    case 0:
+      return '待发送';
+    case 1:
+      return '已发送';
+    case 2:
+      return '发送失败';
+    default:
+      return '未知';
   }
 };
 
@@ -144,31 +183,48 @@ const handleCloseDetail = () => {
       :footer="null"
       @cancel="handleCloseDetail"
     >
-      <div v-if="detailLoading" style=" padding: 40px;text-align: center;">
+      <div v-if="detailLoading" style="padding: 40px; text-align: center">
         加载中...
       </div>
       <template v-else-if="currentLog">
         <Descriptions bordered :column="2" size="small">
           <DescriptionsItem label="ID">{{ currentLog.id }}</DescriptionsItem>
-          <DescriptionsItem label="模板ID">{{ currentLog.templateId || '-' }}</DescriptionsItem>
-          <DescriptionsItem label="收件人" :span="2">{{ currentLog.toEmail }}</DescriptionsItem>
-          <DescriptionsItem label="邮件主题" :span="2">{{ currentLog.subject }}</DescriptionsItem>
+          <DescriptionsItem label="模板ID">{{
+            currentLog.templateId || '-'
+          }}</DescriptionsItem>
+          <DescriptionsItem label="收件人" :span="2">{{
+            currentLog.toEmail
+          }}</DescriptionsItem>
+          <DescriptionsItem label="邮件主题" :span="2">{{
+            currentLog.subject
+          }}</DescriptionsItem>
           <DescriptionsItem label="状态">
             <Tag :color="getStatusColor(currentLog.status)">
               {{ getStatusText(currentLog.status) }}
             </Tag>
           </DescriptionsItem>
-          <DescriptionsItem label="发送时间">{{ currentLog.sentAt ? formatDateTime(currentLog.sentAt) : '-' }}</DescriptionsItem>
-          <DescriptionsItem label="创建时间">{{ formatDateTime(currentLog.createdAt) }}</DescriptionsItem>
+          <DescriptionsItem label="发送时间">{{
+            currentLog.sentAt ? formatDateTime(currentLog.sentAt) : '-'
+          }}</DescriptionsItem>
+          <DescriptionsItem label="创建时间">{{
+            formatDateTime(currentLog.createdAt)
+          }}</DescriptionsItem>
           <DescriptionsItem v-if="currentLog.errorMessage" label="错误信息">
-            <span style="color: var(--ant-color-error)">{{ currentLog.errorMessage }}</span>
+            <span style="color: var(--ant-color-error)">{{
+              currentLog.errorMessage
+            }}</span>
           </DescriptionsItem>
         </Descriptions>
         <div class="email-body">
           <iframe
             v-if="currentLog.body"
             :srcdoc="currentLog.body"
-            style="width: 100%; height: 400px; border: 1px solid var(--ant-color-border); border-radius: 4px;"
+            style="
+              width: 100%;
+              height: 400px;
+              border: 1px solid var(--ant-color-border);
+              border-radius: 4px;
+            "
           ></iframe>
           <div v-else class="empty-body">无内容</div>
         </div>
