@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { Recordable } from '@vben/types';
+
 import type { VbenFormSchema } from '#/adapter/form';
 
 import { computed, ref } from 'vue';
@@ -58,14 +60,18 @@ const formSchema = computed((): VbenFormSchema[] => {
   ];
 });
 
-async function handleSubmit(values: {
-  oldPassword: string;
-  newPassword: string;
-}) {
+async function handleSubmit(values: Recordable<any>) {
+  const { oldPassword, newPassword } = values as {
+    newPassword?: string;
+    oldPassword?: string;
+  };
+  if (!oldPassword || !newPassword) {
+    return;
+  }
   try {
     const res = await changePasswordApi({
-      oldPassword: values.oldPassword,
-      newPassword: values.newPassword,
+      oldPassword,
+      newPassword,
     });
     // sbRequestClient 会自动显示成功/失败消息
     if (res?.code === 0) {

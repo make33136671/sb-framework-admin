@@ -47,6 +47,7 @@ catalog:
   '@eslint-community/eslint-plugin-eslint-comments': ^4.7.1
   '@eslint/js': ^10.0.1
   '@faker-js/faker': ^10.4.0
+  '@guolao/vue-monaco-editor': ^1.5.5
   '@iconify/json': ^2.2.476
   '@iconify/tailwind4': ^1.2.3
   '@iconify/vue': ^5.0.1
@@ -85,6 +86,7 @@ catalog:
   '@types/qrcode': ^1.5.6
   '@types/qs': ^6.15.1
   '@types/sortablejs': ^1.15.9
+  '@types/spark-md5': ^3.0.5
   '@typescript-eslint/eslint-plugin': ^8.59.4
   '@typescript-eslint/parser': ^8.59.4
   '@vee-validate/zod': ^4.15.1
@@ -144,7 +146,9 @@ catalog:
   lefthook: ^2.1.8
   lodash.clonedeep: ^4.5.0
   lucide-vue-next: ^0.577.0
+  md-editor-v3: ^6.4.1
   medium-zoom: ^1.1.0
+  monaco-editor: ^0.55.1
   naive-ui: ^2.44.1
   nitropack: ^2.13.4
   nprogress: ^0.2.0
@@ -171,6 +175,7 @@ catalog:
   sass-embedded: ^1.99.0
   secure-ls: ^2.0.0
   sortablejs: ^1.15.7
+  spark-md5: ^3.0.2
   stylelint: ^17.11.1
   stylelint-config-recess-order: ^7.7.0
   stylelint-config-recommended: ^18.0.0

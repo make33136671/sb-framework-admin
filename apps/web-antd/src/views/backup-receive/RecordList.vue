@@ -6,7 +6,6 @@ import {
   Button,
   Card,
   Empty,
-  message,
   Modal,
   Space,
   Spin,
@@ -32,7 +31,7 @@ const total = ref(0);
 const page = ref(1);
 const pageSize = ref(20);
 const productCn = ref('');
-const logoPath = ref<string | null>(null);
+const logoPath = ref<null | string>(null);
 
 async function load() {
   if (!productEn.value) return;
@@ -45,9 +44,10 @@ async function load() {
     })) as { items: BackupRemoteRecord[]; total: number };
     records.value = res.items || [];
     total.value = res.total || 0;
-    if (records.value.length > 0) {
-      productCn.value = records.value[0].productCn;
-      logoPath.value = records.value[0].logoPath ?? null;
+    const first = records.value[0];
+    if (first) {
+      productCn.value = first.productCn;
+      logoPath.value = first.logoPath ?? null;
     }
   } finally {
     loading.value = false;
@@ -92,8 +92,8 @@ async function downloadAsBlob(id: number) {
     a.download = fileName;
     a.click();
     URL.revokeObjectURL(a.href);
-  } catch (e) {
-    console.error('download failed', e);
+  } catch (error) {
+    console.error('download failed', error);
   }
 }
 
@@ -137,9 +137,9 @@ onMounted(load);
 
 <template>
   <div style="padding: 24px">
-    <Button style="margin-bottom: 16px" @click="router.back()"
-      >← 返回产品列表</Button
-    >
+    <Button style="margin-bottom: 16px" @click="router.back()">
+← 返回产品列表
+</Button>
 
     <Card>
       <div
@@ -221,7 +221,11 @@ onMounted(load);
                 >
                   下载
                 </Button>
-                <Button danger size="small" @click="confirmDelete(record)">
+                <Button
+                  danger
+                  size="small"
+                  @click="confirmDelete(record as BackupRemoteRecord)"
+                >
                   删除
                 </Button>
               </Space>

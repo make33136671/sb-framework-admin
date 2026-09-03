@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import type { VbenFormProps } from '#/adapter/form';
 import type { VxeGridProps } from '#/adapter/vxe-table';
 
 import { ref } from 'vue';
@@ -11,21 +12,33 @@ import { useVbenVxeGrid } from '#/adapter/vxe-table';
 
 import { getList, postApprove, postReject } from './api';
 
-const fmtTime = (v: string) => {
+const fmtTime = (v: null | string | undefined) => {
   if (!v) return '-';
   const d = new Date(v);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-const statusMap: Record<number, { text: string; color: string }> = {
+const statusMap: Record<number, { color: string; text: string; }> = {
   0: { text: '未认证', color: 'default' },
   1: { text: '审核中', color: 'processing' },
   2: { text: '已通过', color: 'success' },
   3: { text: '已拒绝', color: 'error' },
 };
 
-interface RowType {}
+interface RowType {
+  id: number;
+  idBackImage?: string;
+  idFrontImage?: string;
+  idNumber?: string;
+  memberName?: string;
+  memberUsername?: string;
+  realName?: string;
+  rejectReason?: string;
+  reviewTime?: string;
+  status: number;
+  submitTime?: string;
+}
 
 const formOptions: VbenFormProps = {
   schema: [
@@ -178,9 +191,11 @@ const handleReject = async () => {
       </template>
 
       <template #status="{ row }">
-        <Tag :color="statusMap[row.status]?.color">{{
+        <Tag :color="statusMap[row.status]?.color">
+{{
           statusMap[row.status]?.text
-        }}</Tag>
+        }}
+</Tag>
       </template>
 
       <template #time="{ row }">
@@ -194,9 +209,9 @@ const handleReject = async () => {
 
       <template #action="{ row }">
         <Space v-if="row.status === 1">
-          <Button type="primary" size="small" @click="handleApprove(row.id)"
-            >通过</Button
-          >
+          <Button type="primary" size="small" @click="handleApprove(row.id)">
+通过
+</Button>
           <Button danger size="small" @click="showReject(row.id)">拒绝</Button>
         </Space>
         <span v-else style="font-size: 12px; color: #999">已处理</span>

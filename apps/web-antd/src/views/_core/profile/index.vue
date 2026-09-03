@@ -6,9 +6,9 @@ import { useUserStore } from '@vben/stores';
 
 import { useAuthStore } from '#/store';
 
+import ProfileAuthenticatorSetting from './authenticator-setting.vue';
 import ProfileAvatarSetting from './avatar-setting.vue';
 import ProfilePasswordSetting from './password-setting.vue';
-import ProfileAuthenticatorSetting from './authenticator-setting.vue';
 import ProfileSetting from './profile-setting.vue';
 
 const userStore = useUserStore();

@@ -18,9 +18,9 @@ import {
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 
 import {
-  getLogs,
-  getLogList,
   getList,
+  getLogList,
+  getLogs,
   postReloadParameters,
   postRestart,
   postRunOnce,
@@ -32,13 +32,28 @@ const activeTab = ref('task');
 
 // ==================== 任务列表 ====================
 
-const statusMap: Record<number, { label: string; color: string }> = {
+const statusMap: Record<number, { color: string; label: string; }> = {
   0: { label: '运行中', color: 'success' },
   1: { label: '已停止', color: 'default' },
   2: { label: '已失败', color: 'error' },
 };
 
-interface RowType {}
+interface RowType {
+  displayName?: string;
+  executionRecords?: any[];
+  name: string;
+  nextRunTime?: string;
+  status: number;
+}
+
+interface LogRowType {
+  createdTime?: string;
+  exception?: string;
+  logLevel: number;
+  message: string;
+  source: number;
+  taskName?: string;
+}
 
 const gridOptions: VxeGridProps<RowType> = {
   columns: [
@@ -109,7 +124,7 @@ function getLastRecord(row: any) {
   return records[records.length - 1];
 }
 
-function formatDuration(duration: string | null) {
+function formatDuration(duration: null | string) {
   if (!duration) return '-';
   const match = /(?:(\d+)\.)?(\d{2}):(\d{2}):(\d{2})/.exec(duration);
   if (!match) return duration;
@@ -132,7 +147,7 @@ const logTaskName = ref('');
 const logList = ref<any[]>([]);
 const logLoading = ref(false);
 
-const logLevelMap: Record<number, { label: string; color: string }> = {
+const logLevelMap: Record<number, { color: string; label: string; }> = {
   0: { label: 'Error', color: 'red' },
   1: { label: 'Warning', color: 'orange' },
   2: { label: 'Info', color: 'blue' },
@@ -152,12 +167,12 @@ async function showLogs(name: string) {
 
 // ==================== 系统日志 ====================
 
-const sourceMap: Record<number, { label: string; color: string }> = {
+const sourceMap: Record<number, { color: string; label: string; }> = {
   0: { label: '定时任务', color: 'processing' },
   1: { label: '系统异常', color: 'error' },
 };
 
-const fmtTime = (v: string) => {
+const fmtTime = (v: null | string | undefined) => {
   if (!v) return '-';
   const d = new Date(v);
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -206,7 +221,7 @@ const logFormOptions = {
   submitOnEnter: true,
 };
 
-const logGridOptions: VxeGridProps<RowType> = {
+const logGridOptions: VxeGridProps<LogRowType> = {
   columns: [
     {
       field: 'source',
@@ -268,12 +283,12 @@ const showDetail = (row: any) => {
   detailRow.value = row;
   const ex = row.exception || '';
   const stackIdx = ex.indexOf('堆栈信息:');
-  if (stackIdx > -1) {
-    detailInfo.value = ex.substring(0, stackIdx).trim();
-    detailStack.value = ex.substring(stackIdx + '堆栈信息:'.length).trim();
-  } else {
+  if (stackIdx === -1) {
     detailInfo.value = ex;
     detailStack.value = '';
+  } else {
+    detailInfo.value = ex.slice(0, Math.max(0, stackIdx)).trim();
+    detailStack.value = ex.slice(Math.max(0, stackIdx + '堆栈信息:'.length)).trim();
   }
   detailVisible.value = true;
 };
@@ -285,7 +300,7 @@ const copy = (text: string) => {
 
 <template>
   <Page auto-content-height>
-    <Tabs v-model:activeKey="activeTab" class="h-full" :class="$style.tabs">
+    <Tabs v-model:active-key="activeTab" class="h-full" :class="$style.tabs">
       <Tabs.TabPane key="task" tab="任务列表" class="h-full">
         <Grid>
           <template #displayName="{ row }">
@@ -392,14 +407,17 @@ const copy = (text: string) => {
           <template #log_source="{ row }">
             <div style="font-size: 12px; line-height: 1.5">
               <div>
-                <Tag :color="sourceMap[row.source]?.color" style="margin: 0">{{
+                <Tag :color="sourceMap[row.source]?.color" style="margin: 0">
+{{
                   sourceMap[row.source]?.label || '未知'
-                }}</Tag>
+                }}
+</Tag>
                 <Tag
                   :color="logLevelMap[row.logLevel]?.color"
                   style="margin: 0 0 0 4px"
-                  >{{ logLevelMap[row.logLevel]?.label }}</Tag
-                >
+                  >
+{{ logLevelMap[row.logLevel]?.label }}
+</Tag>
               </div>
               <div style="margin-top: 2px; color: #666">{{ row.taskName }}</div>
             </div>
@@ -411,7 +429,7 @@ const copy = (text: string) => {
               <div v-if="row.exception" style="margin-top: 2px; color: #ff4d4f">
                 {{
                   row.exception.length > 80
-                    ? row.exception.substring(0, 80) + '...'
+                    ? `${row.exception.substring(0, 80) }...`
                     : row.exception
                 }}
               </div>
@@ -497,12 +515,16 @@ const copy = (text: string) => {
     >
       <div v-if="detailRow" style="font-size: 13px; line-height: 1.8">
         <div style="margin-bottom: 12px">
-          <Tag :color="sourceMap[detailRow.source]?.color">{{
+          <Tag :color="sourceMap[detailRow.source]?.color">
+{{
             sourceMap[detailRow.source]?.label
-          }}</Tag>
-          <Tag :color="logLevelMap[detailRow.logLevel]?.color">{{
+          }}
+</Tag>
+          <Tag :color="logLevelMap[detailRow.logLevel]?.color">
+{{
             logLevelMap[detailRow.logLevel]?.label
-          }}</Tag>
+          }}
+</Tag>
           <span style="margin-left: 8px; color: #999">{{
             fmtTime(detailRow.createdTime)
           }}</span>
@@ -550,8 +572,7 @@ const copy = (text: string) => {
               background: #1e1e1e;
               border-radius: 6px;
             "
-            >{{ detailInfo }}</pre
-          >
+            >{{ detailInfo }}</pre>
         </div>
 
         <div v-if="detailStack">
@@ -572,8 +593,7 @@ const copy = (text: string) => {
               background: #1e1e1e;
               border-radius: 6px;
             "
-            >{{ detailStack }}</pre
-          >
+            >{{ detailStack }}</pre>
         </div>
       </div>
     </Modal>

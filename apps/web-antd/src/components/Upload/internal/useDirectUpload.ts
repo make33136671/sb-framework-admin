@@ -1,9 +1,9 @@
+import type { UploadDetail } from './types';
+
 import { ref } from 'vue';
 
 import { useAppConfig } from '@vben/hooks';
 import { useAccessStore } from '@vben/stores';
-
-import type { UploadDetail } from './types';
 
 const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
 
@@ -17,7 +17,7 @@ export function useDirectUpload() {
   /** 上传进度 0-100 */
   const progress = ref(0);
   /** 当前状态 */
-  const status = ref<'idle' | 'uploading' | 'done' | 'error' | 'cancelled'>(
+  const status = ref<'cancelled' | 'done' | 'error' | 'idle' | 'uploading'>(
     'idle',
   );
   /** 错误信息 */
@@ -38,13 +38,13 @@ export function useDirectUpload() {
       const formData = new FormData();
       formData.append('file', file);
 
-      xhr.upload.onprogress = (event) => {
+      xhr.upload.addEventListener('progress', (event) => {
         if (event.lengthComputable) {
           progress.value = Math.round((event.loaded / event.total) * 100);
         }
-      };
+      });
 
-      xhr.onload = () => {
+      xhr.addEventListener('load', () => {
         if (xhr!.status >= 200 && xhr!.status < 300) {
           try {
             const body = JSON.parse(xhr!.responseText);
@@ -67,7 +67,7 @@ export function useDirectUpload() {
           errorMsg.value = `HTTP ${xhr!.status}`;
           reject(new Error(errorMsg.value));
         }
-      };
+      });
 
       xhr.onerror = () => {
         status.value = 'error';
@@ -75,10 +75,10 @@ export function useDirectUpload() {
         reject(new Error(errorMsg.value));
       };
 
-      xhr.onabort = () => {
+      xhr.addEventListener('abort', () => {
         status.value = 'cancelled';
         reject(new Error('已取消'));
-      };
+      });
 
       const accessStore = useAccessStore();
       const token = accessStore.accessToken;

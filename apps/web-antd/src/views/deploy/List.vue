@@ -261,12 +261,12 @@ let pendingConfirmAction: (() => Promise<void>) | null = null;
 let pendingFilePath: null | string = null;
 
 async function openDeployConfirm(opts: {
-  target: string;
-  targetName: string;
-  filePath: string;
   fileName: string;
+  filePath: string;
   fileSize: number;
   onConfirm: () => Promise<void>;
+  target: string;
+  targetName: string;
 }) {
   confirmLoading.value = true;
   confirmVisible.value = true;
@@ -633,9 +633,7 @@ onUnmounted(stopTimers);
                   :time="currentByTarget[target.key]!.deployFinishedAt!"
                   :timezone="appInfo?.timeZone"
                 />
-                <span v-else style="color: var(--ant-color-text-tertiary)"
-                  >—</span
-                >
+                <span v-else style="color: var(--ant-color-text-tertiary)">—</span>
               </div>
               <div class="deploy-card__row">
                 <span class="deploy-card__label">部署人</span>
@@ -654,9 +652,7 @@ onUnmounted(stopTimers);
             <!-- 路径 -->
             <div class="deploy-card__path">
               <Tooltip :title="target.path">
-                <span class="deploy-card__file"
-                  >📁 {{ target.path || '—' }}</span
-                >
+                <span class="deploy-card__file">📁 {{ target.path || '—' }}</span>
               </Tooltip>
             </div>
 
@@ -796,7 +792,7 @@ onUnmounted(stopTimers);
                   <Space wrap>
                     <Popconfirm
                       :title="`重新部署 #${record.id}?`"
-                      @confirm="handleRetryDeploy(record)"
+                      @confirm="handleRetryDeploy(record as DeployJob)"
                     >
                       <Button
                         type="primary"
@@ -904,7 +900,7 @@ onUnmounted(stopTimers);
                           ? '回滚到上一个版本?'
                           : '恢复到该版本(再次部署该 job 的文件)?'
                       "
-                      @confirm="handleRollback(record)"
+                      @confirm="handleRollback(record as DeployJob)"
                     >
                       <Button
                         danger

@@ -17,12 +17,12 @@ interface SetupConfig {
   version: string;
   exportedAt: string;
   database: {
-    dbType: string;
-    server: string;
-    port: string;
     database: string;
-    user: string;
+    dbType: string;
     password: string;
+    port: string;
+    server: string;
+    user: string;
   };
   cache: {
     enabled: boolean;
@@ -30,21 +30,21 @@ interface SetupConfig {
     redis: { connection: string; instanceName: string };
   };
   app: {
-    productCn: string;
-    productEn: string;
-    primaryDomain: string;
-    timeZone: string;
     cachePrefix: string;
+    cloudServerUrl: string;
     corsAllowAll: boolean;
     corsOrigins: string[];
     passwordStorageMode: string;
-    cloudServerUrl: string;
+    primaryDomain: string;
+    productCn: string;
+    productEn: string;
+    timeZone: string;
   };
-  admin: { username: string; displayName: string; password: string };
+  admin: { displayName: string; password: string; username: string; };
 }
 
 const exporting = ref(false);
-const summary = ref<SetupConfig | null>(null);
+const summary = ref<null | SetupConfig>(null);
 
 async function exportConfig() {
   exporting.value = true;
@@ -66,8 +66,8 @@ async function exportConfig() {
     a.click();
     URL.revokeObjectURL(url);
     Message.success(`配置已导出：${fileName}`);
-  } catch (e: any) {
-    Message.error(e?.message ?? '导出失败');
+  } catch (error: any) {
+    Message.error(error?.message ?? '导出失败');
   } finally {
     exporting.value = false;
   }

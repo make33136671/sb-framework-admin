@@ -38,12 +38,14 @@ export namespace SystemMenuApi {
       hideInTab?: boolean;
       icon?: string;
       iframeSrc?: string;
+      ignoreKeepAlive?: boolean;
       keepAlive?: boolean;
       link?: string;
       maxNumOfOpenTab?: number;
       noBasicLayout?: boolean;
       openInNewWindow?: boolean;
       order?: number;
+      orderNo?: number;
       query?: Recordable<any>;
       title?: string;
     };
@@ -59,7 +61,11 @@ export async function addMenu(data: any) {
   return api.post('/Menu/Add', data);
 }
 
-export async function updateMenu(id: any, field: string, value: string) {
+export async function updateMenu(
+  id: any,
+  field: string,
+  value: boolean | number | string,
+) {
   return api.post('/Menu/UpdateMenu', { id, field, value });
 }
 
@@ -86,11 +92,7 @@ export async function postAdd(data: any) {
 
 export async function postEdit(params: any) {
   const hasId = params instanceof FormData ? params.has('id') : !!params.id;
-  if (hasId) {
-    return api.post('/Menu/Edit', params);
-  } else {
-    return postAdd(params);
-  }
+  return hasId ? api.post('/Menu/Edit', params) : postAdd(params);
 }
 
 export async function postDel(id: any) {

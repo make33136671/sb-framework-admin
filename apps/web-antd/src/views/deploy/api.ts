@@ -74,9 +74,9 @@ export async function postDeployProjectByPath(
 }
 
 export async function getDeployRecords(params: {
-  target?: string;
   page?: number;
   pageSize?: number;
+  target?: string;
 }) {
   return api.get('/App/DeployRecords', { params });
 }
@@ -102,10 +102,10 @@ export async function postDeploy(
 }
 
 export async function getUploadRecords(params: {
-  target?: string;
-  status?: string;
   page?: number;
   pageSize?: number;
+  status?: string;
+  target?: string;
 }) {
   return api.get('/App/UploadRecords', { params });
 }

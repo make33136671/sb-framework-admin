@@ -1,21 +1,20 @@
 <script lang="ts" setup>
-import { computed, onMounted, ref, watch } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { computed, onMounted, ref } from 'vue';
+import { useRoute } from 'vue-router';
 
-import { Card, Button, Typography, message } from 'ant-design-vue';
+import { Button, Card, message, Typography } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 
-import { getDetail, postAdd, postEdit, getCategoryList } from './api';
+import { getCategoryList, getDetail, postAdd, postEdit } from './api';
 
-const router = useRouter();
 const route = useRoute();
 
 const id = ref<number>(0);
 const currentDisplayType = ref<number>(0);
 
 /** DisplayType 中属于「上传组件」的类型，触发 uploadMode 字段显示 */
-const UPLOAD_DISPLAY_TYPES = [6, 17, 18];
+const UPLOAD_DISPLAY_TYPES = new Set([6, 17, 18]);
 
 /** uploadMode 选项：传给 SmartUpload 的 forceMode prop */
 const uploadModeOptions = [
@@ -47,7 +46,7 @@ const displayTypeOptions = [
 ];
 
 // 每种 DisplayType 对应的示例配置
-const configExamples: Record<number, { tip: string; json: string }> = {
+const configExamples: Record<number, { json: string; tip: string; }> = {
   0: {
     tip: 'placeholder (可选)',
     json: '{"placeholder":"请输入内容"}',
@@ -216,7 +215,7 @@ onMounted(async () => {
   }
 
   // 加载编辑数据
-  id.value = route.query.id as any;
+  id.value = Number(route.query.id ?? 0);
   if (id.value > 0) {
     getDetail(id.value).then((result: any) => {
       const data = result?.data || result;
@@ -225,7 +224,7 @@ onMounted(async () => {
         currentDisplayType.value = data.displayType;
       }
       // 上传类型：从 dataContentConfig JSON 中解析 mode 回填到 uploadMode 字段
-      if (UPLOAD_DISPLAY_TYPES.includes(Number(data.displayType))) {
+      if (UPLOAD_DISPLAY_TYPES.has(Number(data.displayType))) {
         try {
           const cfg = data.dataContentConfig
             ? JSON.parse(data.dataContentConfig)
@@ -301,7 +300,7 @@ const [BaseForm, baseFormApi] = useVbenForm({
       dependencies: {
         triggerFields: ['displayType'],
         show: (values: Record<string, any>) =>
-          UPLOAD_DISPLAY_TYPES.includes(Number(values.displayType)),
+          UPLOAD_DISPLAY_TYPES.has(Number(values.displayType)),
       },
     },
     {
@@ -338,7 +337,7 @@ const [BaseForm, baseFormApi] = useVbenForm({
 
 async function onSubmit(values: Record<string, any>) {
   // 上传类型：把 uploadMode 合并到 dataContentConfig JSON 的 mode 字段
-  if (UPLOAD_DISPLAY_TYPES.includes(Number(values.displayType))) {
+  if (UPLOAD_DISPLAY_TYPES.has(Number(values.displayType))) {
     let cfg: Record<string, any> = {};
     try {
       cfg = values.dataContentConfig

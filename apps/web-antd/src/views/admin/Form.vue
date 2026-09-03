@@ -1,29 +1,27 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 
-import { Card, message } from 'ant-design-vue';
+import { Card } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
-import dayjs from 'dayjs';
+import { getAdminTypeOptions } from '#/types/admin';
 
 import {
   getDetail,
+  getParentList,
+  getRoleList,
   postAdd,
   postEdit,
-  postDel,
-  getRoleList,
-  getParentList,
 } from './api';
-import { getAdminTypeOptions } from '#/types/admin';
 
-const router = useRouter();
 const route = useRoute();
 
 const id = ref<number>(0);
 
 onMounted(async () => {
-  id.value = route.query.id;
+  const queryId = Number(route.query.id ?? 0);
+  id.value = Number.isNaN(queryId) ? 0 : queryId;
   if (id.value > 0) {
     getDetail(id.value).then((result) => {
       baseFormApi.setValues(result);
@@ -87,9 +85,9 @@ const [BaseForm, baseFormApi] = useVbenForm({
       rules: 'required',
       componentProps: {
         placeholder: '请选择角色',
-        afterFetch: (data: { name: string; id: number }[]) => {
+        afterFetch: (data: { items: { id: number; name: string; }[] }) => {
           if (id.value == undefined || id.value <= 0) {
-            baseFormApi.setValues({ roleId: data.items[0].id });
+            baseFormApi.setValues({ roleId: data.items[0]?.id });
           }
           return data.items.map((item: any) => ({
             label: item.name,

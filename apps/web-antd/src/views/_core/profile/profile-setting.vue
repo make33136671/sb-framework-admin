@@ -13,8 +13,8 @@ import {
   Spin,
 } from 'ant-design-vue';
 
-import { getUserInfoApi } from '#/api/core/user';
 import { updateProfileApi } from '#/api/core/admin';
+import { getUserInfoApi } from '#/api/core/user';
 
 const userStore = useUserStore();
 const loading = ref(false);
@@ -49,7 +49,7 @@ async function handleSubmit() {
       name: formData.value.name,
       nickname: formData.value.nickname,
     });
-    if (res?.code === 0) {
+    if (res?.code === 0 && userStore.userInfo) {
       userStore.setUserInfo({
         ...userStore.userInfo,
         realName: formData.value.name,

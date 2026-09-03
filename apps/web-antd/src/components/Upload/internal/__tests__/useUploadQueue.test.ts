@@ -1,7 +1,9 @@
-import { describe, expect, it, vi } from 'vitest';
+import type { UploadItem } from '../types';
+
 import { nextTick, ref } from 'vue';
 
-import type { UploadItem } from '../types';
+import { describe, expect, it, vi } from 'vitest';
+
 import { useUploadQueue } from '../useUploadQueue';
 
 function makeItem(uid: string): UploadItem {

@@ -1,9 +1,14 @@
 <script lang="ts" setup>
-import { ref } from 'vue';
-import { Page } from '@vben/common-ui';
-import { Button, Input, Space, Switch, Tag, Modal } from 'ant-design-vue';
-import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import type { VxeGridProps } from '#/adapter/vxe-table';
+
+import { ref } from 'vue';
+
+import { Page } from '@vben/common-ui';
+
+import { Button, Input, Modal, Space, Switch, Tag } from 'ant-design-vue';
+
+import { useVbenVxeGrid } from '#/adapter/vxe-table';
+
 import { getEmailTemplates, saveEmailTemplate } from '../api';
 
 const showModal = ref(false);
@@ -148,7 +153,7 @@ const handleSave = async () => {
         content: result.message || '操作失败',
       });
     }
-  } catch (error) {
+  } catch {
     Modal.error({
       title: '错误',
       content: '操作失败，请检查网络连接',
@@ -191,9 +196,7 @@ const handleCancel = () => {
     >
       <div style="padding: 20px 0">
         <div class="form-item">
-          <label class="form-label"
-            >模板代码 <span class="required">*</span></label
-          >
+          <label class="form-label">模板代码 <span class="required">*</span></label>
           <Input
             v-model:value="formData.code"
             placeholder="如: RegisterVerify"
@@ -204,9 +207,7 @@ const handleCancel = () => {
         </div>
 
         <div class="form-item">
-          <label class="form-label"
-            >模板名称 <span class="required">*</span></label
-          >
+          <label class="form-label">模板名称 <span class="required">*</span></label>
           <Input
             v-model:value="formData.name"
             placeholder="如: 注册验证码"
@@ -215,9 +216,7 @@ const handleCancel = () => {
         </div>
 
         <div class="form-item">
-          <label class="form-label"
-            >邮件主题 <span class="required">*</span></label
-          >
+          <label class="form-label">邮件主题 <span class="required">*</span></label>
           <Input
             v-model:value="formData.subject"
             placeholder="如: 您的注册验证码"

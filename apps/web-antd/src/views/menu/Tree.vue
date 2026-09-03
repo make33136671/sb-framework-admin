@@ -5,13 +5,13 @@ import { useVbenDrawer } from '@vben/common-ui';
 import { IconifyIcon, Plus } from '@vben/icons';
 import { $t } from '@vben/locales';
 
-import { Button, Switch, Space, Popconfirm } from 'ant-design-vue';
+import { Button, Popconfirm, Space, Switch } from 'ant-design-vue';
 
 const emit = defineEmits<{ success: [] }>();
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
-import { getMenuTreeList, updateMenu, postDel } from './api';
 
+import { getMenuTreeList, postDel, updateMenu } from './api';
 import Form from './Form.vue';
 
 const [FormDrawer, formDrawerApi] = useVbenDrawer({
@@ -115,7 +115,7 @@ function onCreate() {
 async function onSwitchChange(
   row: any,
   field: 'hideInMenu' | 'ignoreKeepAlive',
-  value: boolean,
+  value: boolean | number | string,
 ) {
   // toast 由 axios 拦截器统一弹
   await updateMenu(row.id, field, value);

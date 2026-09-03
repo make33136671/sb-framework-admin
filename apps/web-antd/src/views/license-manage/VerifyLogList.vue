@@ -88,8 +88,9 @@ const [Grid] = useVbenVxeGrid({ gridOptions });
           v-if="row.client?.isDeleted"
           color="default"
           style="margin-left: 4px"
-          >已删除</Tag
-        >
+          >
+已删除
+</Tag>
       </template>
       <template #actualDomain="{ row }">
         <span
@@ -100,8 +101,7 @@ const [Grid] = useVbenVxeGrid({ gridOptions });
               ? 'color: #faad14; font-weight: 500'
               : ''
           "
-          >{{ row.actualDomain }}</span
-        >
+          >{{ row.actualDomain }}</span>
         <span v-else style="color: var(--ant-color-text-tertiary)">—</span>
       </template>
       <template #valid="{ row }">

@@ -3,13 +3,13 @@ import type {
   GenerateMenuAndRoutesOptions,
 } from '@vben/types';
 
+import { defineComponent, h } from 'vue';
+import { RouterView } from 'vue-router';
+
 import { generateAccessible } from '@vben/access';
 import { preferences } from '@vben/preferences';
 
-import { defineComponent, h } from 'vue';
-
 import { message } from 'ant-design-vue';
-import { RouterView } from 'vue-router';
 
 import { getAllMenusApi } from '#/api';
 import { BasicLayout, IFrameView } from '#/layouts';
@@ -31,7 +31,7 @@ async function generateAccess(options: GenerateMenuAndRoutesOptions) {
     BasicLayout,
     IFrameView,
     LAYOUT: BasicLayout,
-    PARENT: ParentLayout,
+    PARENT: () => Promise.resolve(ParentLayout),
   };
 
   return await generateAccessible(preferences.app.accessMode, {

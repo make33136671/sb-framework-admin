@@ -15,12 +15,11 @@ import {
   SvgDownloadIcon,
 } from '@vben/icons';
 
-import AnalyticsMemberTrend from './analytics-member-trend.vue';
-import AnalyticsLoginTrend from './analytics-login-trend.vue';
-import AnalyticsStatusPie from './analytics-status-pie.vue';
-import AnalyticsRealNamePie from './analytics-realname-pie.vue';
-
 import { getOverview } from '../api';
+import AnalyticsLoginTrend from './analytics-login-trend.vue';
+import AnalyticsMemberTrend from './analytics-member-trend.vue';
+import AnalyticsRealNamePie from './analytics-realname-pie.vue';
+import AnalyticsStatusPie from './analytics-status-pie.vue';
 
 const overview = ref<any>({});
 

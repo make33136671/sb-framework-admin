@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import type { VbenFormProps } from '#/adapter/form';
 import type { VxeGridProps } from '#/adapter/vxe-table';
 
 import { ref } from 'vue';
@@ -14,14 +15,27 @@ import { getList, postDel, postResetPassword } from './api';
 
 const router = useRouter();
 
-const fmtTime = (v: string) => {
+const fmtTime = (v: null | string | undefined) => {
   if (!v) return '-';
   const d = new Date(v);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-interface RowType {}
+interface RowType {
+  avatar?: string;
+  creditScore?: number;
+  createTime?: string;
+  directInviteCount?: number;
+  id: number;
+  invitationCode?: string;
+  lastOnlineTime?: string;
+  name?: string;
+  parentName?: string;
+  realNameStatus: number;
+  status: number;
+  username?: string;
+}
 
 const formOptions: VbenFormProps = {
   schema: [
@@ -139,7 +153,7 @@ const handleResetPassword = async () => {
   resetPwdVisible.value = false;
 };
 
-const realNameLabels: Record<number, { text: string; color: string }> = {
+const realNameLabels: Record<number, { color: string; text: string; }> = {
   0: { text: '未认证', color: 'default' },
   1: { text: '审核中', color: 'processing' },
   2: { text: '已认证', color: 'success' },
@@ -186,15 +200,17 @@ const realNameLabels: Record<number, { text: string; color: string }> = {
             <Tag
               :color="row.status == 0 ? 'success' : 'error'"
               style="margin: 0"
-              >{{ row.status == 0 ? '正常' : '封禁' }}</Tag
-            >
+              >
+{{ row.status == 0 ? '正常' : '封禁' }}
+</Tag>
           </div>
           <div style="margin-top: 4px">
             <Tag
               :color="realNameLabels[row.realNameStatus]?.color"
               style="margin: 0"
-              >{{ realNameLabels[row.realNameStatus]?.text }}</Tag
-            >
+              >
+{{ realNameLabels[row.realNameStatus]?.text }}
+</Tag>
           </div>
           <div style="margin-top: 4px; color: #999">
             信用: {{ row.creditScore }}

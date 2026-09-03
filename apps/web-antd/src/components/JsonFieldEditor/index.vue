@@ -10,7 +10,6 @@ import {
   Input,
   InputNumber,
   Select,
-  Space,
   Switch,
   Tag,
   Textarea,
@@ -32,23 +31,18 @@ import {
  */
 defineOptions({ name: 'JsonFieldEditor' });
 
-export interface JsonFieldEnumOption {
-  label?: string;
-  value: string;
-}
-
 const props = withDefaults(
   defineProps<{
-    /** 当前值(v-model);可以是 object / array / primitive */
-    modelValue: any;
-    /** 当前字段名;数组项用 index,对象 key 用 key */
-    fieldKey?: number | string;
     /** 嵌套深度,只用于 UI 缩进 */
     depth?: number;
-    /** 当前节点的 path(对象嵌套用 `parent.child`,数组项继承数组的 path 不加 index) */
-    path?: string;
     /** 已知枚举字段:key = path,value = options 数组 */
     enumOptions?: Record<string, (JsonFieldEnumOption | string)[]>;
+    /** 当前字段名;数组项用 index,对象 key 用 key */
+    fieldKey?: number | string;
+    /** 当前值(v-model);可以是 object / array / primitive */
+    modelValue: any;
+    /** 当前节点的 path(对象嵌套用 `parent.child`,数组项继承数组的 path 不加 index) */
+    path?: string;
   }>(),
   {
     depth: 0,
@@ -61,6 +55,11 @@ const props = withDefaults(
 const emit = defineEmits<{
   'update:modelValue': [value: any];
 }>();
+
+export interface JsonFieldEnumOption {
+  label?: string;
+  value: string;
+}
 
 const fieldType = computed(() => {
   const v = props.modelValue;
@@ -200,7 +199,7 @@ const enumMatch = computed(() => {
   <!-- null -->
   <Input
     v-else-if="fieldType === 'null'"
-    :value="''"
+    value=""
     placeholder="null (填入后变为字符串)"
     @update:value="update"
   />
@@ -208,7 +207,7 @@ const enumMatch = computed(() => {
   <Card v-else-if="fieldType === 'array'" size="small">
     <template #title>
       <div
-        :class="['card-title', { clickable: collapsible }]"
+        class="card-title" :class="[{ clickable: collapsible }]"
         @click="toggleCollapse"
       >
         <IconifyIcon
@@ -249,7 +248,7 @@ const enumMatch = computed(() => {
           size="small"
           danger
           type="default"
-          @click="removeArrayItem(idx)"
+          @click="removeArrayItem(Number(idx))"
         >
           <IconifyIcon icon="ion:remove" />
         </Button>

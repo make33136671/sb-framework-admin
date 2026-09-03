@@ -17,9 +17,9 @@ import {
 } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
-
 import { api } from '#/api/request';
 import { TimeTag } from '#/components/TimeTag';
+
 import {
   checkBackup,
   downloadFile,
@@ -159,9 +159,9 @@ function handleDel(row: any) {
   const tip =
     row.source === 'db_only'
       ? '该记录磁盘文件已不存在，仅删除 DB 记录'
-      : row.source === 'disk_only'
+      : (row.source === 'disk_only'
         ? '该文件无 DB 记录，仅删除磁盘文件'
-        : `确定要删除备份 ${row.fileName} 吗？文件 + 记录将同时被删除`;
+        : `确定要删除备份 ${row.fileName} 吗？文件 + 记录将同时被删除`);
   Modal.confirm({
     title: '确认删除',
     content: tip,
@@ -248,7 +248,19 @@ function fmtTime(v: string) {
 }
 
 // ============ 表格 ============
-interface RowType {}
+interface RowType {
+  createdTime: string;
+  duration: number;
+  fileName: string;
+  fileSize: number;
+  id: number;
+  md5?: null | string;
+  remoteUploadError?: string;
+  remoteUploadStatus?: string;
+  remoteUploadTime?: string;
+  remoteUploadUrl?: string;
+  source: string;
+}
 
 const gridOptions: VxeGridProps<RowType> = {
   columns: [
@@ -430,7 +442,7 @@ onMounted(() => {
           </Tag>
           <Tooltip
             v-if="row.remoteUploadStatus === 'success'"
-            :title="`云端: ${fmtTime(row.remoteUploadTime)} → ${row.remoteUploadUrl || ''}`"
+            :title="`云端: ${fmtTime(row.remoteUploadTime ?? '')} → ${row.remoteUploadUrl || ''}`"
           >
             <Tag color="green" style="margin: 0">云端 ✓</Tag>
           </Tooltip>
@@ -440,9 +452,11 @@ onMounted(() => {
           >
             <Tag color="red" style="margin: 0">云端 ✗</Tag>
           </Tooltip>
-          <Tag v-else style="margin: 0">{{
+          <Tag v-else style="margin: 0">
+{{
             cloudUploadEnabled ? '云端 ○' : '云端未启用'
-          }}</Tag>
+          }}
+</Tag>
         </div>
       </template>
 

@@ -9,7 +9,7 @@ export const overridesPreferences = defineOverridesPreferences({
   // overrides
   app: {
     name: import.meta.env.VITE_APP_TITLE,
-    accessMode: 'mixed', //菜单权限模式 前端模式 'frontend' | 后端模式 'backend' | 混合模式 'mixed'
+    accessMode: 'mixed', // 菜单权限模式 前端模式 'frontend' | 后端模式 'backend' | 混合模式 'mixed'
     defaultHomePath: '/profile', // 默认首页路径，避免根路由递归
     defaultAvatar: '/storage/images/logo.png',
   },

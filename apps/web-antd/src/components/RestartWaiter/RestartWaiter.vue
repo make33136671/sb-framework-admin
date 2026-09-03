@@ -66,13 +66,13 @@ function start() {
       clearTimers();
       status.value = 'success';
       emit('success', info);
-      if (!props.silent) {
+      if (props.silent) {
+        emit('update:open', false);
+      } else {
         // modal 显示 success 1.5s 后自动关
         setTimeout(() => {
           emit('update:open', false);
         }, 1500);
-      } else {
-        emit('update:open', false);
       }
     } catch {
       // 服务还在重启中,继续轮询
@@ -123,7 +123,7 @@ function close() {
     <div style="padding: 24px 0; text-align: center">
       <div v-if="status === 'polling'">
         <div class="restart-pulse">
-          <div class="restart-pulse-ring" />
+          <div class="restart-pulse-ring"></div>
           <div class="restart-pulse-icon">
             <Spin size="large" />
           </div>
@@ -135,7 +135,7 @@ function close() {
             color: var(--ant-color-text-secondary);
           "
         >
-          程序正在重启<span class="restart-dots" />
+          程序正在重启<span class="restart-dots"></span>
         </div>
         <div
           style="

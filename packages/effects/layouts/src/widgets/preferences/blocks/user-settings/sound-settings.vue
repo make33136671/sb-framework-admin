@@ -123,7 +123,7 @@ onUnmounted(() => {
     </div>
 
     <!-- 分隔线 -->
-    <div class="border-border border-t" />
+    <div class="border-border border-t"></div>
 
     <!-- 系统通知提醒 -->
     <div class="setting-row">

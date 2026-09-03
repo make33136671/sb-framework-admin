@@ -23,7 +23,7 @@ import { useVbenVxeGrid } from '#/adapter/vxe-table';
 
 import { approveRequest, getRequestList, rejectRequest } from './api';
 
-const statusMap: Record<number, { label: string; color: string }> = {
+const statusMap: Record<number, { color: string; label: string; }> = {
   0: { label: '待审批', color: 'warning' },
   1: { label: '已批准', color: 'success' },
   2: { label: '已拒绝', color: 'error' },

@@ -1,17 +1,22 @@
 <script lang="ts" setup>
+import type { VxeGridProps } from '#/adapter/vxe-table';
+
 import { ref } from 'vue';
+
 import { Page } from '@vben/common-ui';
+import { formatDateTime } from '@vben/utils';
+
 import {
   Button,
-  Tag,
-  Modal,
   Descriptions,
   DescriptionsItem,
+  Modal,
+  Tag,
 } from 'ant-design-vue';
+
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
-import type { VxeGridProps } from '#/adapter/vxe-table';
-import { formatDateTime } from '@vben/utils';
-import { getEmailLogs, getEmailLog } from '../api';
+
+import { getEmailLog, getEmailLogs } from '../api';
 
 const showDetailModal = ref(false);
 const detailLoading = ref(false);
@@ -119,27 +124,35 @@ const [Grid] = useVbenVxeGrid({ formOptions, gridOptions });
 
 const getStatusColor = (status: number) => {
   switch (status) {
-    case 0:
+    case 0: {
       return 'default';
-    case 1:
+    }
+    case 1: {
       return 'success';
-    case 2:
+    }
+    case 2: {
       return 'error';
-    default:
+    }
+    default: {
       return 'default';
+    }
   }
 };
 
 const getStatusText = (status: number) => {
   switch (status) {
-    case 0:
+    case 0: {
       return '待发送';
-    case 1:
+    }
+    case 1: {
       return '已发送';
-    case 2:
+    }
+    case 2: {
       return '发送失败';
-    default:
+    }
+    default: {
       return '未知';
+    }
   }
 };
 
@@ -149,7 +162,7 @@ const handleViewDetail = async (row: RowType) => {
   try {
     const result = await getEmailLog(row.id);
     currentLog.value = result;
-  } catch (error) {
+  } catch {
     currentLog.value = row;
   } finally {
     detailLoading.value = false;
@@ -189,26 +202,36 @@ const handleCloseDetail = () => {
       <template v-else-if="currentLog">
         <Descriptions bordered :column="2" size="small">
           <DescriptionsItem label="ID">{{ currentLog.id }}</DescriptionsItem>
-          <DescriptionsItem label="模板ID">{{
+          <DescriptionsItem label="模板ID">
+{{
             currentLog.templateId || '-'
-          }}</DescriptionsItem>
-          <DescriptionsItem label="收件人" :span="2">{{
+          }}
+</DescriptionsItem>
+          <DescriptionsItem label="收件人" :span="2">
+{{
             currentLog.toEmail
-          }}</DescriptionsItem>
-          <DescriptionsItem label="邮件主题" :span="2">{{
+          }}
+</DescriptionsItem>
+          <DescriptionsItem label="邮件主题" :span="2">
+{{
             currentLog.subject
-          }}</DescriptionsItem>
+          }}
+</DescriptionsItem>
           <DescriptionsItem label="状态">
             <Tag :color="getStatusColor(currentLog.status)">
               {{ getStatusText(currentLog.status) }}
             </Tag>
           </DescriptionsItem>
-          <DescriptionsItem label="发送时间">{{
+          <DescriptionsItem label="发送时间">
+{{
             currentLog.sentAt ? formatDateTime(currentLog.sentAt) : '-'
-          }}</DescriptionsItem>
-          <DescriptionsItem label="创建时间">{{
+          }}
+</DescriptionsItem>
+          <DescriptionsItem label="创建时间">
+{{
             formatDateTime(currentLog.createdAt)
-          }}</DescriptionsItem>
+          }}
+</DescriptionsItem>
           <DescriptionsItem v-if="currentLog.errorMessage" label="错误信息">
             <span style="color: var(--ant-color-error)">{{
               currentLog.errorMessage

@@ -1,28 +1,12 @@
 <script lang="ts" setup>
+import type { VbenFormProps } from '#/adapter/form';
 import type { VxeGridProps } from '#/adapter/vxe-table';
 
 import { useRouter } from 'vue-router';
 
 import { Page } from '@vben/common-ui';
 
-import {
-  Image,
-  Tag,
-  Space,
-  Button,
-  CheckboxGroup,
-  Form,
-  FormItem,
-  Input,
-  message,
-  Radio,
-  RadioGroup,
-  Select,
-  Switch,
-  TabPane,
-  Tabs,
-  Textarea,
-} from 'ant-design-vue';
+import { Button, Space, Tag } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 
@@ -31,8 +15,9 @@ import { getRoleList, postRoleDel } from './api';
 const router = useRouter();
 
 interface RowType {
-  // productName: string;
-  // releaseDate: string;
+  id: number;
+  menuCount: number;
+  topMenus: string;
 }
 
 const formOptions: VbenFormProps = {

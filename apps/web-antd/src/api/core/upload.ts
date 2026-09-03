@@ -73,8 +73,8 @@ export async function directUploadApi(file: File): Promise<UploadDetail> {
  * 初始化分片上传
  */
 export async function chunkInitApi(params: {
-  fileName: string;
   fileMd5: string;
+  fileName: string;
   fileSize: number;
 }): Promise<ChunkInitResult> {
   return api.post('/Upload/ChunkInit', params, { quiet: true });
@@ -110,13 +110,13 @@ export function chunkUploadApi(
     formData.append('chunkIndex', chunkIndex.toString());
     formData.append('chunk', chunk);
 
-    xhr.upload.onprogress = (event) => {
+    xhr.upload.addEventListener('progress', (event) => {
       if (event.lengthComputable && onProgress) {
         onProgress(Math.round((event.loaded / event.total) * 100));
       }
-    };
+    });
 
-    xhr.onload = () => {
+    xhr.addEventListener('load', () => {
       if (xhr.status >= 200 && xhr.status < 300) {
         try {
           const body = JSON.parse(xhr.responseText);
@@ -128,7 +128,7 @@ export function chunkUploadApi(
       } else {
         reject(new Error(`HTTP ${xhr.status}`));
       }
-    };
+    });
 
     xhr.onerror = () => reject(new Error('网络错误'));
     xhr.ontimeout = () => reject(new Error('请求超时'));

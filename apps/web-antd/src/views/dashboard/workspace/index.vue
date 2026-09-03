@@ -8,13 +8,13 @@ import { WorkbenchHeader, WorkbenchQuickNav } from '@vben/common-ui';
 import { preferences } from '@vben/preferences';
 import { useUserStore } from '@vben/stores';
 
-import { Card, Tag, Table, Statistic, Spin } from 'ant-design-vue';
+import { Card, Spin, Statistic, Table, Tag } from 'ant-design-vue';
 
 import {
   getOverview,
+  getPendingRealNames,
   getRecentLogins,
   getRecentMembers,
-  getPendingRealNames,
 } from '../api';
 
 const router = useRouter();
@@ -103,13 +103,6 @@ const loginColumns = [
   { title: 'IP', dataIndex: 'ipAddress', width: 130 },
   { title: '状态', dataIndex: 'status', width: 70 },
   { title: '时间', dataIndex: 'createTime', width: 120 },
-];
-
-const memberColumns = [
-  { title: '用户名', dataIndex: 'username', width: 120 },
-  { title: '名称', dataIndex: 'name', width: 100 },
-  { title: '状态', dataIndex: 'status', width: 70 },
-  { title: '注册时间', dataIndex: 'createdTime', width: 120 },
 ];
 </script>
 

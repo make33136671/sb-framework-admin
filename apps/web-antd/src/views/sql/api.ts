@@ -27,7 +27,7 @@ export function exportCsv(sql: string) {
       if (!res.ok) throw new Error('导出失败');
       const disposition = res.headers.get('content-disposition') || '';
       const match = disposition.match(/filename=(.+)/);
-      const fileName = match ? match[1] : `query_${Date.now()}.csv`;
+      const fileName = match?.[1] ?? `query_${Date.now()}.csv`;
       return res.blob().then((blob) => ({ blob, fileName }));
     })
     .then(({ blob, fileName }) => {

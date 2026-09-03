@@ -13,9 +13,9 @@ export async function regenerateKeyPair() {
 // ===== 网站客户 =====
 
 export async function getClientList(params: {
+  keyword?: string;
   page: number;
   pageSize: number;
-  keyword?: string;
 }) {
   return api.get('/Entitlement/ClientList', { params });
 }
@@ -54,10 +54,10 @@ export async function getRequestList(params: {
 }
 
 export async function approveRequest(data: {
-  requestId: number;
-  expiresAt: string;
-  verifyMode?: number;
   allowedRoutes?: string[];
+  expiresAt: string;
+  requestId: number;
+  verifyMode?: number;
 }) {
   // allowedRoutes 通过 body 传递
   const { requestId, expiresAt, verifyMode, allowedRoutes } = data;
@@ -68,8 +68,8 @@ export async function approveRequest(data: {
 }
 
 export async function rejectRequest(data: {
-  requestId: number;
   reason?: string;
+  requestId: number;
 }) {
   const query = new URLSearchParams({ requestId: String(data.requestId) });
   if (data.reason) query.set('reason', data.reason);
@@ -79,9 +79,9 @@ export async function rejectRequest(data: {
 // ===== 授权记录 =====
 
 export async function getRecordList(params: {
+  clientId?: number;
   page: number;
   pageSize: number;
-  clientId?: number;
 }) {
   return api.get('/Entitlement/RecordList', { params });
 }
@@ -126,14 +126,14 @@ export async function revokeLicense(recordId: number) {
 // ===== 快速签发 =====
 
 export async function quickGenerate(data: {
-  productEn?: string;
-  productCn?: string;
   clientKey?: string;
-  hardwareId?: string;
-  domain?: string;
-  machineName?: string;
   days?: number;
+  domain?: string;
   expiresAt?: string;
+  hardwareId?: string;
+  machineName?: string;
+  productCn?: string;
+  productEn?: string;
   verifyMode?: number;
 }) {
   // QuickGenerate 用 [FromBody] JSON 接收, 绕开默认 api 客户端的 form-urlencoded Content-Type
@@ -155,9 +155,9 @@ export async function quickGenerate(data: {
 // ===== 验证日志 =====
 
 export async function getVerifyLogList(params: {
+  clientId?: number;
   page: number;
   pageSize: number;
-  clientId?: number;
 }) {
   return api.get('/Entitlement/VerifyLogList', { params });
 }

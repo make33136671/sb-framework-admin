@@ -1,7 +1,5 @@
 export { default as ChunkUpload } from './ChunkUpload.vue';
 export { default as DirectUpload } from './DirectUpload.vue';
-export { default as SmartUpload } from './SmartUpload.vue';
-
 export type {
   UploadDetail,
   UploadItem,
@@ -9,3 +7,5 @@ export type {
   UploadSlotScope,
   UploadType,
 } from './internal/types';
+
+export { default as SmartUpload } from './SmartUpload.vue';

@@ -1,11 +1,10 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 
-import { Card, Tree, Spin } from 'ant-design-vue';
+import { Card, Spin, Tree } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
-import dayjs from 'dayjs';
 
 import {
   getAllMenuTree,
@@ -16,7 +15,6 @@ import {
   setRoleMenus,
 } from './api';
 
-const router = useRouter();
 const route = useRoute();
 
 const id = ref<number>(0);
@@ -37,7 +35,8 @@ function convertMenuToTreeData(menus: any[]): any[] {
 }
 
 onMounted(async () => {
-  id.value = route.query.id;
+  const queryId = Number(route.query.id ?? 0);
+  id.value = Number.isNaN(queryId) ? 0 : queryId;
 
   // 加载所有菜单
   loadingMenus.value = true;
@@ -165,7 +164,7 @@ async function onSubmit(values: Record<string, any>) {
       <div style="height: 100%; overflow: auto">
         <Spin :spinning="loadingMenus">
           <Tree
-            v-model:checkedKeys="checkedMenuKeys"
+            v-model:checked-keys="checkedMenuKeys"
             checkable
             :tree-data="menuTreeData"
             :selectable="false"

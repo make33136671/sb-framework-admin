@@ -7,26 +7,26 @@ import { useRouter } from 'vue-router';
 import { Page } from '@vben/common-ui';
 
 import {
-  Tabs,
-  TabPane,
+  Button,
   Form,
   FormItem,
   Space,
-  Button,
-  Tag,
   Spin,
+  TabPane,
+  Tabs,
+  Tag,
 } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 
 import {
+  getCategoryList,
   getCategoryWithSettingList,
   getList,
+  postCategoryDel,
+  postCategoryEdit,
   postDel,
   postSaveList,
-  getCategoryList,
-  postCategoryEdit,
-  postCategoryDel,
 } from './api';
 import SettingRender from './SettingRender.vue';
 
@@ -40,7 +40,7 @@ interface SettingItem {
   name: string;
   displayType: number;
   cantDelete: boolean;
-  dataContent: string | null;
+  dataContent: null | string;
   dataContentConfig: string;
   sort: number;
 }
@@ -71,9 +71,9 @@ async function loadData() {
 
     // Initialize form data
     for (const cat of list) {
-      formData[cat.id] = formData[cat.id] || {};
+      const catForm = (formData[cat.id] = formData[cat.id] || {});
       for (const item of cat.systemSettingList || []) {
-        formData[cat.id][item.id] = item.dataContent ?? '';
+        catForm[item.id] = item.dataContent ?? '';
       }
     }
 
@@ -138,7 +138,11 @@ const DisplayTypeMap: Record<number, string> = {
   18: 'FileUpload',
 };
 
-interface RowType {}
+interface RowType {
+  cantDelete: boolean;
+  displayType: number;
+  id: number;
+}
 
 const formOptions = {
   schema: [
@@ -302,7 +306,7 @@ async function addCategory() {
   <Page auto-content-height>
     <Spin :spinning="loading">
       <Tabs
-        v-model:activeKey="activeTab"
+        v-model:active-key="activeTab"
         tab-position="left"
         class="setting-tabs"
       >

@@ -17,11 +17,7 @@ export async function postAdd(data: any) {
 }
 
 export async function postEdit(params: any) {
-  if (params.id) {
-    return api.post('/SystemSetting/Edit', params);
-  } else {
-    return postAdd(params);
-  }
+  return params.id ? api.post('/SystemSetting/Edit', params) : postAdd(params);
 }
 
 export async function postSaveList(data: any[]) {
@@ -49,11 +45,7 @@ export async function postCategoryAdd(data: any) {
 }
 
 export async function postCategoryEdit(params: any) {
-  if (params.id) {
-    return api.post('/SystemSettingCategory/Edit', params);
-  } else {
-    return postCategoryAdd(params);
-  }
+  return params.id ? api.post('/SystemSettingCategory/Edit', params) : postCategoryAdd(params);
 }
 
 export async function postCategoryDel(id: any) {

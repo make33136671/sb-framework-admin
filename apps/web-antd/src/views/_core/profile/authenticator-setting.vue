@@ -1,24 +1,17 @@
 <script setup lang="ts">
-import { computed, ref, h } from 'vue';
-import {
-  Card,
-  Button,
-  Input,
-  message,
-  Space,
-  Modal,
-  Spin,
-} from 'ant-design-vue';
+import { computed, h, ref } from 'vue';
+
 import { IconifyIcon } from '@vben/icons';
+import { useUserStore } from '@vben/stores';
+
+import { Button, Card, Input, message, Modal, Spin } from 'ant-design-vue';
 
 import {
-  getAdminInfoApi,
-  getGoogleCodeInfoApi,
-  getGoogleCodeQRApi,
   bindGoogleCodeApi,
+  getAdminInfoApi,
+  getGoogleCodeQRApi,
   unbindGoogleCodeApi,
 } from '#/api/core/admin';
-import { useUserStore } from '@vben/stores';
 
 const userStore = useUserStore();
 
@@ -44,7 +37,7 @@ async function handleGetQR() {
       manualEntryKey.value = res.manualEntryKey || '';
       showQRModal.value = true;
     }
-  } catch (error) {
+  } catch {
     message.error('获取二维码失败');
   } finally {
     loading.value = false;
@@ -82,10 +75,20 @@ async function handleBind() {
         userStore.setUserInfo(userInfo);
       }
     }
-  } catch (error) {
+  } catch {
     message.error('绑定失败');
   } finally {
     loading.value = false;
+  }
+}
+
+// 复制手动密钥
+async function handleCopyKey() {
+  try {
+    await navigator.clipboard.writeText(manualEntryKey.value);
+    message.success('已复制到剪贴板');
+  } catch {
+    message.error('复制失败');
   }
 }
 
@@ -124,7 +127,7 @@ async function handleUnbind() {
             userStore.setUserInfo(userInfo);
           }
         }
-      } catch (error) {
+      } catch {
         message.error('解绑失败');
       } finally {
         loading.value = false;
@@ -181,16 +184,7 @@ async function handleUnbind() {
                   >
                     {{ manualEntryKey }}
                   </code>
-                  <Button
-                    type="text"
-                    size="small"
-                    @click="
-                      () => {
-                        navigator.clipboard.writeText(manualEntryKey);
-                        message.success('已复制到剪贴板');
-                      }
-                    "
-                  >
+                  <Button type="text" size="small" @click="handleCopyKey">
                     复制
                   </Button>
                 </div>
@@ -211,7 +205,7 @@ async function handleUnbind() {
                 <Input
                   v-model:value="bindTotpCode"
                   placeholder="请输入6位数字验证码"
-                  maxlength="6"
+                  :maxlength="6"
                   type="number"
                   @keyup.enter="handleBind"
                 />
@@ -267,7 +261,7 @@ async function handleUnbind() {
             <Input
               v-model:value="totpCode"
               placeholder="请输入6位数字验证码"
-              maxlength="6"
+              :maxlength="6"
               type="number"
               @keyup.enter="handleUnbind"
             />

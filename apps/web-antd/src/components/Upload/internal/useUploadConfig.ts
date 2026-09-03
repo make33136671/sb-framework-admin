@@ -12,8 +12,8 @@ const DEFAULT_CONFIG = {
 };
 
 /** 模块级缓存：应用生命周期内只拉一次 */
-const cache = ref<typeof DEFAULT_CONFIG | null>(null);
-let pending: Promise<typeof DEFAULT_CONFIG> | null = null;
+const cache = ref<null | typeof DEFAULT_CONFIG>(null);
+let pending: null | Promise<typeof DEFAULT_CONFIG> = null;
 
 /**
  * 获取上传配置（应用生命周期内只拉一次，并发调用共享同一 Promise）
@@ -45,8 +45,8 @@ export function useUploadConfig() {
           urlPrefix: data.urlPrefix || DEFAULT_CONFIG.urlPrefix,
         };
         return cache.value;
-      } catch (e) {
-        console.warn('[Upload] 拉取配置失败，使用默认值', e);
+      } catch (error) {
+        console.warn('[Upload] 拉取配置失败，使用默认值', error);
         cache.value = { ...DEFAULT_CONFIG };
         return cache.value;
       } finally {

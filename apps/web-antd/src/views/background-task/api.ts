@@ -29,11 +29,11 @@ export async function getLogs(name: string, limit: number = 100) {
 }
 
 export async function getLogList(params: {
-  source?: number;
-  taskName?: string;
   logLevel?: number;
   page: number;
   pageSize: number;
+  source?: number;
+  taskName?: string;
 }) {
   return api.get('/BackgroundTask/LogList', { params });
 }

@@ -1,7 +1,7 @@
 image: node:20
 
 variables:
-  PNPM_CACHE_DIR: '$CI_PROJECT_DIR/.pnpm-cache'
+  PNPM_CACHE_DIR: $CI_PROJECT_DIR/.pnpm-cache
 
 before_script:
   - corepack enable

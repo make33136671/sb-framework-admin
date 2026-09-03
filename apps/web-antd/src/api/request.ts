@@ -180,14 +180,10 @@ async function request<T = any>(
   try {
     const config: any = { params: options?.params };
     if (silent) config._silent = true;
-    if (method === 'GET') {
-      body = await _client.get(url, config);
-    } else {
-      body = await _client.post(url, data, config);
-    }
-  } catch (e) {
+    body = await (method === 'GET' ? _client.get(url, config) : _client.post(url, data, config));
+  } catch (error) {
     hideLoading?.();
-    throw e;
+    throw error;
   }
 
   hideLoading?.();

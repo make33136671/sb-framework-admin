@@ -3,11 +3,11 @@ import { AdminType } from '#/types/admin';
 /**
  * 权限工具类
  */
-export class PermissionUtil {
+export const PermissionUtil = {
   /**
    * 检查用户是否有访问指定菜单的权限
    */
-  static hasMenuPermission(userType: AdminType, menuPath: string): boolean {
+  hasMenuPermission(userType: AdminType, menuPath: string): boolean {
     // 系统管理员拥有所有权限
     if (userType === AdminType.SystemAdmin) {
       return true;
@@ -79,17 +79,17 @@ export class PermissionUtil {
     // 动态路由匹配(例如 /AdminEdit/:id)
     return allowedMenus.some((pattern) => {
       if (pattern.includes(':')) {
-        const regex = new RegExp('^' + pattern.replace(/:\w+/g, '[^/]+') + '$');
+        const regex = new RegExp('^' + pattern.replaceAll(/:\w+/g, '[^/]+') + '$');
         return regex.test(menuPath);
       }
       return false;
     });
-  }
+  },
 
   /**
    * 检查用户是否有执行指定操作的权限
    */
-  static hasActionPermission(userType: AdminType, action: string): boolean {
+  hasActionPermission(userType: AdminType, action: string): boolean {
     // 系统管理员拥有所有权限
     if (userType === AdminType.SystemAdmin) {
       return true;
@@ -132,12 +132,12 @@ export class PermissionUtil {
 
     const allowedRoles = actionPermissions[action] || [];
     return allowedRoles.includes(userType);
-  }
+  },
 
   /**
    * 检查数据范围权限
    */
-  static getDataScope(userType: AdminType): 'all' | 'self' | 'subordinate' {
+  getDataScope(userType: AdminType): 'all' | 'self' | 'subordinate' {
     const scopeMap: Record<AdminType, 'all' | 'self' | 'subordinate'> = {
       [AdminType.SystemAdmin]: 'all',
       [AdminType.RegularAdmin]: 'all',
@@ -145,5 +145,5 @@ export class PermissionUtil {
       [AdminType.CustomerService]: 'subordinate',
     };
     return scopeMap[userType] || 'self';
-  }
-}
+  },
+};

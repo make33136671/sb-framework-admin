@@ -1,10 +1,10 @@
+import type { ThreadState, UploadDetail } from './types';
+
 import { reactive, ref } from 'vue';
 
 import SparkMD5 from 'spark-md5';
 
 import { chunkInitApi, chunkMergeApi, chunkUploadApi } from '#/api/core/upload';
-
-import type { ThreadState, UploadDetail } from './types';
 
 /**
  * 计算文件 MD5（增量分片，不阻塞 UI）
@@ -36,13 +36,13 @@ export function useChunkUpload(options?: { maxConcurrent?: number }) {
   const progress = ref(0);
   /** 当前状态 */
   const status = ref<
-    | 'idle'
-    | 'hashing'
-    | 'uploading'
-    | 'merging'
+    | 'cancelled'
     | 'done'
     | 'error'
-    | 'cancelled'
+    | 'hashing'
+    | 'idle'
+    | 'merging'
+    | 'uploading'
   >('idle');
   /** MD5 计算进度 */
   const hashProgress = ref(0);
@@ -108,7 +108,7 @@ export function useChunkUpload(options?: { maxConcurrent?: number }) {
       const uploadId = init.uploadId!;
       const chunkSize = init.chunkSize!;
       const totalChunks = init.totalChunks!;
-      const uploaded = new Set(init.uploadedChunks ?? []);
+      const uploaded = new Set(init.uploadedChunks);
 
       // 构建待上传队列
       const queue: number[] = [];
@@ -124,28 +124,30 @@ export function useChunkUpload(options?: { maxConcurrent?: number }) {
       // 并发 worker（每个 worker 把自己状态写到 threads[i]，UI 可观察）
       const workers = Array.from({ length: maxConcurrent }, (_, threadId) =>
         (async () => {
+          const thread = threads[threadId];
+          if (!thread) return;
           while (queue.length > 0) {
             if (isCancelled) {
-              threads[threadId].status = 'idle';
+              thread.status = 'idle';
               return;
             }
             const idx = queue.shift();
             if (idx === undefined) break;
-            threads[threadId].chunkIndex = idx;
-            threads[threadId].status = 'uploading';
-            threads[threadId].progress = 0;
+            thread.chunkIndex = idx;
+            thread.status = 'uploading';
+            thread.progress = 0;
             const start = idx * chunkSize;
             const end = Math.min(start + chunkSize, file.size);
             const blob = file.slice(start, end);
             await chunkUploadApi(uploadId, idx, blob, (pct) => {
-              threads[threadId].progress = pct;
+              thread.progress = pct;
             });
             completed++;
-            threads[threadId].progress = 100;
+            thread.progress = 100;
             updateProgress();
           }
-          threads[threadId].status = 'done';
-          threads[threadId].progress = 0;
+          thread.status = 'done';
+          thread.progress = 0;
         })(),
       );
       await Promise.all(workers);
@@ -157,14 +159,14 @@ export function useChunkUpload(options?: { maxConcurrent?: number }) {
       progress.value = 100;
       status.value = 'done';
       return merged;
-    } catch (e: any) {
-      if (e?.message === '已取消') {
+    } catch (error: any) {
+      if (error?.message === '已取消') {
         status.value = 'cancelled';
       } else {
         status.value = 'error';
-        errorMsg.value = e?.message || '上传失败';
+        errorMsg.value = error?.message || '上传失败';
       }
-      throw e;
+      throw error;
     }
   }
 

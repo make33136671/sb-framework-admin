@@ -26,6 +26,7 @@
     "#/*": "./src/*"
   },
   "dependencies": {
+    "@guolao/vue-monaco-editor": "catalog:",
     "@vben-core/menu-ui": "workspace:*",
     "@vben-core/shadcn-ui": "workspace:*",
     "@vben/access": "workspace:*",
@@ -43,17 +44,16 @@
     "@vben/types": "workspace:*",
     "@vben/utils": "workspace:*",
     "@vueuse/core": "catalog:",
-    "md-editor-v3": "^6.4.1",
     "ant-design-vue": "catalog:",
     "dayjs": "catalog:",
-    "monaco-editor": "^0.55.1",
-    "@guolao/vue-monaco-editor": "^1.5.5",
+    "md-editor-v3": "catalog:",
+    "monaco-editor": "catalog:",
     "pinia": "catalog:",
-    "spark-md5": "^3.0.2",
+    "spark-md5": "catalog:",
     "vue": "catalog:",
     "vue-router": "catalog:"
   },
   "devDependencies": {
-    "@types/spark-md5": "^3.0.5"
+    "@types/spark-md5": "catalog:"
   }
 }

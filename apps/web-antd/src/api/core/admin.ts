@@ -1,10 +1,9 @@
-import type { OpenImInfo, UserInfo } from '@vben/types';
+import type { UserInfo } from '@vben/types';
 
 import { api } from '#/api/request';
-import { directUploadApi } from '#/api/core/upload';
 
 /** 兼容旧业务 import { uploadFileApi } from '#/api/core/admin' */
-export const uploadFileApi = directUploadApi;
+
 
 export namespace AdminApi {
   export interface LoginParams {
@@ -16,7 +15,6 @@ export namespace AdminApi {
   export interface LoginResult {
     accessToken: string;
     userInfo?: UserInfo;
-    openIm?: OpenImInfo;
   }
 
   export interface RefreshTokenResult {
@@ -48,8 +46,8 @@ export async function getAccessCodesApi() {
 }
 
 export async function changePasswordApi(data: {
-  oldPassword: string;
   newPassword: string;
+  oldPassword: string;
 }) {
   return api.post('/Auth/ChangePassword', data);
 }
@@ -83,3 +81,5 @@ export async function bindGoogleCodeApi(googleCode: string, password: string) {
 export async function unbindGoogleCodeApi(totpCode: string, password: string) {
   return api.post('/Auth/UnbindGoogleCode', { totpCode, password });
 }
+
+export {directUploadApi as uploadFileApi} from '#/api/core/upload';

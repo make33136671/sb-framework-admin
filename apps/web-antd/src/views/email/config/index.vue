@@ -1,7 +1,10 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
+
 import { Card } from 'ant-design-vue';
+
 import { useVbenForm } from '#/adapter/form';
+
 import { getEmailConfig, saveEmailConfig } from '../api';
 
 const loading = ref(false);
@@ -47,7 +50,7 @@ const [BaseForm, baseFormApi] = useVbenForm({
       componentProps: {
         placeholder: '如: 587 或 465',
         min: 1,
-        max: 65535,
+        max: 65_535,
       },
     },
     {

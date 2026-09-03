@@ -99,7 +99,7 @@ const level = computed(() => {
   if (abs < 1) return 2;
   if (abs < 10) return 3;
   if (abs < 100) return 4;
-  if (abs < 1_000) return 5;
+  if (abs < 1000) return 5;
   if (abs < 10_000) return 6;
   if (abs < 100_000) return 7;
   if (abs < 1_000_000) return 8;

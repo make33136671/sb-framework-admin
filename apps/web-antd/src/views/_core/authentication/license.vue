@@ -213,12 +213,12 @@ onMounted(() => {
       >
         {{ productDisplay }}
       </span>
-      <Tag v-if="statusData && isMissingPublicKey" color="red" style="margin: 0"
-        >未配置公钥</Tag
-      >
-      <Tag v-else-if="statusData" color="orange" style="margin: 0"
-        >授权已过期</Tag
-      >
+      <Tag v-if="statusData && isMissingPublicKey" color="red" style="margin: 0">
+未配置公钥
+</Tag>
+      <Tag v-else-if="statusData" color="orange" style="margin: 0">
+授权已过期
+</Tag>
       <Button v-if="hasToken" size="small" @click="handleLogout">
         退出登录
       </Button>
@@ -328,9 +328,9 @@ onMounted(() => {
               </DescriptionsItem>
               <DescriptionsItem label="授权状态">
                 <Tag v-if="statusData.isValid" color="green">有效</Tag>
-                <Tag v-else-if="statusData.isExpired" color="orange"
-                  >已到期</Tag
-                >
+                <Tag v-else-if="statusData.isExpired" color="orange">
+已到期
+</Tag>
                 <Tag v-else color="red">无效</Tag>
               </DescriptionsItem>
               <DescriptionsItem label="到期时间">
@@ -356,18 +356,19 @@ onMounted(() => {
                   :key="d"
                   color="blue"
                   style="margin-bottom: 2px"
-                  >{{ d }}</Tag
-                >
+                  >
+{{ d }}
+</Tag>
               </DescriptionsItem>
               <DescriptionsItem label="启用验证项">
                 <Tag v-if="statusData.requiresProduct" color="blue">产品名</Tag>
                 <Tag v-if="statusData.requiresDomain" color="blue">域名</Tag>
-                <Tag v-if="statusData.requiresClientKey" color="blue"
-                  >ClientKey</Tag
-                >
-                <Tag v-if="statusData.requiresHardwareId" color="blue"
-                  >HardwareId</Tag
-                >
+                <Tag v-if="statusData.requiresClientKey" color="blue">
+ClientKey
+</Tag>
+                <Tag v-if="statusData.requiresHardwareId" color="blue">
+HardwareId
+</Tag>
                 <span
                   v-if="
                     !statusData.requiresProduct &&

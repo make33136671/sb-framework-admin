@@ -1,46 +1,28 @@
 <script lang="ts" setup>
+import type { VbenFormProps } from '#/adapter/form';
 import type { VxeGridProps } from '#/adapter/vxe-table';
 
+import { ref } from 'vue';
 import { useRouter } from 'vue-router';
 
 import { Page } from '@vben/common-ui';
+import { IconifyIcon } from '@vben/icons';
 
-import { ref } from 'vue';
-
-import {
-  Image,
-  Tag,
-  Space,
-  Button,
-  CheckboxGroup,
-  Form,
-  FormItem,
-  Input,
-  message,
-  Modal,
-  Radio,
-  RadioGroup,
-  Select,
-  Switch,
-  TabPane,
-  Tabs,
-  Textarea,
-} from 'ant-design-vue';
+import { Button, Modal, Space, Tag } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 
 import { getList, postDel } from './api';
-import TreeView from './Tree.vue';
-
 // import { VbenIcon } from '@vben-core/shadcn-ui';
-
-import { IconifyIcon } from '@vben/icons';
+import TreeView from './Tree.vue';
 
 const router = useRouter();
 
 interface RowType {
-  // productName: string;
-  // releaseDate: string;
+  hideInMenu?: boolean;
+  icon?: string;
+  id: number;
+  ignoreKeepAlive?: boolean;
 }
 
 const formOptions: VbenFormProps = {
@@ -148,7 +130,7 @@ const treeVisible = ref(false);
       <template #icon="{ row }">
         <div style="display: flex; align-items: center">
           <div style="flex: 0.2">
-            <IconifyIcon :icon="row.icon" style="font-size: 24px" />
+            <IconifyIcon :icon="row.icon ?? ''" style="font-size: 24px" />
           </div>
           <div style="flex: 1; text-align: left">
             {{ row.icon }}

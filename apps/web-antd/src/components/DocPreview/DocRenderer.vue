@@ -1,9 +1,12 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
+
+import { usePreferences } from '@vben/preferences';
+
 import { Descriptions, DescriptionsItem } from 'ant-design-vue';
 import { MdPreview } from 'md-editor-v3';
+
 import 'md-editor-v3/lib/preview.css';
-import { usePreferences } from '@vben/preferences';
 
 /**
  * Markdown 文档渲染器(基座通用)
@@ -45,7 +48,7 @@ const meta = computed(() => {
 
 // 提取描述内容(## <descLabel> 之后)
 const descContent = computed(() => {
-  const pattern = new RegExp(`##\\s*${props.descLabel}\\s*\\n([\\s\\S]*)$`);
+  const pattern = new RegExp(String.raw`##\s*${props.descLabel}\s*\n([\s\S]*)$`);
   const match = props.content.match(pattern);
   return match ? match[1]!.trim() : '';
 });
@@ -76,7 +79,7 @@ const descContent = computed(() => {
 
     <!-- 无法解析时,直接渲染全部 -->
     <div
-      v-else-if="!meta.length"
+      v-else-if="meta.length === 0"
       class="doc-renderer-desc-body"
       :class="{ dark: isDark }"
     >

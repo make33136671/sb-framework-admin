@@ -13,11 +13,7 @@ export async function postAdd(data: any) {
 }
 
 export async function postEdit(params: any) {
-  if (params.id) {
-    return api.post('/Member/Edit', params);
-  } else {
-    return postAdd(params);
-  }
+  return params.id ? api.post('/Member/Edit', params) : postAdd(params);
 }
 
 export async function postDel(id: any) {
@@ -34,7 +30,7 @@ export async function getMemberTree(memberId: number) {
 
 export async function getChildren(parentId?: number) {
   return api.get('/Member/Children', {
-    params: parentId != null ? { parentId } : {},
+    params: parentId == null ? {} : { parentId },
   });
 }
 

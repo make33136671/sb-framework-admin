@@ -1,20 +1,20 @@
 <script lang="ts" setup>
 import { onMounted, ref } from 'vue';
-import { useRoute, useRouter } from 'vue-router';
+import { useRoute } from 'vue-router';
 
-import { Card, message } from 'ant-design-vue';
+import { Card } from 'ant-design-vue';
 
 import { useVbenForm } from '#/adapter/form';
 
 import { getDetail, postAdd, postEdit } from './api';
 
-const router = useRouter();
 const route = useRoute();
 
 const id = ref<number>(0);
 
 onMounted(async () => {
-  id.value = route.query.id;
+  const queryId = Number(route.query.id ?? 0);
+  id.value = Number.isNaN(queryId) ? 0 : queryId;
   if (id.value > 0) {
     getDetail(id.value).then((result) => {
       baseFormApi.setValues(result);

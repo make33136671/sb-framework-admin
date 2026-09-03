@@ -22,7 +22,7 @@ import LicenseUpdatePanel from './LicenseUpdatePanel.vue';
 
 const statusData = ref<any>(null);
 const now = ref(Date.now());
-let timer: ReturnType<typeof setInterval> | null = null;
+let timer: null | ReturnType<typeof setInterval> = null;
 
 async function fetchStatus() {
   try {
@@ -146,7 +146,7 @@ const remainingTime = computed(() => {
 const pad2 = (n: number) => String(n).padStart(2, '0');
 const pad4 = (n: number) => String(n).padStart(4, '0');
 
-function fmtDateTime(v: string | null | undefined): string {
+function fmtDateTime(v: null | string | undefined): string {
   if (!v) return '-';
   const hasTz = /[Zz]|[+-]\d\d:?\d\d$/.test(v);
   const d = new Date(hasTz ? v : `${v}Z`);
@@ -154,24 +154,6 @@ function fmtDateTime(v: string | null | undefined): string {
   const p = partsInTimeZone(d, appTimeZone.value);
   return `${pad4(p.year)}-${pad2(p.month)}-${pad2(p.day)} ${pad2(p.hour)}:${pad2(p.minute)}:${pad2(p.second)}`;
 }
-
-// 到期时间按程序时区格式化 "YYYY 年 MM 月 DD 日 HH 时 mm 分 ss 秒"
-// 年 4 位, 月日时分秒各 2 位, 不足补 0
-const expiresAtFormatted = computed(() => {
-  const d = expiresAtDate.value;
-  if (!d) return '-';
-  const p = partsInTimeZone(d, appTimeZone.value);
-  return `${pad4(p.year)} 年 ${pad2(p.month)} 月 ${pad2(p.day)} 日 ${pad2(p.hour)} 时 ${pad2(p.minute)} 分 ${pad2(p.second)} 秒`;
-});
-
-// 剩余时间格式化, 用和 expiresAtFormatted 完全相同的字符串生成方式,
-// 保证两行字符长度、空格位置一致, 视觉上严格上下对齐
-const remainingTimeText = computed(() => {
-  const rt = remainingTime.value;
-  if (!rt) return '-';
-  if (rt.expired) return '已过期';
-  return `${pad4(rt.years)} 年 ${pad2(rt.months)} 月 ${pad2(rt.days)} 日 ${pad2(rt.hours)} 时 ${pad2(rt.minutes)} 分 ${pad2(rt.seconds)} 秒`;
-});
 
 // LicenseUpdatePanel 更新成功回调 - 重新拉取授权状态刷新本页显示
 async function onUpdateSuccess() {
@@ -182,10 +164,10 @@ async function onUpdateSuccess() {
 const currentHost = computed(() => window.location.host);
 
 /** host 是否在 Key 的允许域名列表中. null = 未启用域名验证或 host 为空 */
-function isHostAllowed(host: string | null | undefined): boolean | null {
+function isHostAllowed(host: null | string | undefined): boolean | null {
   if (!host) return null;
   const list: string[] = statusData.value?.licenseDomains ?? [];
-  const h = host.toLowerCase().split(':')[0];
+  const h = host.toLowerCase().split(':')[0] ?? '';
   if (list.length === 0) {
     const d = statusData.value?.licenseDomain;
     if (!d) return null;
@@ -346,14 +328,16 @@ onUnmounted(() => {
                 v-if="configDomainAllowed === true"
                 color="green"
                 style="margin-left: 6px"
-                >已授权</Tag
-              >
+                >
+已授权
+</Tag>
               <Tag
                 v-else-if="configDomainAllowed === false"
                 color="red"
                 style="margin-left: 6px"
-                >未授权</Tag
-              >
+                >
+未授权
+</Tag>
             </DescriptionsItem>
 
             <DescriptionsItem label="当前访问域名">
@@ -370,14 +354,16 @@ onUnmounted(() => {
                 v-if="currentHostAllowed === true"
                 color="green"
                 style="margin-left: 6px"
-                >已授权</Tag
-              >
+                >
+已授权
+</Tag>
               <Tag
                 v-else-if="currentHostAllowed === false"
                 color="red"
                 style="margin-left: 6px"
-                >未授权</Tag
-              >
+                >
+未授权
+</Tag>
             </DescriptionsItem>
 
             <!-- 第 5 行: 授权允许域名 (整行, 多 tag 撑得开) -->
@@ -388,17 +374,15 @@ onUnmounted(() => {
                   :key="d"
                   color="blue"
                   style="margin-bottom: 2px"
-                  >{{ d }}</Tag
-                >
+                  >
+{{ d }}
+</Tag>
               </template>
               <span
                 v-else-if="statusData?.licenseDomain"
                 style="font-family: monospace"
-                >{{ statusData.licenseDomain }}</span
-              >
-              <span v-else style="color: var(--ant-color-text-tertiary)"
-                >未限定 (不验证)</span
-              >
+                >{{ statusData.licenseDomain }}</span>
+              <span v-else style="color: var(--ant-color-text-tertiary)">未限定 (不验证)</span>
             </DescriptionsItem>
 
             <!-- 第 5 行: 云端中心地址 | 启用的验证项 -->
@@ -408,12 +392,12 @@ onUnmounted(() => {
             <DescriptionsItem label="启用的验证项">
               <Tag v-if="statusData?.requiresProduct" color="blue">产品名</Tag>
               <Tag v-if="statusData?.requiresDomain" color="blue">域名</Tag>
-              <Tag v-if="statusData?.requiresClientKey" color="blue"
-                >ClientKey</Tag
-              >
-              <Tag v-if="statusData?.requiresHardwareId" color="blue"
-                >HardwareId</Tag
-              >
+              <Tag v-if="statusData?.requiresClientKey" color="blue">
+ClientKey
+</Tag>
+              <Tag v-if="statusData?.requiresHardwareId" color="blue">
+HardwareId
+</Tag>
               <span
                 v-if="
                   !statusData?.requiresProduct &&
@@ -555,7 +539,7 @@ onUnmounted(() => {
 
             <!-- 行 4: 操作系统 独占 -->
             <DescriptionsItem label="操作系统" :span="2">
-              <span style="word-break: break-word">
+              <span style="overflow-wrap: break-word">
                 {{ statusData?.identity?.hardwareInfo?.osDescription || '-' }}
               </span>
             </DescriptionsItem>

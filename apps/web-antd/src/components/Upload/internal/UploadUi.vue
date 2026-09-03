@@ -1,38 +1,37 @@
 <script lang="ts" setup>
+import type { UploadItem, UploadType } from './types';
+
 import { computed, ref } from 'vue';
 
 import { useElementSize } from '@vueuse/core';
-
 import { Button, Image, Modal, Progress, Upload } from 'ant-design-vue';
 
-import type { UploadItem, UploadType } from './types';
-
 const props = defineProps<{
-  /** 列表项 */
-  items: UploadItem[];
-  /** 类型预设 */
-  type: UploadType;
   /** accept 字符串 */
   accept: string;
-  /** 数量上限 */
-  maxCount: number;
   /** 是否禁用 */
   disabled: boolean;
+  /** 列表项 */
+  items: UploadItem[];
+  /** 数量上限 */
+  maxCount: number;
+  /** 类型预设 */
+  type: UploadType;
 }>();
 
 const emit = defineEmits<{
-  /** 用户选择文件后触发 */
-  pick: [files: File[]];
   /** 取消单项上传 */
   cancel: [uid: string];
-  /** 重试单项 */
-  retry: [uid: string];
+  /** 用户选择文件后触发 */
+  pick: [files: File[]];
   /** 移除单项 */
   remove: [uid: string];
+  /** 重试单项 */
+  retry: [uid: string];
 }>();
 
 /** 是否多文件类型 */
-const isMulti = computed(() => /s$/.test(props.type));
+const isMulti = computed(() => props.type.endsWith('s'));
 /** 是否图片类型 */
 const isImage = computed(
   () => props.type === 'image' || props.type === 'images',
@@ -171,7 +170,7 @@ function formatSize(bytes?: number): string {
             :src="item.absfileName"
             :width="100"
             :height="100"
-            :preview="{ mask: '预览' }"
+            :preview-mask="() => '预览'"
           />
           <!-- 视频缩略图 -->
           <div
@@ -179,7 +178,7 @@ function formatSize(bytes?: number): string {
             class="video-thumb"
             @click="openVideoPreview(item.absfileName!)"
           >
-            <video :src="item.absfileName" muted />
+            <video :src="item.absfileName" muted></video>
             <div class="video-thumb__icon">▶</div>
           </div>
 
@@ -189,7 +188,7 @@ function formatSize(bytes?: number): string {
             class="overlay overlay--hashing"
           >
             <div class="hashing-spinner hashing-spinner--card">
-              <div class="hashing-spinner__inner" />
+              <div class="hashing-spinner__inner"></div>
             </div>
             <span class="hashing-text">计算指纹...</span>
           </div>
@@ -217,15 +216,17 @@ function formatSize(bytes?: number): string {
               danger
               size="small"
               @click="emit('cancel', item.uid)"
-              >取消</Button
-            >
+              >
+取消
+</Button>
             <Button
               v-else-if="item.status === 'error'"
               type="primary"
               size="small"
               @click="emit('retry', item.uid)"
-              >重试</Button
-            >
+              >
+重试
+</Button>
             <Button size="small" @click="emit('remove', item.uid)">删除</Button>
           </div>
         </div>
@@ -276,7 +277,7 @@ function formatSize(bytes?: number): string {
                 <div
                   class="hashing-spinner__inner"
                   :style="{ borderWidth: `${spinnerInnerBorderWidth}px` }"
-                />
+                ></div>
               </div>
               <span class="progress-center-text">指纹</span>
             </div>
@@ -379,25 +380,28 @@ function formatSize(bytes?: number): string {
               v-if="item.status === 'done' && item.absfileName"
               size="small"
               @click="triggerDownload(item.absfileName!, item.name)"
-              >下载</Button
-            >
+              >
+下载
+</Button>
             <Button
               v-if="item.status === 'uploading'"
               danger
               size="small"
               @click="emit('cancel', item.uid)"
-              >取消</Button
-            >
+              >
+取消
+</Button>
             <Button
               v-if="item.status === 'error'"
               type="primary"
               size="small"
               @click="emit('retry', item.uid)"
-              >重试</Button
-            >
-            <Button danger size="small" @click="emit('remove', item.uid)"
-              >删除</Button
-            >
+              >
+重试
+</Button>
+            <Button danger size="small" @click="emit('remove', item.uid)">
+删除
+</Button>
           </div>
         </div>
 
@@ -426,7 +430,7 @@ function formatSize(bytes?: number): string {
         controls
         autoplay
         style="width: 100%; max-height: 70vh"
-      />
+      ></video>
     </Modal>
   </div>
 </template>

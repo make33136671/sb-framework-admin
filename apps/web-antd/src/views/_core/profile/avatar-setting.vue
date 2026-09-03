@@ -42,7 +42,7 @@ async function handleSave() {
   saving.value = true;
   try {
     const res = await changeAvatarApi(newAvatarUrl.value);
-    if (res?.code === 0) {
+    if (res?.code === 0 && userStore.userInfo) {
       userStore.setUserInfo({
         ...userStore.userInfo,
         avatar: newAvatarUrl.value,

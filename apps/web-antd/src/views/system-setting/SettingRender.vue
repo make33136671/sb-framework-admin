@@ -1,7 +1,7 @@
 <script lang="ts" setup>
 import { computed } from 'vue';
 
-import { IconifyIcon } from '@vben/icons';
+import { IconPicker } from '@vben/common-ui';
 
 import {
   AutoComplete,
@@ -19,10 +19,15 @@ import {
   TreeSelect,
 } from 'ant-design-vue';
 
-import { IconPicker } from '@vben/common-ui';
-
 import { SmartUpload } from '#/components/Upload';
 
+const props = defineProps<{
+  modelValue: any;
+  setting: SettingItem;
+}>();
+const emit = defineEmits<{
+  'update:modelValue': [value: any];
+}>();
 const Textarea = Input.TextArea;
 const RadioGroup = Radio.Group;
 const CheckboxGroup = Checkbox.Group;
@@ -38,15 +43,6 @@ interface SettingItem {
   cantDelete: boolean;
   sort: number;
 }
-
-const props = defineProps<{
-  setting: SettingItem;
-  modelValue: any;
-}>();
-
-const emit = defineEmits<{
-  'update:modelValue': [value: any];
-}>();
 
 const localValue = computed({
   get: () => props.modelValue,

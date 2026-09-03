@@ -8,8 +8,8 @@ const serverBase = apiURL.replace(/\/admin$/, '');
 export interface BackupProductSummary {
   productEn: string;
   productCn: string;
-  logoPath?: string | null;
-  primaryDomain?: string | null;
+  logoPath?: null | string;
+  primaryDomain?: null | string;
   backupCount: number;
   totalSize: number;
   latestBackupTime: string;
@@ -21,13 +21,13 @@ export interface BackupRemoteRecord {
   id: number;
   productEn: string;
   productCn: string;
-  primaryDomain?: string | null;
-  logoPath?: string | null;
+  primaryDomain?: null | string;
+  logoPath?: null | string;
   clientIp: string;
   fileName: string;
   filePath: string;
   fileSize: number;
-  md5?: string | null;
+  md5?: null | string;
   backupTime: string;
   receivedTime: string;
 }
@@ -37,9 +37,9 @@ export async function getProductList() {
 }
 
 export async function getRecordList(params: {
-  productEn: string;
   page?: number;
   pageSize?: number;
+  productEn: string;
 }) {
   return api.get('/BackupReceive/RecordList', { params });
 }
@@ -56,7 +56,7 @@ export function getDownloadUrl(id: number) {
 }
 
 /** 服务端 logoPath / filePath 都是 /storage/... 相对路径，转成完整 URL 用 server 根 */
-export function toServerUrl(relPath?: string | null) {
+export function toServerUrl(relPath?: null | string) {
   if (!relPath) return '';
   return `${serverBase}${relPath}`;
 }

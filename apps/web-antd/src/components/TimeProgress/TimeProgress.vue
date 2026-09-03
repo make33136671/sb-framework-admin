@@ -3,9 +3,9 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 
 interface Props {
   /** 开始时间 (string/Date/number); 不传 = 从挂载时刻起算 */
-  startTime?: Date | number | string | null;
+  startTime?: Date | null | number | string;
   /** 结束时间; 不传 = 无限模式 (indeterminate) */
-  endTime?: Date | number | string | null;
+  endTime?: Date | null | number | string;
   /** 视觉填充方向 */
   fillDirection?: 'ltr' | 'rtl';
   /** 数值语义: elapsed=从 0% 涨到 100%(消耗感) / remaining=从 100% 跌到 0%(剩余感) */
@@ -59,8 +59,8 @@ const props = withDefaults(defineProps<Props>(), {
 });
 
 const emit = defineEmits<{
-  start: [];
   expire: [];
+  start: [];
   'update:percent': [percent: number];
 }>();
 
@@ -251,7 +251,7 @@ const activeColor = computed(() => {
           width: `${fillPercent}%`,
           background: activeColor,
         }"
-      />
+      ></div>
 
       <!-- 无限模式: indeterminate 往复亮条 -->
       <div
@@ -261,7 +261,7 @@ const activeColor = computed(() => {
           'time-progress__indeterminate--rtl': fillDirection === 'rtl',
         }"
         :style="{ background: activeColor }"
-      />
+      ></div>
 
       <!-- 中心文字 -->
       <div
@@ -285,8 +285,7 @@ const activeColor = computed(() => {
             :class="{
               'time-progress__sub-value--expired': status === 'expired',
             }"
-            >{{ remainingText }}</span
-          >
+            >{{ remainingText }}</span>
         </span>
         <span v-if="showExpires" class="time-progress__sub-right">
           <span class="time-progress__sub-label">到期</span>

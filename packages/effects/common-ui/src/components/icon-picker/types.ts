@@ -1,4 +1,4 @@
-import type { VNode } from 'vue';
+import type { Component, VNode } from 'vue';
 
 export interface IconPickerProps {
   pageSize?: number;
@@ -11,7 +11,7 @@ export interface IconPickerProps {
    */
   icons?: string[];
   /** Input组件 */
-  inputComponent?: VNode;
+  inputComponent?: Component | VNode;
   /** 图标插槽名，预览图标将被渲染到此插槽中 */
   iconSlot?: string;
   /** input组件的值属性名称 */

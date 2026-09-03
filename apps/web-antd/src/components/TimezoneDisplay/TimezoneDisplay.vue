@@ -109,7 +109,7 @@ const zhName = computed(() => {
   if (segs.length < 2) return '';
   const continent = CONTINENT_ZH[segs[0]!] || segs[0]!;
   const cityKey = segs.at(-1)!;
-  const city = CITY_ZH[cityKey] || cityKey.replace(/_/g, ' ');
+  const city = CITY_ZH[cityKey] || cityKey.replaceAll('_', ' ');
   return `${continent} ${city}`;
 });
 

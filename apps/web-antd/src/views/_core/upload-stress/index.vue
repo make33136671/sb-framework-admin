@@ -18,7 +18,7 @@ const smart = ref<string[]>([]);
  * 把 change 事件结果打到 console，便于观察 v-model 同步
  */
 function logChange(label: string, d: any) {
-  // eslint-disable-next-line no-console
+   
   console.log(`[${label}] change`, d);
 }
 </script>
@@ -65,8 +65,7 @@ function logChange(label: string, d: any) {
           @change="(d: any) => logChange('chunk-files', d)"
         />
         <pre style="margin-top: 12px; font-size: 11px">
-v-model: {{ multi }}</pre
-        >
+v-model: {{ multi }}</pre>
       </Card>
       <Card title="SmartUpload 自动" size="small">
         <SmartUpload
@@ -75,8 +74,7 @@ v-model: {{ multi }}</pre
           @change="(d: any) => logChange('smart-files', d)"
         />
         <pre style="margin-top: 12px; font-size: 11px">
-v-model: {{ smart }}</pre
-        >
+v-model: {{ smart }}</pre>
       </Card>
     </div>
     <div style="margin-top: 24px; font-size: 12px; color: rgb(0 0 0 / 45%)">

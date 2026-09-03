@@ -1,15 +1,17 @@
 <script lang="ts" setup>
 import { ref } from 'vue';
+
 import {
-  Modal,
-  Drawer,
   Button,
+  Drawer,
+  message,
+  Modal,
+  Popconfirm,
   Space,
   Tag,
   Timeline,
-  message,
-  Popconfirm,
 } from 'ant-design-vue';
+
 import DocRenderer from './DocRenderer.vue';
 
 /**
@@ -63,17 +65,17 @@ export interface DocPreviewApi {
   fetchDetail: (versionId: number) => Promise<DocLatest>;
   /** 回档到某版本 */
   rollback: (payload: {
-    sourceType: string;
     sourceId: number;
+    sourceType: string;
     versionId: number;
   }) => Promise<void>;
 }
 
 const props = withDefaults(
   defineProps<{
-    sourceType: string;
     api: DocPreviewApi;
     descLabel?: string;
+    sourceType: string;
   }>(),
   {
     descLabel: '描述',
@@ -109,10 +111,10 @@ function copyLink(sourceId: number) {
     .catch(() => {
       const input = document.createElement('input');
       input.value = url;
-      document.body.appendChild(input);
+      document.body.append(input);
       input.select();
       document.execCommand('copy');
-      document.body.removeChild(input);
+      input.remove();
       message.success('文档链接已复制');
     });
 }
@@ -194,9 +196,9 @@ defineExpose({ openPreview, download: downloadDirect, openHistory, copyLink });
       "
     >
       <Button @click="copyLink(previewSourceId)">复制链接</Button>
-      <Button @click="doDownload(previewRawContent, previewTitle)"
-        >下载 MD</Button
-      >
+      <Button @click="doDownload(previewRawContent, previewTitle)">
+下载 MD
+</Button>
       <Button @click="previewVisible = false">关闭</Button>
     </div>
   </Modal>
@@ -223,9 +225,9 @@ defineExpose({ openPreview, download: downloadDirect, openHistory, copyLink });
             <span class="doc-preview-time">{{ v.createdTime }}</span>
           </div>
           <Space size="small">
-            <Button size="small" @click="viewVersion(v.id, v.version)"
-              >查看</Button
-            >
+            <Button size="small" @click="viewVersion(v.id, v.version)">
+查看
+</Button>
             <Popconfirm title="确定回档到此版本？" @confirm="rollback(v.id)">
               <Button size="small" type="primary" ghost>回档</Button>
             </Popconfirm>

@@ -1,10 +1,10 @@
 <script lang="ts" setup>
-import { ref, onMounted, watch } from 'vue';
+import { onMounted, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
 import { Page } from '@vben/common-ui';
 
-import { Button, Tag, Tree, Spin, Empty } from 'ant-design-vue';
+import { Button, Empty, Spin, Tag, Tree } from 'ant-design-vue';
 
 import { getChildren, getMemberTree } from './api';
 
@@ -12,7 +12,7 @@ const route = useRoute();
 const router = useRouter();
 const loading = ref(true);
 const treeData = ref<any[]>([]);
-const expandedKeys = ref<(string | number)[]>([]);
+const expandedKeys = ref<(number | string)[]>([]);
 
 // 是否是从会员列表跳转过来查看某个会员的架构
 const focusMemberId = ref(0);
@@ -97,11 +97,7 @@ const onLoadData = (treeNode: any) => {
 async function init() {
   const id = Number(route.query.id) || 0;
   focusMemberId.value = id;
-  if (id > 0) {
-    await loadMemberSubTree(id);
-  } else {
-    await loadRootMembers();
-  }
+  await (id > 0 ? loadMemberSubTree(id) : loadRootMembers());
 }
 
 onMounted(init);
@@ -127,9 +123,9 @@ const switchToOverview = () => {
     <div class="tree-page">
       <!-- 顶部栏 -->
       <div class="tree-header">
-        <Button v-if="focusMemberId > 0" @click="switchToOverview"
-          >全部会员</Button
-        >
+        <Button v-if="focusMemberId > 0" @click="switchToOverview">
+全部会员
+</Button>
         <span class="tree-title">会员架构</span>
       </div>
 
@@ -141,13 +137,11 @@ const switchToOverview = () => {
             <span class="focus-name-sub">{{ focusMember.name }}</span>
           </div>
           <Tag color="blue">ID: {{ focusMember.id }}</Tag>
-          <Tag v-if="focusMember.invitationCode" color="orange"
-            >邀请码: {{ focusMember.invitationCode }}</Tag
-          >
+          <Tag v-if="focusMember.invitationCode" color="orange">
+邀请码: {{ focusMember.invitationCode }}
+</Tag>
           <Tag color="green">直推: {{ focusMember.directChildCount }} 人</Tag>
-          <span class="focus-time"
-            >注册: {{ fmtTime(focusMember.createTime) }}</span
-          >
+          <span class="focus-time">注册: {{ fmtTime(focusMember.createTime) }}</span>
         </div>
       </div>
 
@@ -159,7 +153,7 @@ const switchToOverview = () => {
           </template>
           <Tree
             v-if="treeData.length > 0"
-            v-model:expandedKeys="expandedKeys"
+            v-model:expanded-keys="expandedKeys"
             :tree-data="treeData"
             :load-data="focusMemberId === 0 ? onLoadData : undefined"
             :selectable="false"

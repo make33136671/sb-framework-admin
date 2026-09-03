@@ -33,8 +33,8 @@ interface BrandCurrent {
   generated: boolean;
   spec: BrandSpec;
   assets?: {
-    preview: string[];
     files: string[];
+    preview: string[];
   };
 }
 
@@ -65,7 +65,7 @@ async function loadCurrent() {
 
 async function regenerate() {
   const mono = monogram.value.trim().toUpperCase();
-  if (mono.length < 1 || mono.length > 3) {
+  if (mono.length === 0 || mono.length > 3) {
     Message.warning('单字标必须是 1-3 个字符');
     return;
   }

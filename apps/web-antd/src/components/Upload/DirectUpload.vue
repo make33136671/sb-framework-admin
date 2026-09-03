@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { UploadProps } from './internal/types';
+
 /**
  * 强制直传（小文件场景）
  *
@@ -6,16 +8,15 @@
  * SmartUpload / ChunkUpload 三组件完全一致，业务页切换组件只需改 tag 名。
  */
 import SmartUpload from './SmartUpload.vue';
-import type { UploadProps } from './internal/types';
 
 defineOptions({ name: 'DirectUpload' });
 
 const props = defineProps<UploadProps>();
 const emit = defineEmits<{
-  'update:value': [v: string | string[]];
   change: [d: any];
-  success: [d: any];
   error: [e: Error];
+  success: [d: any];
+  'update:value': [v: string | string[]];
 }>();
 </script>
 
@@ -29,10 +30,10 @@ const emit = defineEmits<{
     @error="(e: any) => emit('error', e)"
   >
     <template v-if="$slots.default" #default="scope">
-      <slot v-bind="scope" />
+      <slot v-bind="scope"></slot>
     </template>
     <template v-if="$slots.extra" #extra="scope">
-      <slot name="extra" v-bind="scope" />
+      <slot name="extra" v-bind="scope"></slot>
     </template>
   </SmartUpload>
 </template>

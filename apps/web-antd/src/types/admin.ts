@@ -44,7 +44,7 @@ export function getAdminTypeLabel(type: AdminType): string {
  */
 export function getAdminTypeColor(
   type: AdminType,
-): 'red' | 'orange' | 'blue' | 'green' | 'default' {
+): 'blue' | 'default' | 'green' | 'orange' | 'red' {
   const colors = {
     [AdminType.SystemAdmin]: 'red' as const,
     [AdminType.RegularAdmin]: 'orange' as const,

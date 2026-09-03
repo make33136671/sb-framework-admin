@@ -20,9 +20,9 @@ async function setupFetch<T = any>(
   data?: Record<string, any>,
 ): Promise<ApiResult<T>> {
   const res = await fetch(`${setupApiURL}${url}`, {
-    method: data !== undefined ? 'POST' : 'GET',
+    method: data === undefined ? 'GET' : 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: data !== undefined ? JSON.stringify(data) : undefined,
+    body: data === undefined ? undefined : JSON.stringify(data),
   });
   return res.json();
 }
@@ -45,17 +45,17 @@ export async function installApi(request: Record<string, any>) {
 
 export async function getDeployHintsApi() {
   return setupFetch<{
-    isDocker?: boolean;
-    apiPath: string;
     adminPath: string;
-    h5Path: string;
+    apiPath: string;
     database?: {
-      dbType: string;
-      server: string;
-      port: string;
       database: string;
-      user: string;
+      dbType: string;
       password: string;
+      port: string;
+      server: string;
+      user: string;
     };
+    h5Path: string;
+    isDocker?: boolean;
   }>('/Setup/DeployHints');
 }

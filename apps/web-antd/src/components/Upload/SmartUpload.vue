@@ -1,4 +1,11 @@
 <script lang="ts" setup>
+import type {
+  UploadDetail,
+  UploadItem,
+  UploadProps,
+  UploadSlotScope,
+} from './internal/types';
+
 import { computed, onMounted, ref, watch } from 'vue';
 
 import { message } from 'ant-design-vue';
@@ -8,17 +15,11 @@ import { useChunkUpload } from './internal/useChunkUpload';
 import { useDirectUpload } from './internal/useDirectUpload';
 import { useUploadConfig } from './internal/useUploadConfig';
 import { useUploadQueue } from './internal/useUploadQueue';
-import type {
-  UploadDetail,
-  UploadItem,
-  UploadProps,
-  UploadSlotScope,
-} from './internal/types';
 
 defineOptions({ name: 'SmartUpload' });
 
 const props = withDefaults(
-  defineProps<UploadProps & { forceMode?: 'auto' | 'direct' | 'chunk' }>(),
+  defineProps<UploadProps & { forceMode?: 'auto' | 'chunk' | 'direct' }>(),
   {
     value: () => '' as any,
     type: 'file',
@@ -30,10 +31,10 @@ const props = withDefaults(
 );
 
 const emit = defineEmits<{
-  'update:value': [v: string | string[]];
   change: [d: UploadDetail | UploadDetail[]];
-  success: [d: UploadDetail | UploadDetail[]];
   error: [e: Error];
+  success: [d: UploadDetail | UploadDetail[]];
+  'update:value': [v: string | string[]];
 }>();
 
 defineSlots<{
@@ -44,7 +45,7 @@ defineSlots<{
 }>();
 
 /** 是否多文件类型 */
-const isMulti = computed(() => /s$/.test(props.type ?? 'file'));
+const isMulti = computed(() => (props.type ?? 'file').endsWith('s'));
 
 /** 实际 maxCount（单 = 1，多 = 默认 Infinity） */
 const effectiveMaxCount = computed(() => {
@@ -73,7 +74,7 @@ const items = ref<UploadItem[]>([]);
  * 把 v-model 值同步为 items（status='done' 占位）
  */
 function syncFromValue(v: string | string[]) {
-  const list = Array.isArray(v) ? v : v ? [v] : [];
+  const list = Array.isArray(v) ? v : (v ? [v] : []);
   const existingFileNames = new Set(
     items.value.filter((i) => i.fileName).map((i) => i.fileName),
   );
@@ -230,13 +231,13 @@ useUploadQueue(items, async (item) => {
     item.name = detail.name || item.name;
     emit('success', detail);
     emitChange();
-  } catch (e: any) {
-    if (e?.message === '已取消') {
+  } catch (error: any) {
+    if (error?.message === '已取消') {
       // 静默：cancel/remove 已经处理 UI
     } else {
       item.status = 'error';
-      item.error = e?.message || '上传失败';
-      emit('error', e instanceof Error ? e : new Error(String(e)));
+      item.error = error?.message || '上传失败';
+      emit('error', error instanceof Error ? error : new Error(String(error)));
     }
   } finally {
     stopProgress();
@@ -308,7 +309,7 @@ const slotScope = computed<UploadSlotScope>(() => ({
 </script>
 
 <template>
-  <slot v-if="$slots.default" v-bind="slotScope" />
+  <slot v-if="$slots.default" v-bind="slotScope"></slot>
   <template v-else>
     <UploadUi
       :items="items"
@@ -321,6 +322,6 @@ const slotScope = computed<UploadSlotScope>(() => ({
       @retry="retry"
       @remove="remove"
     />
-    <slot name="extra" v-bind="slotScope" />
+    <slot name="extra" v-bind="slotScope"></slot>
   </template>
 </template>

@@ -13,11 +13,7 @@ export async function postAdd(data: any) {
 }
 
 export async function postEdit(params: any) {
-  if (params.id) {
-    return api.post('/Manager/Edit', params);
-  } else {
-    return postAdd(params);
-  }
+  return params.id ? api.post('/Manager/Edit', params) : postAdd(params);
 }
 
 export async function postDel(id: any) {
@@ -37,11 +33,7 @@ export async function postRoleAdd(data: any) {
 }
 
 export async function postRoleEdit(params: any) {
-  if (params.id) {
-    return api.post('/Manager/RoleEdit', params);
-  } else {
-    return postRoleAdd(params);
-  }
+  return params.id ? api.post('/Manager/RoleEdit', params) : postRoleAdd(params);
 }
 
 export async function postRoleDel(id: any) {

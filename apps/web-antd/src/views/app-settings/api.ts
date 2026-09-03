@@ -7,7 +7,7 @@ const { apiURL } = useAppConfig(import.meta.env, import.meta.env.PROD);
 export interface AppSettingsData {
   path: string;
   rawText: string;
-  parsed: Record<string, unknown> | null;
+  parsed: null | Record<string, unknown>;
   size: number;
   lastModified: string;
 }
@@ -27,7 +27,7 @@ export function saveAppSettings(rawText: string, restart = true) {
 }
 
 export function diffAppSettings(rawText: string) {
-  return api.post<{ oldText: string; newText: string }>('/AppSettings/Diff', {
+  return api.post<{ newText: string; oldText: string; }>('/AppSettings/Diff', {
     rawText,
   });
 }

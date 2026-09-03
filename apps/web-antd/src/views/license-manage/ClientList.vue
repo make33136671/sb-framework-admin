@@ -11,7 +11,6 @@ import {
   Descriptions,
   DescriptionsItem,
   Empty,
-  message,
   Modal,
   Popconfirm,
   Space,
@@ -20,7 +19,6 @@ import {
 } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
-
 import { TimeTag } from '#/components/TimeTag';
 
 import {
@@ -120,7 +118,7 @@ const gridOptions: VxeGridProps = {
     },
   },
   showOverflow: false,
-  rowConfig: { isHover: true, autoHeight: true },
+  rowConfig: { isHover: true },
   toolbarConfig: { refresh: true, custom: true },
 };
 
@@ -186,7 +184,7 @@ const recordLoading = ref(false);
 const recordClient = ref<any>(null);
 const recordList = ref<any[]>([]);
 
-function parseJson(raw: string | null | undefined): string {
+function parseJson(raw: null | string | undefined): string {
   if (!raw) return '-';
   try {
     const arr = JSON.parse(raw);
@@ -196,7 +194,7 @@ function parseJson(raw: string | null | undefined): string {
   }
 }
 
-function shortId(val: string | null | undefined, len = 24): string {
+function shortId(val: null | string | undefined, len = 24): string {
   if (!val) return '-';
   return val.length > len ? `${val.slice(0, len)}...` : val;
 }
@@ -309,15 +307,11 @@ async function handleRevoke(record: any) {
       <template #timeStatusCol="{ row }">
         <div style="padding: 8px 0; line-height: 1.9">
           <div>
-            <span style="font-size: 12px; color: var(--ant-color-text-tertiary)"
-              >创建　</span
-            >
+            <span style="font-size: 12px; color: var(--ant-color-text-tertiary)">创建　</span>
             <TimeTag color="cyan" :time="fmtTime(row.createdTime)" />
           </div>
           <div>
-            <span style="font-size: 12px; color: var(--ant-color-text-tertiary)"
-              >验证　</span
-            >
+            <span style="font-size: 12px; color: var(--ant-color-text-tertiary)">验证　</span>
             <TimeTag
               v-if="row.lastVerifyTime"
               color="blue"
@@ -326,12 +320,10 @@ async function handleRevoke(record: any) {
             <Tag v-else color="default" style="margin: 0">未验证</Tag>
           </div>
           <div style="margin-top: 2px; font-size: 13px">
-            <span
-              >验证 <strong>{{ row.verifyCount }}</strong> 次</span
-            >
-            <Tag v-if="row.status === 0" color="green" style="margin-left: 8px"
-              >正常</Tag
-            >
+            <span>验证 <strong>{{ row.verifyCount }}</strong> 次</span>
+            <Tag v-if="row.status === 0" color="green" style="margin-left: 8px">
+正常
+</Tag>
             <Tag v-else color="red" style="margin-left: 8px">禁用</Tag>
           </div>
         </div>
@@ -395,8 +387,7 @@ async function handleRevoke(record: any) {
                     v-if="row.status === 0"
                     color="green"
                     style="margin-left: 8px"
-                    >有效</Tag
-                  >
+                    >有效</Tag>
                   <Tag v-else color="red" style="margin-left: 8px">已吊销</Tag>
                   <Tag :color="row.isDownloaded ? 'blue' : 'default'">
                     {{ row.isDownloaded ? '已下载' : '未下载' }}
@@ -418,9 +409,11 @@ async function handleRevoke(record: any) {
               :label-style="{ width: '110px', whiteSpace: 'nowrap' }"
             >
               <DescriptionsItem label="验证模式">
-                <Tag :color="deriveVerifyMode(row).color">{{
+                <Tag :color="deriveVerifyMode(row).color">
+{{
                   deriveVerifyMode(row).text
-                }}</Tag>
+                }}
+</Tag>
               </DescriptionsItem>
               <DescriptionsItem label="产品标识">
                 <span style="font-family: monospace">{{

@@ -160,8 +160,8 @@ async function handleApplyFromServer() {
       {},
     );
     queryResult.value = { ...queryResult.value, applied: true };
-  } catch (e: any) {
-    applyError.value = e?.message || '应用失败';
+  } catch (error: any) {
+    applyError.value = error?.message || '应用失败';
   } finally {
     applyLoading.value = false;
   }
@@ -175,7 +175,7 @@ async function handleApplyKey() {
   loading.value = true;
   try {
     const data: any = await api.post(
-      `/Verification/ApplyKey?licenseKey=${encodeURIComponent(licenseKeyInput.value.replace(/[\s\n\r]/g, ''))}`,
+      `/Verification/ApplyKey?licenseKey=${encodeURIComponent(licenseKeyInput.value.replaceAll(/[\s\n\r]/g, ''))}`,
       {},
     );
     queryResult.value = { ...data, offline: true, applied: true };
@@ -381,9 +381,7 @@ async function copyClientInfo() {
           <span v-if="queryResult.productEn" style="font-family: monospace">{{
             queryResult.productEn
           }}</span>
-          <span v-else style="color: var(--ant-color-text-tertiary)"
-            >未绑定（不验证产品）</span
-          >
+          <span v-else style="color: var(--ant-color-text-tertiary)">未绑定（不验证产品）</span>
         </DescriptionsItem>
 
         <!-- 授权域名: 优先展示 domains 数组 (新 Key, 支持通配符), fallback 到 domain 单值 (老 Key) -->
@@ -394,15 +392,14 @@ async function copyClientInfo() {
               :key="d"
               color="blue"
               style="margin-bottom: 2px"
-              >{{ d }}</Tag
-            >
+              >
+{{ d }}
+</Tag>
           </template>
           <span v-else-if="queryResult.domain" style="font-family: monospace">{{
             queryResult.domain
           }}</span>
-          <span v-else style="color: var(--ant-color-text-tertiary)"
-            >未限定（不验证域名）</span
-          >
+          <span v-else style="color: var(--ant-color-text-tertiary)">未限定（不验证域名）</span>
         </DescriptionsItem>
 
         <!-- 绑定 ClientKey: 客户端会用本机 ClientKey 和此值比对, 不匹配授权失效 -->
@@ -418,9 +415,7 @@ async function copyClientInfo() {
           >
             {{ queryResult.clientKey }}
           </span>
-          <span v-else style="color: var(--ant-color-text-tertiary)"
-            >未绑定（不验证 ClientKey）</span
-          >
+          <span v-else style="color: var(--ant-color-text-tertiary)">未绑定（不验证 ClientKey）</span>
         </DescriptionsItem>
 
         <!-- 绑定 HardwareId: 同上, 客户端按本机 HardwareId 比对 -->
@@ -436,9 +431,7 @@ async function copyClientInfo() {
           >
             {{ queryResult.hardwareId }}
           </span>
-          <span v-else style="color: var(--ant-color-text-tertiary)"
-            >未绑定（不验证 HardwareId）</span
-          >
+          <span v-else style="color: var(--ant-color-text-tertiary)">未绑定（不验证 HardwareId）</span>
         </DescriptionsItem>
 
         <!-- 启用的验证项: 上面 4 行的摘要汇总, 一眼看清这个 Key 到底验哪些 -->
@@ -446,9 +439,9 @@ async function copyClientInfo() {
           <Tag v-if="queryResult.requiresProduct" color="blue">产品名</Tag>
           <Tag v-if="queryResult.requiresDomain" color="blue">域名</Tag>
           <Tag v-if="queryResult.requiresClientKey" color="blue">ClientKey</Tag>
-          <Tag v-if="queryResult.requiresHardwareId" color="blue"
-            >HardwareId</Tag
-          >
+          <Tag v-if="queryResult.requiresHardwareId" color="blue">
+HardwareId
+</Tag>
           <span
             v-if="
               !queryResult.requiresProduct &&
@@ -470,8 +463,7 @@ async function copyClientInfo() {
         <DescriptionsItem label="到期时间">
           <span
             style="font-family: monospace; font-weight: 500; color: #1677ff"
-            >{{ fmtTime(queryResult.expiresAt) }}</span
-          >
+            >{{ fmtTime(queryResult.expiresAt) }}</span>
         </DescriptionsItem>
 
         <!-- 到期后行为: 签发授权时勾选的策略 -->
@@ -499,15 +491,15 @@ async function copyClientInfo() {
                 font-size: 12px;
                 color: var(--ant-color-text-tertiary);
               "
-              >自定义放行:</span
-            >
+              >自定义放行:</span>
             <Tag
               v-for="r in queryResult.allowedRoutes"
               :key="r"
               color="default"
               style="margin-bottom: 2px; font-family: monospace"
-              >{{ r }}</Tag
-            >
+              >
+{{ r }}
+</Tag>
           </template>
         </DescriptionsItem>
 

@@ -40,8 +40,8 @@ async function handleExecute() {
         _key: i,
       }));
     }
-  } catch (e: any) {
-    errorMsg.value = e?.message || '执行失败';
+  } catch (error: any) {
+    errorMsg.value = error?.message || '执行失败';
   } finally {
     loading.value = false;
   }
@@ -89,7 +89,7 @@ function handleClear() {
         "
         @keydown.ctrl.enter="handleExecute"
         @keydown.meta.enter="handleExecute"
-      />
+      ></textarea>
       <div style="margin-top: 4px; font-size: 12px; color: #999">
         Ctrl + Enter 执行
       </div>

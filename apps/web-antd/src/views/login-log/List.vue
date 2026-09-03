@@ -9,24 +9,28 @@ import { useVbenVxeGrid } from '#/adapter/vxe-table';
 
 import { getList } from './api';
 
-const userTypeMap: Record<number, { label: string; color: string }> = {
+const userTypeMap: Record<number, { color: string; label: string; }> = {
   0: { label: 'H5会员', color: 'processing' },
   1: { label: '管理员', color: 'warning' },
 };
 
-const statusMap: Record<number, { label: string; color: string }> = {
+const statusMap: Record<number, { color: string; label: string; }> = {
   0: { label: '成功', color: 'success' },
   1: { label: '失败', color: 'error' },
 };
 
-const fmtTime = (v: string) => {
+const fmtTime = (v: null | string | undefined) => {
   if (!v) return '-';
   const d = new Date(v);
   const pad = (n: number) => String(n).padStart(2, '0');
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
 };
 
-interface RowType {}
+interface RowType {
+  createTime?: string;
+  status: number;
+  userType: number;
+}
 
 const formOptions = {
   schema: [

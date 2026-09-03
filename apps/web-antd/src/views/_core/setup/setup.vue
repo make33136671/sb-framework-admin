@@ -8,7 +8,6 @@ import {
   Alert,
   Button,
   Card,
-  Checkbox,
   Descriptions,
   DescriptionsItem,
   Divider,
@@ -41,9 +40,9 @@ const currentStep = ref(0);
 const installed = ref(false);
 const installing = ref(false);
 const installResult = ref<null | {
+  data?: any;
   message: string;
   success: boolean;
-  data?: any;
 }>(null);
 
 // 数据库
@@ -61,9 +60,9 @@ const dbName = ref(
 const dbUser = ref('root');
 const dbPassword = ref('');
 const dbTestResult = ref<null | {
+  data?: any;
   message: string;
   success: boolean;
-  data?: any;
 }>(null);
 const dbTesting = ref(false);
 const wipeDatabase = ref(false);
@@ -135,7 +134,7 @@ function extractNameFromDomain(domain: string): string {
   // 取倒数第二段（主体部分），如 example.com → example
   const name = parts.length >= 2 ? parts[parts.length - 2] : parts[0];
   // 只保留小写字母和数字
-  return (name || '').toLowerCase().replace(/[^a-z0-9]/g, '') || 'sb';
+  return (name || '').toLowerCase().replaceAll(/[^a-z0-9]/g, '') || 'sb';
 }
 
 const defaultDomain = extractRootDomain(window.location.hostname);
@@ -252,14 +251,14 @@ function onPrimaryDomainChange() {
   productEn.value = name;
   onProductEnChange();
   // 联动 CORS 默认来源
-  if (domain && !corsOrigins.value.length) {
+  if (domain && corsOrigins.value.length === 0) {
     corsOrigins.value = [`https://${domain}`, `https://*.${domain}`];
   }
 }
 
 // === 产品英文名联动 ===
 function onProductEnChange() {
-  const name = productEn.value.toLowerCase().replace(/[^a-z0-9]/g, '');
+  const name = productEn.value.toLowerCase().replaceAll(/[^a-z0-9]/g, '');
   productEn.value = name;
   // 联动数据库名（首字母大写）— Docker 模式使用容器预设值，跳过
   if (name && !isDocker.value) {
@@ -294,10 +293,10 @@ function handleLogoUpload(event: Event) {
     return;
   }
   const reader = new FileReader();
-  reader.onload = (e) => {
+  reader.addEventListener('load', (e) => {
     logoBase64.value = e.target?.result as string;
     logoPreviewUrl.value = logoBase64.value;
-  };
+  });
   reader.readAsDataURL(file);
 }
 
@@ -313,19 +312,15 @@ function removeSitePath(index: number) {
 // === 验证 ===
 function validateStep(step: number): boolean {
   // Step 0: 产品信息
-  if (step === 0) {
-    if (!productEn.value || !/^[a-z][a-z0-9]{1,19}$/.test(productEn.value)) {
+  if (step === 0 && (!productEn.value || !/^[a-z][a-z0-9]{1,19}$/.test(productEn.value))) {
       message.warning('产品英文名称只允许小写字母和数字，2-20字符，字母开头');
       return false;
     }
-  }
   // Step 1: 数据库
-  if (step === 1) {
-    if (!dbServer.value || !dbPort.value || !dbName.value || !dbUser.value) {
+  if (step === 1 && (!dbServer.value || !dbPort.value || !dbName.value || !dbUser.value)) {
       message.warning('请填写完整的数据库配置');
       return false;
     }
-  }
   // Step 5: 管理员
   if (step === 5) {
     if (!adminUsername.value) {
@@ -377,10 +372,10 @@ async function testDb() {
     };
     // 重置抹除选项
     wipeDatabase.value = false;
-  } catch (e: any) {
+  } catch (error: any) {
     dbTestResult.value = {
       success: false,
-      message: `请求失败: ${e.message}`,
+      message: `请求失败: ${error.message}`,
     };
   } finally {
     dbTesting.value = false;
@@ -399,10 +394,10 @@ async function testRedis() {
       success: r.code === 0,
       message: r.message,
     };
-  } catch (e: any) {
+  } catch (error: any) {
     redisTestResult.value = {
       success: false,
-      message: `请求失败: ${e.message}`,
+      message: `请求失败: ${error.message}`,
     };
   } finally {
     redisTesting.value = false;
@@ -462,10 +457,10 @@ async function doInstall() {
       resetAllStores();
       setTimeout(() => checkServerReady(), 3000);
     }
-  } catch (e: any) {
+  } catch (error: any) {
     installResult.value = {
       success: false,
-      message: `请求失败: ${e.message}`,
+      message: `请求失败: ${error.message}`,
     };
   } finally {
     installing.value = false;
@@ -577,8 +572,8 @@ function importConfig() {
         }
         fillFormFromConfig(config);
         message.success('配置已导入');
-      } catch (err: any) {
-        message.error(`解析失败: ${err.message}`);
+      } catch (error: any) {
+        message.error(`解析失败: ${error.message}`);
       }
     });
     reader.readAsText(file);
@@ -686,12 +681,12 @@ function fillFormFromConfig(config: any) {
             </template>
             <template #extra>
               <Space>
-                <Button type="primary" :disabled="!serverReady" @click="goHome"
-                  >前往首页</Button
-                >
-                <Button :disabled="!serverReady" @click="goLicense"
-                  >前往授权</Button
-                >
+                <Button type="primary" :disabled="!serverReady" @click="goHome">
+前往首页
+</Button>
+                <Button :disabled="!serverReady" @click="goLicense">
+前往授权
+</Button>
               </Space>
             </template>
           </Result>
@@ -904,14 +899,15 @@ function fillFormFromConfig(config: any) {
                 />
                 <Button @click="addCorsOrigin">添加</Button>
               </div>
-              <div v-if="corsOrigins.length" class="cors-tags">
+              <div v-if="corsOrigins.length > 0" class="cors-tags">
                 <Tag
                   v-for="(origin, i) in corsOrigins"
                   :key="origin"
                   closable
                   @close="removeCorsOrigin(i)"
-                  >{{ origin }}</Tag
-                >
+                  >
+{{ origin }}
+</Tag>
               </div>
             </div>
           </template>
@@ -943,9 +939,9 @@ function fillFormFromConfig(config: any) {
                 placeholder="站点根目录路径"
                 style="flex: 1"
               />
-              <Button danger size="small" @click="removeSitePath(idx)"
-                >删除</Button
-              >
+              <Button danger size="small" @click="removeSitePath(idx)">
+删除
+</Button>
             </div>
             <Button size="small" @click="addSitePath">+ 添加站点</Button>
           </div>
@@ -993,10 +989,8 @@ function fillFormFromConfig(config: any) {
           </div>
 
           <div class="form-item">
-            <label
-              >产品英文名称
-              <span style="color: var(--ant-color-error)">*</span></label
-            >
+            <label>产品英文名称
+              <span style="color: var(--ant-color-error)">*</span></label>
             <Input
               v-model:value="productEn"
               placeholder="小写字母+数字，如 sb"
@@ -1058,7 +1052,7 @@ function fillFormFromConfig(config: any) {
 
           <Divider />
           <div class="step-actions">
-            <div />
+            <div></div>
             <Button type="primary" @click="nextStep">下一步</Button>
           </div>
         </Card>
@@ -1188,9 +1182,7 @@ function fillFormFromConfig(config: any) {
                   border-radius: 4px;
                 "
               />
-              <span v-else style="color: var(--ant-color-text-tertiary)"
-                >使用默认 Logo</span
-              >
+              <span v-else style="color: var(--ant-color-text-tertiary)">使用默认 Logo</span>
             </DescriptionsItem>
             <DescriptionsItem label="系统时区">
               {{ timeZone }}
@@ -1225,8 +1217,7 @@ function fillFormFromConfig(config: any) {
               <span
                 v-if="!sitePaths.some((s) => s.type && s.path)"
                 style="color: var(--ant-color-text-tertiary)"
-                >未配置</span
-              >
+                >未配置</span>
             </DescriptionsItem>
           </Descriptions>
 

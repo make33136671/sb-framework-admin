@@ -10,6 +10,8 @@ import {
   watch,
 } from 'vue';
 
+import { usePreferences } from '@vben/preferences';
+
 import {
   Alert,
   Button,
@@ -30,13 +32,12 @@ import {
   Upload,
 } from 'ant-design-vue';
 
-import { usePreferences } from '@vben/preferences';
-
 import { JsonEditor } from '#/components/JsonEditor';
 import { JsonFieldEditor } from '#/components/JsonFieldEditor';
 import { RestartWaiter } from '#/components/RestartWaiter';
 
 import {
+  type AppSettingsHistoryItem,
   diffAppSettings,
   downloadAppSettingsUrl,
   getAppInfo,
@@ -47,7 +48,6 @@ import {
   rollbackAppSettings,
   saveAppSettings,
   uploadAppSettings,
-  type AppSettingsHistoryItem,
 } from './api';
 
 defineOptions({ name: 'AppSettings' });
@@ -130,7 +130,7 @@ const loading = ref(false);
 const saving = ref(false);
 const originalText = ref('');
 const editText = ref('');
-const meta = ref<{ path?: string; size?: number; lastModified?: string }>({});
+const meta = ref<{ lastModified?: string; path?: string; size?: number; }>({});
 const autoRestart = ref(true);
 
 const isDirty = computed(
@@ -144,7 +144,7 @@ type EditorMode = 'editor' | 'visual';
 const editorMode = ref<EditorMode>('editor');
 // 可视化模式下的解析对象。editor 模式下不读,只在切到 visual 时从 editText 解析。
 const parsedObject = ref<any>(null);
-const jsonEditorRef = ref<{ format: () => void } | null>(null);
+const jsonEditorRef = ref<null | { format: () => void }>(null);
 
 // 高度方案(两段配合):
 //  1) 布局用纯 flex 撑满:content → wrap → settings-layout → editor-card → card-body
@@ -153,7 +153,7 @@ const jsonEditorRef = ref<{ format: () => void } | null>(null);
 //     空白),所以 ResizeObserver 实测 editor-body 撑满后的真实像素高,传给编辑器。
 const editorBodyRef = ref<HTMLElement | null>(null);
 const editorPxHeight = ref(600);
-let editorRO: ResizeObserver | null = null;
+let editorRO: null | ResizeObserver = null;
 
 onMounted(() => {
   if (editorBodyRef.value) {
@@ -188,8 +188,8 @@ watch(editorMode, (newMode, oldMode) => {
   if (newMode === 'visual' && oldMode === 'editor') {
     try {
       parsedObject.value = JSON.parse(editText.value);
-    } catch (err: any) {
-      message.error(`JSON 格式错误,无法切换可视化模式: ${err.message}`);
+    } catch (error: any) {
+      message.error(`JSON 格式错误,无法切换可视化模式: ${error.message}`);
       // 回滚 mode(nextTick 避免 watch 内部同步改自己触发的副作用)
       nextTick(() => {
         editorMode.value = 'editor';
@@ -248,8 +248,8 @@ function beautify() {
     const parsed = JSON.parse(editText.value);
     editText.value = JSON.stringify(parsed, null, 2);
     message.success('已格式化');
-  } catch (err: any) {
-    message.error(`JSON 解析失败: ${err.message}`);
+  } catch (error: any) {
+    message.error(`JSON 解析失败: ${error.message}`);
   }
 }
 
@@ -262,8 +262,8 @@ async function previewSave() {
   // 本地先 JSON.parse 校验
   try {
     JSON.parse(editText.value);
-  } catch (err: any) {
-    message.error(`JSON 格式错误: ${err.message}`);
+  } catch (error: any) {
+    message.error(`JSON 格式错误: ${error.message}`);
     return;
   }
 
@@ -357,7 +357,7 @@ const beforeUpload: UploadProps['beforeUpload'] = async (file) => {
 const historyOpen = ref(false);
 const historyList = ref<AppSettingsHistoryItem[]>([]);
 const historyLoading = ref(false);
-const previewingHistory = ref<{ fileName: string; rawText: string } | null>(
+const previewingHistory = ref<null | { fileName: string; rawText: string }>(
   null,
 );
 
@@ -544,36 +544,56 @@ onMounted(() => {
     <!-- 服务器信息抽屉 -->
     <Drawer v-model:open="serverInfoOpen" title="服务器信息" :width="560">
       <Descriptions :column="2" size="small" bordered>
-        <DescriptionsItem label="版本">{{
+        <DescriptionsItem label="版本">
+{{
           serverInfo.version || '-'
-        }}</DescriptionsItem>
-        <DescriptionsItem label="环境">{{
+        }}
+</DescriptionsItem>
+        <DescriptionsItem label="环境">
+{{
           serverInfo.environment || '-'
-        }}</DescriptionsItem>
-        <DescriptionsItem label=".NET">{{
+        }}
+</DescriptionsItem>
+        <DescriptionsItem label=".NET">
+{{
           serverInfo.dotnetVersion || '-'
-        }}</DescriptionsItem>
-        <DescriptionsItem label="时区">{{
+        }}
+</DescriptionsItem>
+        <DescriptionsItem label="时区">
+{{
           serverInfo.timeZone || '-'
-        }}</DescriptionsItem>
-        <DescriptionsItem label="启动时间">{{
+        }}
+</DescriptionsItem>
+        <DescriptionsItem label="启动时间">
+{{
           serverInfo.startTime || '-'
-        }}</DescriptionsItem>
-        <DescriptionsItem label="运行时长">{{
+        }}
+</DescriptionsItem>
+        <DescriptionsItem label="运行时长">
+{{
           serverInfo.uptime || '-'
-        }}</DescriptionsItem>
-        <DescriptionsItem label="服务器时间">{{
+        }}
+</DescriptionsItem>
+        <DescriptionsItem label="服务器时间">
+{{
           serverInfo.serverTime || '-'
-        }}</DescriptionsItem>
-        <DescriptionsItem label="主机">{{
+        }}
+</DescriptionsItem>
+        <DescriptionsItem label="主机">
+{{
           serverInfo.machineName || '-'
-        }}</DescriptionsItem>
-        <DescriptionsItem label="进程 ID">{{
+        }}
+</DescriptionsItem>
+        <DescriptionsItem label="进程 ID">
+{{
           serverInfo.processId ?? '-'
-        }}</DescriptionsItem>
-        <DescriptionsItem label="线程数">{{
+        }}
+</DescriptionsItem>
+        <DescriptionsItem label="线程数">
+{{
           serverInfo.threadCount ?? '-'
-        }}</DescriptionsItem>
+        }}
+</DescriptionsItem>
         <DescriptionsItem label="工作集 (RSS)">
           {{
             serverInfo.workingSetMb != null
@@ -586,23 +606,27 @@ onMounted(() => {
             serverInfo.gcTotalMb != null ? `${serverInfo.gcTotalMb} MB` : '-'
           }}
         </DescriptionsItem>
-        <DescriptionsItem label="CPU 核心">{{
+        <DescriptionsItem label="CPU 核心">
+{{
           serverInfo.processorCount ?? '-'
-        }}</DescriptionsItem>
-        <DescriptionsItem label="操作系统" :span="2">{{
+        }}
+</DescriptionsItem>
+        <DescriptionsItem label="操作系统" :span="2">
+{{
           serverInfo.osVersion || '-'
-        }}</DescriptionsItem>
+        }}
+</DescriptionsItem>
         <DescriptionsItem label="安装路径" :span="2">
           <code>{{ serverInfo.installPath || '-' }}</code>
         </DescriptionsItem>
         <DescriptionsItem label="监听地址" :span="2">
-          <Tag color="success">{{
+          <Tag color="success">
+{{
             serverInfo.listeningUrls || '(未识别)'
-          }}</Tag>
-          <span class="hint"
-            >由 appsettings.json 的 <code>Urls</code> 字段决定（启动命令不传
-            --urls 时）</span
-          >
+          }}
+</Tag>
+          <span class="hint">由 appsettings.json 的 <code>Urls</code> 字段决定（启动命令不传
+            --urls 时）</span>
         </DescriptionsItem>
       </Descriptions>
     </Drawer>
@@ -659,9 +683,9 @@ onMounted(() => {
               </div>
               <Space>
                 <Button size="small" @click="previewHistory(item)">查看</Button>
-                <Button size="small" danger @click="doRollback(item)"
-                  >回滚</Button
-                >
+                <Button size="small" danger @click="doRollback(item)">
+回滚
+</Button>
               </Space>
             </div>
           </li>

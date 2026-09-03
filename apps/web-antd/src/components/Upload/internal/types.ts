@@ -1,11 +1,11 @@
 /** 上传组件支持的预设类型 */
 export type UploadType =
+  | 'file'
+  | 'files'
   | 'image'
   | 'images'
   | 'video'
-  | 'videos'
-  | 'file'
-  | 'files';
+  | 'videos';
 
 /** 三组件共用的 props 定义 */
 export interface UploadProps {
@@ -44,7 +44,7 @@ export interface ThreadState {
   /** 当前分片上传进度 0-100 */
   progress: number;
   /** 线程状态 */
-  status: 'idle' | 'uploading' | 'done';
+  status: 'done' | 'idle' | 'uploading';
 }
 
 /** 内部维护的列表项（通过 default slot scope 暴露给业务） */
@@ -52,7 +52,7 @@ export interface UploadItem {
   /** 内部唯一 id */
   uid: string;
   /** 当前状态 */
-  status: 'queued' | 'hashing' | 'uploading' | 'done' | 'error' | 'cancelled';
+  status: 'cancelled' | 'done' | 'error' | 'hashing' | 'queued' | 'uploading';
   /** 进度 0-100 */
   progress: number;
   /** 用户选择的本地 File（done 后保留以便重试） */

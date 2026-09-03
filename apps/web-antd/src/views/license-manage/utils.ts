@@ -7,9 +7,9 @@
  */
 export function deriveVerifyMode(
   row:
-    | { clientKey?: null | string; hardwareId?: null | string }
     | null
-    | undefined,
+    | undefined
+    | { clientKey?: null | string; hardwareId?: null | string },
 ): { color: string; text: string } {
   const hasClientKey = !!row?.clientKey;
   const hasHardwareId = !!row?.hardwareId;

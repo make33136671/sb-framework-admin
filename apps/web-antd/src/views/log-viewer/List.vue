@@ -227,18 +227,14 @@ onMounted(() => {
       >
         <template #title>
           <span v-if="selectedFile">{{ selectedFile }}</span>
-          <span v-else style="color: hsl(var(--muted-foreground))"
-            >请选择日志文件</span
-          >
+          <span v-else style="color: hsl(var(--muted-foreground))">请选择日志文件</span>
         </template>
         <template v-if="selectedFile" #extra>
           <Space>
             <span style="font-size: 12px; color: hsl(var(--muted-foreground))">
               显示 {{ returnedLines }} / {{ totalLines }} 行
             </span>
-            <span style="font-size: 12px; color: hsl(var(--muted-foreground))"
-              >尾部行数:</span
-            >
+            <span style="font-size: 12px; color: hsl(var(--muted-foreground))">尾部行数:</span>
             <InputNumber
               v-model:value="tailCount"
               :min="100"
@@ -247,13 +243,13 @@ onMounted(() => {
               size="small"
               style="width: 100px"
             />
-            <Button size="small" @click="handleSelect(selectedFile)"
-              >刷新</Button
-            >
+            <Button size="small" @click="handleSelect(selectedFile)">
+刷新
+</Button>
             <Button size="small" @click="handleLoadAll">加载全部</Button>
-            <Button size="small" @click="handleDownload(selectedFile)"
-              >下载</Button
-            >
+            <Button size="small" @click="handleDownload(selectedFile)">
+下载
+</Button>
           </Space>
         </template>
 
@@ -274,8 +270,7 @@ onMounted(() => {
             background: #1e1e1e;
             border-radius: 6px;
           "
-          >{{ content }}</pre
-        >
+          >{{ content }}</pre>
         <div
           v-else-if="!selectedFile"
           style="

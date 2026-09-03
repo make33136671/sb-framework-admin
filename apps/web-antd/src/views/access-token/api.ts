@@ -3,8 +3,8 @@ import { api } from '#/api/request';
 // /admin/AccessToken/* — 框架统一访问令牌(SB.Feature.AccessToken),取代原 /admin/AgentToken/*
 
 export async function getList(params: {
-  keyword?: string;
   accountId?: number;
+  keyword?: string;
   page?: number;
   pageSize?: number;
 }) {
@@ -52,8 +52,8 @@ export async function postRevoke(id: number, reason?: string) {
 }
 
 export async function getAudit(params: {
-  keyId?: number;
   action?: string;
+  keyId?: number;
   page?: number;
   pageSize?: number;
 }) {

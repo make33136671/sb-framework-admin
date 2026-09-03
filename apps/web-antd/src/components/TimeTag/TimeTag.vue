@@ -5,19 +5,19 @@ import { Tag } from 'ant-design-vue';
 
 const props = withDefaults(
   defineProps<{
-    /** 时间字符串（"2026-05-10 14:41:02" / "00:01:23.45" 等） */
-    time?: null | string;
     /** Tag 颜色，沿用 antd Tag color prop（preset 名或十六进制） */
     color?: string;
+    /** 占位符（time 为空时显示），默认 -- */
+    placeholder?: string;
+    /** 是否启用等宽数字（避免跑动数字时跳宽），默认开 */
+    tabular?: boolean;
+    /** 时间字符串（"2026-05-10 14:41:02" / "00:01:23.45" 等） */
+    time?: null | string;
     /**
      * IANA 时区，可选；传了之后下方会多一行小字显示
      * "Asia/Shanghai +8" 这种格式，告诉用户这个时间是哪个时区的
      */
     timezone?: null | string;
-    /** 是否启用等宽数字（避免跑动数字时跳宽），默认开 */
-    tabular?: boolean;
-    /** 占位符（time 为空时显示），默认 -- */
-    placeholder?: string;
   }>(),
   {
     color: 'blue',
@@ -68,8 +68,7 @@ const showTimezone = computed(() => {
 <template>
   <Tag
     :color="color"
-    :class="[
-      'time-tag',
+    class="time-tag" :class="[
       { 'time-tag--two-line': showTimezone, 'time-tag--tabular': tabular },
     ]"
   >

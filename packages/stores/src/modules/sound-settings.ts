@@ -1,5 +1,6 @@
-import { acceptHMRUpdate, defineStore } from 'pinia';
 import { ref } from 'vue';
+
+import { acceptHMRUpdate, defineStore } from 'pinia';
 
 /**
  * 声音设置接口
@@ -44,9 +45,9 @@ const defaultSoundOptions: SoundOption[] = [
 ];
 
 // API 回调函数类型
-type FetchSettingsCallback = () => Promise<SoundSettings | null>;
+type FetchSettingsCallback = () => Promise<null | SoundSettings>;
 type SaveSettingsCallback = (settings: SoundSettings) => Promise<boolean>;
-type FetchSoundsCallback = () => Promise<SoundOption[] | null>;
+type FetchSoundsCallback = () => Promise<null | SoundOption[]>;
 
 // localStorage 降级存储 key
 const STORAGE_KEY = 'sound-settings';
@@ -54,7 +55,7 @@ const STORAGE_KEY = 'sound-settings';
 /**
  * 从 localStorage 读取设置
  */
-function loadFromStorage(): SoundSettings | null {
+function loadFromStorage(): null | SoundSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
@@ -79,7 +80,7 @@ function saveToStorage(s: SoundSettings) {
 
 // 全局 API 回调存储（在模块级别，确保单例）
 let _fetchSettingsCallback: FetchSettingsCallback | null = null;
-let _saveSettingsCallback: SaveSettingsCallback | null = null;
+let _saveSettingsCallback: null | SaveSettingsCallback = null;
 let _fetchSoundsCallback: FetchSoundsCallback | null = null;
 
 /**
@@ -117,7 +118,7 @@ export const useSoundSettingsStore = defineStore('sound-settings', () => {
   let previewAudio: HTMLAudioElement | null = null;
 
   // 防抖定时器
-  let saveTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  let saveTimeoutId: null | ReturnType<typeof setTimeout> = null;
 
   /**
    * 初始化设置（优先从后端加载，失败则降级到 localStorage）

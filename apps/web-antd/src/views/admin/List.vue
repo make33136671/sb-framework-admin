@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import type { VbenFormProps } from '#/adapter/form';
 import type { VxeGridProps } from '#/adapter/vxe-table';
 
 import { computed } from 'vue';
@@ -6,17 +7,17 @@ import { useRouter } from 'vue-router';
 
 import { Page } from '@vben/common-ui';
 
-import { Image, Tag, Space, Button } from 'ant-design-vue';
+import { Button, Image, Space, Tag } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
-
-import { getList, postDel, getRoleList } from './api';
 import { usePermission } from '#/composables/usePermission';
+
+import { getList, getRoleList, postDel } from './api';
 
 const router = useRouter();
 
 // 权限控制
-const { hasPermission, isSuperAdmin } = usePermission();
+const { hasPermission } = usePermission();
 
 // 按钮权限
 const canAdd = computed(() => hasPermission('admin:add'));
@@ -24,8 +25,15 @@ const canEdit = computed(() => hasPermission('admin:edit'));
 const canDelete = computed(() => hasPermission('admin:delete'));
 
 interface RowType {
-  // productName: string;
-  // releaseDate: string;
+  avatar?: string;
+  authenticatorBindTime?: string;
+  createdTime?: string;
+  id: number;
+  lastOnlineTime?: string;
+  name?: string;
+  role?: string;
+  status?: number;
+  username?: string;
 }
 
 const formOptions: VbenFormProps = {
@@ -50,18 +58,17 @@ const formOptions: VbenFormProps = {
       componentProps: {
         placeholder: '请选择角色',
         api: getRoleList,
+        allowClear: true,
+        filterOption: true,
+        showSearch: true,
 
-        afterFetch: (data: { name: string; id: number }[]) => {
+        afterFetch: (data: { items: { id: number; name: string; }[] }) => {
           return data.items.map((item: any) => ({
             label: item.name,
             value: item.id,
           }));
         },
       },
-
-      allowClear: true,
-      filterOption: true,
-      showSearch: true,
     },
   ],
   wrapperClass: 'grid-cols-2',
@@ -190,7 +197,7 @@ const delAdmin = (id: number) => {
               borderRadius: '50%',
               objectFit: 'cover',
             }"
-            :preview="{ mask: '查看' }"
+            :preview-mask="() => '查看'"
           />
           <div style="font-size: 13px; text-align: center">
             <div style="font-weight: 500">{{ row.username }}</div>

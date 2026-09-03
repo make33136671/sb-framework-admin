@@ -4,8 +4,8 @@ import { useRouter } from 'vue-router';
 
 import { Button, Modal } from 'ant-design-vue';
 
-import { TimeProgress } from '#/components/TimeProgress';
 import { api } from '#/api/request';
+import { TimeProgress } from '#/components/TimeProgress';
 
 // 默认阈值（系统设置 license_warning_hours 不存在或接口异常时回退）
 // 系统设置值为 0 → 关闭弹窗（永不提醒）

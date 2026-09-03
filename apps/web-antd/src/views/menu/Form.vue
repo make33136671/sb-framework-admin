@@ -1,6 +1,4 @@
 <script lang="ts" setup>
-import type { ChangeEvent } from 'ant-design-vue/es/_util/EventInterface';
-
 import type { Recordable } from '@vben/types';
 
 import type { VbenFormSchema } from '#/adapter/form';
@@ -9,15 +7,14 @@ import { computed, h, ref } from 'vue';
 
 import { useVbenDrawer } from '@vben/common-ui';
 import { IconifyIcon } from '@vben/icons';
-import { $te } from '@vben/locales';
 import { getPopupContainer } from '@vben/utils';
 
 import { breakpointsTailwind, useBreakpoints } from '@vueuse/core';
 
-import { useVbenForm, z } from '#/adapter/form';
-import { getMenuList, SystemMenuApi } from './api';
-import { postAdd, postEdit } from './api';
+import { useVbenForm } from '#/adapter/form';
 import { $t } from '#/locales';
+
+import { getMenuList, postEdit, SystemMenuApi } from './api';
 
 const emit = defineEmits<{
   success: [];
@@ -29,8 +26,8 @@ const schema: VbenFormSchema[] = [
   {
     component: 'Input',
     fieldName: 'id',
+    hide: true,
     label: '',
-    hidden: true,
   },
   {
     component: 'Input',

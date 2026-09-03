@@ -1,6 +1,6 @@
-import { watch, type Ref } from 'vue';
-
 import type { UploadItem } from './types';
+
+import { type Ref, watch } from 'vue';
 
 /**
  * 多文件排队消费器
