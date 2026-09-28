@@ -1,0 +1,256 @@
+<script lang="ts" setup>
+/**
+ * CandidateGallery —— 候选图对比 + 通过/驳回（契约 §5.1 Review/Asset）
+ *
+ * 键盘流（契约 §8）：1/2/3 选中第 N 个候选、A 通过、R 驳回。
+ * 图片走 /storage 反代（vite dev 已代理到后端 media_root）。
+ */
+import { computed, onMounted, onUnmounted, ref } from 'vue';
+
+import {
+  Button,
+  Empty,
+  Image,
+  Input,
+  Modal,
+  Select,
+  Space,
+  Tag,
+} from 'ant-design-vue';
+
+import type { AssetCandidateItem, ReasonItem } from '#/api/core/dramafloow';
+
+import {
+  assetApprove,
+  assetReject,
+  assetToLibrary,
+} from '#/api/core/dramafloow';
+
+interface Props {
+  candidates: AssetCandidateItem[];
+  reasons: ReasonItem[];
+  /** 是否允许通过/驳回（需求已通过时可只读查看） */
+  readonly?: boolean;
+  /** 是否显示键盘提示 */
+  showKeyboardHint?: boolean;
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  readonly: false,
+  showKeyboardHint: true,
+});
+
+const emit = defineEmits<{
+  (e: 'changed'): void;
+}>();
+
+const selectedIndex = ref(0);
+const rejectOpen = ref(false);
+const rejectReasonId = ref<number | undefined>(undefined);
+const rejectNote = ref('');
+const submitting = ref(false);
+
+const selected = computed(() => props.candidates[selectedIndex.value]);
+
+/** 单张候选图的可访问 URL（后端存绝对路径，取文件名拼 /storage/media） */
+function imageUrl(filePath?: string): string {
+  if (!filePath) return '';
+  const name = filePath.split('/').pop() ?? '';
+  return `/storage/media/tasks/${extractTaskDir(filePath)}/${name}`;
+}
+
+/** 从 {media_root}/tasks/{taskId}/v{ver}/candidate_N.png 提取 tasks/{taskId}/v{ver} */
+function extractTaskDir(filePath: string): string {
+  const parts = filePath.split('/');
+  const i = parts.indexOf('tasks');
+  return i === -1 ? '' : parts.slice(i + 1, -1).join('/');
+}
+
+function select(i: number) {
+  if (i < 0 || i >= props.candidates.length) return;
+  selectedIndex.value = i;
+}
+
+async function approve() {
+  const c = selected.value;
+  if (!c || props.readonly) return;
+  submitting.value = true;
+  try {
+    await assetApprove(c.id);
+    emit('changed');
+  } finally {
+    submitting.value = false;
+  }
+}
+
+function openReject() {
+  if (!selected.value || props.readonly) return;
+  rejectReasonId.value = props.reasons[0]?.id;
+  rejectNote.value = '';
+  rejectOpen.value = true;
+}
+
+async function confirmReject() {
+  const c = selected.value;
+  if (!c || !rejectReasonId.value) return;
+  submitting.value = true;
+  try {
+    await assetReject(
+      c.id,
+      rejectReasonId.value,
+      rejectNote.value || undefined,
+    );
+    rejectOpen.value = false;
+    emit('changed');
+  } finally {
+    submitting.value = false;
+  }
+}
+
+async function toLibrary() {
+  const c = selected.value;
+  if (!c) return;
+  await assetToLibrary(c.id);
+  emit('changed');
+}
+
+function onKeydown(e: KeyboardEvent) {
+  // 输入框内不劫持按键
+  const tag = (e.target as HTMLElement)?.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+
+  if (e.key === '1') select(0);
+  else if (e.key === '2') select(1);
+  else if (e.key === '3') select(2);
+  else if (e.key.toLowerCase() === 'a') void approve();
+  else if (e.key.toLowerCase() === 'r') openReject();
+}
+
+onMounted(() => {
+  if (!props.readonly) window.addEventListener('keydown', onKeydown);
+});
+onUnmounted(() => {
+  window.removeEventListener('keydown', onKeydown);
+});
+</script>
+
+<template>
+  <div v-if="candidates.length === 0">
+    <Empty description="暂无候选（可点击「生成」入队 t2i 任务）" />
+  </div>
+
+  <div v-else class="flex flex-col gap-3">
+    <!-- 候选缩略图一行 -->
+    <div class="flex flex-wrap items-start gap-3">
+      <div
+        v-for="(c, i) in candidates"
+        :key="c.id"
+        class="cursor-pointer rounded-md border p-1 transition-all"
+        :class="
+          i === selectedIndex
+            ? 'border-primary ring-2 ring-primary/40'
+            : 'border-border hover:border-primary/50'
+        "
+        @click="select(i)"
+      >
+        <Image
+          :src="imageUrl(c.filePath)"
+          :width="150"
+          :height="150"
+          class="rounded object-cover"
+          :preview="{ src: imageUrl(c.filePath) }"
+        />
+        <div class="mt-1 flex items-center justify-between gap-2 text-xs">
+          <span>#{{ c.variantNo + 1 }}</span>
+          <Tag
+            :color="
+              c.status === 'approved'
+                ? 'success'
+                : c.status === 'rejected'
+                  ? 'error'
+                  : c.status === 'failed'
+                    ? 'default'
+                    : 'warning'
+            "
+            class="!mr-0"
+          >
+            {{
+              c.status === 'approved'
+                ? '已通过'
+                : c.status === 'rejected'
+                  ? '已驳回'
+                  : c.status === 'failed'
+                    ? '生成失败'
+                    : '待审'
+            }}
+          </Tag>
+        </div>
+      </div>
+    </div>
+
+    <!-- 选中候选详情 + 操作 -->
+    <div v-if="selected" class="rounded-md border border-border p-3">
+      <div class="mb-2 text-xs text-muted-foreground">
+        seed {{ selected.seed }} · {{ selected.width }}×{{ selected.height }}
+        <template v-if="selected.rejectNote">
+          · 驳回备注：{{ selected.rejectNote }}
+        </template>
+      </div>
+      <div class="mb-3 break-all text-xs">{{ selected.prompt }}</div>
+
+      <Space v-if="!readonly">
+        <Button type="primary" :loading="submitting" @click="approve">
+          通过<template v-if="showKeyboardHint">（A）</template>
+        </Button>
+        <Button danger :disabled="submitting" @click="openReject">
+          驳回<template v-if="showKeyboardHint">（R）</template>
+        </Button>
+        <Button
+          v-if="selected.status === 'approved'"
+          :disabled="submitting"
+          @click="toLibrary"
+        >
+          入库
+        </Button>
+      </Space>
+
+      <div
+        v-if="showKeyboardHint && !readonly"
+        class="mt-2 text-xs text-muted-foreground"
+      >
+        快捷键：1 / 2 / 3 切换候选，A 通过，R 驳回
+      </div>
+    </div>
+
+    <!-- 驳回弹窗 -->
+    <Modal
+      v-model:open="rejectOpen"
+      title="驳回候选"
+      :confirm-loading="submitting"
+      @ok="confirmReject"
+    >
+      <div class="flex flex-col gap-3">
+        <div>
+          <div class="mb-1 text-sm">
+            驳回原因（必选，fix_hint 会进入下一版重写提示词）
+          </div>
+          <Select
+            v-model:value="rejectReasonId"
+            class="w-full"
+            placeholder="请选择原因"
+            :options="
+              reasons.map((r) => ({
+                label: `${r.name}${r.fixHint ? ` — ${r.fixHint}` : ''}`,
+                value: r.id,
+              }))
+            "
+          />
+        </div>
+        <div>
+          <div class="mb-1 text-sm">补充备注（可选）</div>
+          <Input.TextArea v-model:value="rejectNote" :rows="3" />
+        </div>
+      </div>
+    </Modal>
+  </div>
+</template>
