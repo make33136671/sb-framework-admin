@@ -39,6 +39,34 @@ export async function testRedisApi(config: Record<string, any>) {
   return setupFetch('/Setup/TestRedis', config);
 }
 
+/**
+ * 安装前生成品牌 Logo（系统未安装时调用）。
+ * 后端按产品名推导单字标并渲染品牌图标，返回 base64 预览图（与安装后 images/logo.png 一致）。
+ */
+export interface GeneratedLogoSpec {
+  accentFrom: string;
+  accentTo: string;
+  darkBg: string;
+  generatedAt: string;
+  lightBg: string;
+  monoColor: string;
+  monogram: string;
+  productCn: string;
+  productEn: string;
+}
+
+export async function generateLogoApi(
+  params: {
+    productCn?: string;
+    productEn?: string;
+  } = {},
+) {
+  return setupFetch<{
+    logoBase64: string;
+    spec: GeneratedLogoSpec;
+  }>('/Setup/GenerateLogo', params);
+}
+
 export async function installApi(request: Record<string, any>) {
   return setupFetch('/Setup/Install', request);
 }

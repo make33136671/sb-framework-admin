@@ -23,9 +23,12 @@ import {
   Tag,
 } from 'ant-design-vue';
 
+import type { GeneratedLogoSpec } from '#/api';
+
 import {
   checkSetupStatusApi,
   getDeployHintsApi,
+  generateLogoApi,
   installApi,
   testDatabaseApi,
   testRedisApi,
@@ -142,6 +145,10 @@ const primaryDomain = ref(defaultDomain);
 const productEn = ref(extractNameFromDomain(defaultDomain));
 const logoBase64 = ref('');
 const logoPreviewUrl = ref('');
+// Logo 来源：none=留空(安装时自动生成默认品牌图标) | uploaded=上传 | generated=调用生成 API
+const logoMode = ref<'generated' | 'none' | 'uploaded'>('none');
+const logoGenerating = ref(false);
+const generatedSpec = ref<null | GeneratedLogoSpec>(null);
 const cachePrefix = ref(`${productEn.value}:`);
 
 // 站点路径（默认基于英文名）
@@ -258,6 +265,7 @@ function onPrimaryDomainChange() {
 
 // === 产品英文名联动 ===
 function onProductEnChange() {
+  const prevName = productEn.value.toLowerCase().replaceAll(/[^a-z0-9]/g, '');
   const name = productEn.value.toLowerCase().replaceAll(/[^a-z0-9]/g, '');
   productEn.value = name;
   // 联动数据库名（首字母大写）— Docker 模式使用容器预设值，跳过
@@ -271,6 +279,13 @@ function onProductEnChange() {
     sitePaths.value.forEach((s) => {
       s.path = `/www/wwwroot/${name}_${s.type}`;
     });
+  }
+  // 生成的 Logo 单字标由产品名推导：名字变了则失效，需重新点「生成图标」
+  if (name !== prevName && logoMode.value === 'generated') {
+    logoBase64.value = '';
+    logoPreviewUrl.value = '';
+    logoMode.value = 'none';
+    generatedSpec.value = null;
   }
 }
 
@@ -296,8 +311,43 @@ function handleLogoUpload(event: Event) {
   reader.addEventListener('load', (e) => {
     logoBase64.value = e.target?.result as string;
     logoPreviewUrl.value = logoBase64.value;
+    logoMode.value = 'uploaded';
+    generatedSpec.value = null;
   });
   reader.readAsDataURL(file);
+}
+
+// === Logo 生成（安装前调用生成 API，按产品名渲染品牌图标）===
+async function handleGenerateLogo() {
+  if (logoGenerating.value) return;
+  logoGenerating.value = true;
+  try {
+    const r = await generateLogoApi({
+      productCn: productCn.value || '管理系统',
+      productEn: productEn.value || 'sb',
+    });
+    if (r.code === 0 && r.data?.logoBase64) {
+      logoBase64.value = r.data.logoBase64;
+      logoPreviewUrl.value = r.data.logoBase64;
+      logoMode.value = 'generated';
+      generatedSpec.value = r.data.spec;
+      message.success(`已生成品牌 Logo（单字标 ${r.data.spec.monogram}）`);
+    } else {
+      message.error(r.message || '生成失败');
+    }
+  } catch (error: any) {
+    message.error(`生成失败: ${error.message}`);
+  } finally {
+    logoGenerating.value = false;
+  }
+}
+
+// === Logo 清空（留空，安装时自动生成默认品牌图标）===
+function handleClearLogo() {
+  logoBase64.value = '';
+  logoPreviewUrl.value = '';
+  logoMode.value = 'none';
+  generatedSpec.value = null;
 }
 
 // === 站点路径 ===
@@ -1011,15 +1061,43 @@ function fillFormFromConfig(config: any) {
                   style="max-width: 100%; max-height: 100%"
                 />
               </div>
-              <input
-                type="file"
-                accept=".png,.jpg,.jpeg,.ico"
-                @change="handleLogoUpload"
-              />
+              <div style="display: flex; flex-direction: column; gap: 8px">
+                <input
+                  type="file"
+                  accept=".png,.jpg,.jpeg,.ico"
+                  @change="handleLogoUpload"
+                />
+                <div style="display: flex; gap: 8px">
+                  <Button
+                    size="small"
+                    :loading="logoGenerating"
+                    @click="handleGenerateLogo"
+                  >
+                    {{ logoMode === 'generated' ? '重新生成' : '生成图标' }}
+                  </Button>
+                  <Button
+                    v-if="logoPreviewUrl"
+                    size="small"
+                    @click="handleClearLogo"
+                  >
+                    清空
+                  </Button>
+                </div>
+              </div>
             </div>
             <div class="form-hint">
-              支持 PNG/JPG/ICO，建议 512x512 以上正方形图片，最大
-              2MB。将自动生成 favicon 和各尺寸图标
+              上传 PNG/JPG/ICO（建议 512x512
+              以上正方形，最大2MB），或点「生成图标」按产品名自动生成品牌图标（单字标取产品英文名首字母）；留空则安装时使用默认品牌图标。三种方式安装时都会自动生成
+              favicon 和各尺寸图标
+            </div>
+            <div
+              v-if="logoMode === 'generated' && generatedSpec"
+              class="form-hint"
+            >
+              已生成：单字标「{{ generatedSpec.monogram }}」·
+              {{
+                generatedSpec.productEn
+              }}（安装后可在「品牌」页微调单字标/配色）
             </div>
           </div>
 
@@ -1164,21 +1242,29 @@ function fillFormFromConfig(config: any) {
               {{ primaryDomain || defaultDomain }}
             </DescriptionsItem>
             <DescriptionsItem label="产品 Logo">
-              <img
-                v-if="logoPreviewUrl"
-                :src="logoPreviewUrl"
-                alt="Logo 预览"
-                style="
-                  max-width: 120px;
-                  max-height: 40px;
-                  vertical-align: middle;
-                  background: var(--ant-color-bg-container);
-                  border: 1px solid var(--ant-color-border);
-                  border-radius: 4px;
-                "
-              />
+              <template v-if="logoPreviewUrl">
+                <img
+                  :src="logoPreviewUrl"
+                  alt="Logo 预览"
+                  style="
+                    max-width: 120px;
+                    max-height: 40px;
+                    vertical-align: middle;
+                    background: var(--ant-color-bg-container);
+                    border: 1px solid var(--ant-color-border);
+                    border-radius: 4px;
+                  "
+                />
+                <span style="margin-left: 8px">
+                  {{
+                    logoMode === 'uploaded'
+                      ? '上传'
+                      : `生成（单字标 ${generatedSpec?.monogram ?? ''}）`
+                  }}
+                </span>
+              </template>
               <span v-else style="color: var(--ant-color-text-tertiary)"
-                >使用默认 Logo</span
+                >留空 · 安装时自动生成默认品牌图标</span
               >
             </DescriptionsItem>
             <DescriptionsItem label="系统时区">
