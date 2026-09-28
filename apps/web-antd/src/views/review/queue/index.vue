@@ -5,7 +5,7 @@
  * 三类：图（t2i 候选）/ 剧（待发布成集）。片段无人工审核，仅异常复核入口。
  * 键盘流：1/2/3 选候选，A 通过，R 驳回（由 CandidateGallery 提供）。
  */
-import { computed, onMounted, ref, watch } from 'vue';
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 
 import { Page } from '@vben/common-ui';
 
@@ -102,21 +102,28 @@ watch(target, () => {
   void load();
 });
 
+/** 轮询定时器（卸载时必须清理，否则离开页面后仍在请求） */
+let refreshTimer: null | ReturnType<typeof setInterval> = null;
+
 onMounted(async () => {
   reasons.value = await templateReasonList('image').catch(() => []);
   await load();
-  // 队列变化时（有新的待审任务）自动刷新
-  const stop = setInterval(() => {
-    if (stream.queue.value) void load();
-  }, 30_000);
-  watch(
-    () => stream.queue.value?.depth,
-    () => {
-      clearInterval(stop);
-    },
-    { once: true },
-  );
+  // 兜底轮询：WS 队列事件驱动为主，这里每 60s 拉一次防止事件丢失导致队列陈旧
+  refreshTimer = setInterval(() => void load(), 60_000);
 });
+
+onUnmounted(() => {
+  if (refreshTimer) clearInterval(refreshTimer);
+  refreshTimer = null;
+});
+
+// WS 队列深度变化时即时刷新（比轮询更及时；不销毁轮询，避免「活动一次后就不再刷新」）
+watch(
+  () => stream.queue.value?.depth,
+  () => {
+    void load();
+  },
+);
 
 async function approveCurrent() {
   const c = current.value;
