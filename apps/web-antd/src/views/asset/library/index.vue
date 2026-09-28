@@ -11,6 +11,7 @@ import { Image, Tag } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import { assetLibraryList } from '#/api/core/dramafloow';
+import { toStorageUrl } from '#/utils/media';
 import { TimeTag } from '#/components/TimeTag';
 
 const formOptions: VbenFormProps = {
@@ -88,12 +89,6 @@ const gridOptions: VxeGridProps<Row> = {
 
 const [Grid] = useVbenVxeGrid({ formOptions, gridOptions });
 
-/** 绝对路径 → /storage 可访问 URL */
-function toStorageUrl(abs?: string): string {
-  if (!abs) return '';
-  const i = abs.indexOf('/media/');
-  return i === -1 ? '' : `/storage${abs.slice(i)}`;
-}
 </script>
 
 <template>

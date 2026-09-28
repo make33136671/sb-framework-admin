@@ -9,6 +9,8 @@ import { computed } from 'vue';
 
 import { Empty, Tag } from 'ant-design-vue';
 
+import { toStorageUrl } from '#/utils/media';
+
 interface Props {
   videoPath?: null | string;
   coverPath?: null | string;
@@ -26,15 +28,6 @@ const props = withDefaults(defineProps<Props>(), {
   sizeBytes: null,
   status: '',
 });
-
-/** 绝对路径 → /storage 可访问 URL（取 media_root 之后的相对段） */
-function toStorageUrl(abs?: null | string): string {
-  if (!abs) return '';
-  const marker = '/media/';
-  const i = abs.indexOf(marker);
-  // media_root 默认 /root/DramaFlow/media：截取 media 之后的路径拼 /storage/media
-  return i === -1 ? '' : `/storage${abs.slice(i)}`;
-}
 
 const videoUrl = computed(() => toStorageUrl(props.videoPath));
 const coverUrl = computed(() => toStorageUrl(props.coverPath));

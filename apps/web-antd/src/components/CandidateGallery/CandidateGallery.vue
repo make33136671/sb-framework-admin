@@ -25,6 +25,7 @@ import {
   assetReject,
   assetToLibrary,
 } from '#/api/core/dramafloow';
+import { toStorageUrl } from '#/utils/media';
 
 interface Props {
   candidates: AssetCandidateItem[];
@@ -52,19 +53,8 @@ const submitting = ref(false);
 
 const selected = computed(() => props.candidates[selectedIndex.value]);
 
-/** 单张候选图的可访问 URL（后端存绝对路径，取文件名拼 /storage/media） */
-function imageUrl(filePath?: string): string {
-  if (!filePath) return '';
-  const name = filePath.split('/').pop() ?? '';
-  return `/storage/media/tasks/${extractTaskDir(filePath)}/${name}`;
-}
-
-/** 从 {media_root}/tasks/{taskId}/v{ver}/candidate_N.png 提取 tasks/{taskId}/v{ver} */
-function extractTaskDir(filePath: string): string {
-  const parts = filePath.split('/');
-  const i = parts.indexOf('tasks');
-  return i === -1 ? '' : parts.slice(i + 1, -1).join('/');
-}
+/** 单张候选图的可访问 URL（统一走 utils/media，兼容 media_root 变更） */
+const imageUrl = (filePath?: string): string => toStorageUrl(filePath);
 
 function select(i: number) {
   if (i < 0 || i >= props.candidates.length) return;
