@@ -15,6 +15,7 @@ import {
   Card,
   Empty,
   Input,
+  message,
   Space,
   Spin,
   Table,
@@ -28,6 +29,7 @@ import type {
   ProductEpisodeItem,
   ScriptDetail,
   ShotItem,
+  WordParseResult,
 } from '#/api/core/dramafloow';
 import {
   assetGenerate,
@@ -36,6 +38,7 @@ import {
   productEpisodeList,
   productRender,
   scriptGet,
+  scriptParseWord,
   scriptRewrite,
   scriptSave,
   shotList,
@@ -60,6 +63,9 @@ const loading = ref(true);
 const activeTab = ref('script');
 const sourceDraft = ref('');
 const saving = ref(false);
+const parsing = ref(false);
+const wordInfo = ref<null | WordParseResult>(null);
+const wordInputRef = ref<HTMLInputElement>();
 
 const stages = computed(
   () => stream.dramaMap.value[dramaId.value]?.stages ?? null,
@@ -104,6 +110,33 @@ async function saveSource() {
     await loadAll();
   } finally {
     saving.value = false;
+  }
+}
+
+/** 选择 .docx → 解析为纯文本填入草稿（不写库，用户校对后再保存） */
+async function onWordPicked(e: Event) {
+  const input = e.target as HTMLInputElement;
+  const file = input.files?.[0];
+  // 允许重复选择同一文件（否则第二次 change 不触发）
+  input.value = '';
+  if (!file) return;
+
+  if (!file.name.toLowerCase().endsWith('.docx')) {
+    message.error('仅支持 .docx 文件；旧版 .doc 请在 Word 中另存为 .docx');
+    return;
+  }
+
+  parsing.value = true;
+  try {
+    const res = await scriptParseWord(file);
+    sourceDraft.value = res.text;
+    wordInfo.value = res;
+    message.success(`解析成功：${res.charCount} 字，请校对后保存`);
+  } catch (error: any) {
+    // 后端已把 .doc / 损坏 / 加密 等情况转为可读中文提示
+    message.error(error?.message || 'Word 解析失败');
+  } finally {
+    parsing.value = false;
   }
 }
 
@@ -191,10 +224,38 @@ function reqStatusColor(s: string): string {
                 type="info"
                 show-icon
               />
+
+              <!-- 上传剧本通常为 Word：先解析 → 预览校对 → 再保存 -->
+              <div class="mb-3 flex flex-wrap items-center gap-3">
+                <input
+                  ref="wordInputRef"
+                  accept=".docx"
+                  class="hidden"
+                  type="file"
+                  @change="onWordPicked"
+                />
+                <Button :loading="parsing" @click="wordInputRef?.click()">
+                  上传 Word 剧本（.docx）
+                </Button>
+                <span class="text-xs text-muted-foreground">
+                  解析后填入下方文本框，请校对无误再保存（源文本不可修改）
+                </span>
+              </div>
+
+              <Alert
+                v-if="wordInfo"
+                class="mb-3"
+                :message="`已解析《${wordInfo.fileName}》：${wordInfo.charCount} 字 / ${wordInfo.lineCount} 段${wordInfo.tableCount > 0 ? ` / ${wordInfo.tableCount} 个表格` : ''}`"
+                type="success"
+                show-icon
+                closable
+                @close="wordInfo = null"
+              />
+
               <Input.TextArea
                 v-model:value="sourceDraft"
                 :rows="12"
-                placeholder="粘贴原始剧本/小说文本…"
+                placeholder="上传 .docx 自动解析，或直接粘贴原始剧本/小说文本…"
               />
               <Button
                 class="mt-3"

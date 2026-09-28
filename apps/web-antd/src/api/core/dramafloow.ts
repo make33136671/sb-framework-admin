@@ -334,6 +334,41 @@ export async function scriptSave(dramaId: number, sourceText: string) {
   });
 }
 
+/** Word 剧本解析结果（POST /Script/ParseWord，只解析不写库） */
+export interface WordParseResult {
+  fileName: string;
+  text: string;
+  charCount: number;
+  lineCount: number;
+  headings: { level: number; text: string }[];
+  tableCount: number;
+  metadata: { title: string; author: string; created: string };
+}
+
+/**
+ * 上传 .docx 剧本 → 纯文本（供预览校对后再 Save）。
+ * 上传的剧本通常为 Word 格式；因 source_text 不可变，故解析与入库分离，
+ * 先让用户确认内容无误，再写入。
+ */
+export async function scriptParseWord(file: File): Promise<WordParseResult> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return api.post<WordParseResult>('/Script/ParseWord', formData, {
+    quiet: true,
+  });
+}
+
+/** 上传 .docx 并直接存为原始稿 v1（仅当尚无任何版本） */
+export async function scriptImportWord(dramaId: number, file: File) {
+  const formData = new FormData();
+  formData.append('dramaId', String(dramaId));
+  formData.append('file', file);
+  return api.post<{ id: number; version: number; charCount: number }>(
+    '/Script/ImportWord',
+    formData,
+  );
+}
+
 export async function scriptRewrite(dramaId: number) {
   return api.post<{ taskId: number }>('/Script/Rewrite', { dramaId });
 }
