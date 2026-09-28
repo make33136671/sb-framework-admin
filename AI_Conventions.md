@@ -421,6 +421,34 @@ import { TimeTag } from '#/components/TimeTag';
 - 想要"代码编辑器"风格 → 用 JsonEditor,不要直接 `<Textarea>`(失去高亮/格式化/折叠)
 - schema 不固定的 JSON 字段编辑 → 用 JsonFieldEditor,不要手写一个个 `<Form>` 字段
 
+#### 本项目（dramafloow-admin）追加
+
+| 组件 | 场景 | 关键 props / 注意 |
+| --- | --- | --- |
+| **PhaseStepper** | 剧目五阶段进度（洗稿→分镜→素材→片段→成片） | `stages`（后端 `drama` WS 事件的 stages 字典）/ `compact`（列表行内 Tag 形态，默认 false 用 Steps）；阶段值 pending/running/generating/pending_review/done/published/stale/concat |
+| **CandidateGallery** | 素材候选图对比 + 通过/驳回 | `candidates` / `reasons`（驳回原因字典）/ `readonly` / `showKeyboardHint`；`@changed` 通知父级刷新；内置键盘流 1/2/3 选候选、A 通过、R 驳回（输入框内不劫持）；驳回必须带 reasonId（fix_hint 进下一版 prompt_rewrite） |
+| **EpisodePlayer** | 成片播放 + 封面/时长/大小 | `videoPath` / `coverPath` / `episodeNo` / `durationSec` / `sizeBytes` / `status`；自动把后端绝对路径（`{media_root}/...`）转 `/storage` URL |
+
+**实时通道**：`#/composables/useTaskStream.ts`（非组件，本项目一等公民）
+
+```ts
+const stream = useTaskStream();
+stream.subscribeDrama(7); // drama:7 → store.dramaMap[7].stages
+stream.subscribeTask(123); // task:123 → store.taskMap[123]
+stream.queue.value; // 队列快照（depth / inFlightT2i / paused / reason / windowOpen）
+```
+
+- 模块级单例：多组件共享同一条 WS；引用计数归零自动断开并清理 topic
+- 握手用 `?access_token=<jwt>`（框架 JwtSetup 支持从查询串取 token）
+- 断线指数退避重连（1s 起，上限 30s），重连后重新 subscribe
+- topic 约定（契约 §5.3）：`task:<id>` / `queue` / `health` / `drama:<id>`；默认订阅 queue + health
+
+**禁忌（本项目）**：
+
+- 轮询任务进度 → 用 `useTaskStream` 的 WS 事件（编排器状态机变更实时推送）
+- 硬编码媒体 URL → 用后端返回的 `filePath`/`videoPath` + `/storage` 前缀（vite/nginx 代理到 `media_root`）
+- 视图里手写 `message.success` 配对 API 调用 → 拦截器已统一 toast
+
 ---
 
 ### 13.2 后端可复用资产（`sb-api/SB.Core/`）
