@@ -73,12 +73,6 @@ const quickNavItems: WorkbenchQuickNavItem[] = [
     url: '/system/setting',
   },
   {
-    color: '#13c2c2',
-    icon: 'lucide:mail',
-    title: '邮件配置',
-    url: '/email/config',
-  },
-  {
     color: '#eb2f96',
     icon: 'lucide:activity',
     title: '登录日志',
