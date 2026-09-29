@@ -287,16 +287,17 @@ async function cancel(t: TaskItem | Record<string, any>) {
 }
 
 const columns = [
-  { title: '剧目 / 剧本', key: 'drama', width: 240 },
-  { title: '任务线路', key: 'line', width: 120 },
-  { title: 'AI 线路（模型）', key: 'provider', width: 190 },
-  { title: '具体任务', key: 'target', ellipsis: true },
-  { title: '状态', key: 'status', width: 110 },
-  { title: '进度', key: 'progress', width: 150 },
-  { title: '已耗时', key: 'elapsed', width: 110 },
-  { title: 'tokens', key: 'tokens', width: 110 },
-  { title: '创建时间', key: 'createdAt', width: 180 },
-  { title: '操作', key: 'action', width: 160 },
+  { title: '剧目 / 剧本', key: 'drama', width: 220 },
+  { title: '任务线路', key: 'line', width: 110 },
+  { title: 'AI 线路（模型）', key: 'provider', width: 170 },
+  // 具体任务不设固定宽：让它吃掉剩余宽度（配合表格横向滚动的 max-content 下限 1080）
+  { title: '具体任务', key: 'target', ellipsis: true, width: 200 },
+  { title: '状态', key: 'status', width: 104 },
+  { title: '进度', key: 'progress', width: 140 },
+  { title: '已耗时', key: 'elapsed', width: 104 },
+  { title: 'tokens', key: 'tokens', width: 100 },
+  { title: '创建时间', key: 'createdAt', width: 170 },
+  { title: '操作', key: 'action', width: 150 },
 ];
 </script>
 
@@ -325,15 +326,15 @@ const columns = [
       />
     </Card>
 
-    <!-- 关键计数 -->
+    <!-- 关键计数：5 张卡统一高度（内容行数不同也不再参差） -->
     <Row :gutter="16" class="mb-4">
       <Col :span="5">
-        <Card size="small">
+        <Card class="df-stat-card" size="small">
           <Statistic title="任务总数" :value="counts.total" suffix="个" />
         </Card>
       </Col>
       <Col :span="5">
-        <Card size="small">
+        <Card class="df-stat-card" size="small">
           <Statistic title="正在跑" :value="counts.running" suffix="个" />
           <div class="mt-1 text-xs text-muted-foreground">
             排队 {{ counts.queued }} 个
@@ -344,12 +345,12 @@ const columns = [
         </Card>
       </Col>
       <Col :span="5">
-        <Card size="small">
+        <Card class="df-stat-card" size="small">
           <Statistic title="已完成" :value="counts.done" suffix="个" />
         </Card>
       </Col>
       <Col :span="5">
-        <Card size="small">
+        <Card class="df-stat-card" size="small">
           <Statistic title="失败" :value="counts.failed" suffix="个" />
           <div class="mt-1 text-xs text-muted-foreground">
             可在列表内直接重试
@@ -357,7 +358,7 @@ const columns = [
         </Card>
       </Col>
       <Col :span="4">
-        <Card size="small">
+        <Card class="df-stat-card" size="small">
           <div class="mb-2 text-sm text-muted-foreground">自动刷新</div>
           <Segmented
             v-model:value="autoRefresh"
@@ -372,7 +373,7 @@ const columns = [
     </Row>
 
     <!-- 筛选 + 表格 -->
-    <Card size="small" title="任务明细">
+    <Card class="df-table-card" size="small" title="任务明细">
       <div class="mb-3 flex flex-wrap items-center gap-3">
         <Input
           v-model:value="keyword"
@@ -417,17 +418,22 @@ const columns = [
         :row-class-name="
           (record: TaskItem) => (isRunning(record.status) ? 'df-row-live' : '')
         "
+        :scroll="{ x: 'max-content' }"
         row-key="id"
         size="small"
       >
         <template #bodyCell="{ column, record }">
           <!-- 剧目 / 剧本版本 -->
           <template v-if="column.key === 'drama'">
-            <div v-if="record.dramaId" class="flex flex-col">
-              <a class="truncate" @click="openDrama(record.dramaId)">
+            <div v-if="record.dramaId" class="flex min-w-0 flex-col">
+              <a
+                class="truncate"
+                :title="record.dramaName || `剧目 #${record.dramaId}`"
+                @click="openDrama(record.dramaId)"
+              >
                 {{ record.dramaName || `剧目 #${record.dramaId}` }}
               </a>
-              <span class="text-xs text-muted-foreground">
+              <span class="truncate text-xs text-muted-foreground">
                 {{ record.dramaCode || '-' }}
                 <template v-if="record.scriptVersion">
                   · 剧本 v{{ record.scriptVersion }}

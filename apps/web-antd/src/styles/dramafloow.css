@@ -162,6 +162,35 @@
   border-left: 2px solid hsl(var(--primary));
 }
 
+/*
+ * ⑦ 指标卡统一高度（AI 任务列表页的「任务总数 / 正在跑 / 已完成 / 失败 / 自动刷新」一行）
+ *
+ * 问题：这几张卡内容行数不同（有的只有 Statistic，有的多一行小字），
+ * 靠内容撑高就会参差不齐。
+ * 解法：卡片固定高度 + 卡体纵向 flex —— 无论几行内容，外形完全一致。
+ */
+.df-page .df-stat-card {
+  height: 140px;
+}
+
+.df-page .df-stat-card > .ant-card-body {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+/*
+ * ⑧ 表格卡片：绝不横向溢出到卡片之外
+ *
+ * 10 列表格的最小宽度必然超过卡片，若不约束，表格会顶破卡片边界（用户报的"超出表格区域"）。
+ * Table 侧已用 :scroll="{ x: 'max-content' }" 把横向滚动交给表格自己；
+ * 这里再兜一层，保证任何宽表都只在自己内部滚动，不把页面撑宽。
+ */
+.df-page .df-table-card > .ant-card-body {
+  min-width: 0;
+  overflow-x: hidden;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .df-live-dot::after,
   .df-live-card-active::after,

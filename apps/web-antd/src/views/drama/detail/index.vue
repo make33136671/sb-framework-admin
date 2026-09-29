@@ -476,6 +476,7 @@ function reqStatusColor(s: string): string {
             :custom-row="onShotRow"
             :data-source="shots"
             :pagination="{ pageSize: 20 }"
+            :scroll="{ x: 'max-content' }"
             row-key="id"
             size="small"
           >
@@ -533,6 +534,7 @@ function reqStatusColor(s: string): string {
             :custom-row="onRequirementRow"
             :data-source="requirements"
             :pagination="{ pageSize: 20 }"
+            :scroll="{ x: 'max-content' }"
             row-key="id"
             size="small"
           >
