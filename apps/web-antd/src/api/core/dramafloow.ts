@@ -46,6 +46,12 @@ export interface ScriptEpisode {
   no: number;
   title: string;
   scenes: ScriptEpisodeScene[];
+  /** 本集对应的原始稿片段（查看详情里对照用） */
+  sourceExcerpt?: string;
+  sourceStart?: number;
+  sourceEnd?: number;
+  /** matched=按关键词命中定位；split=按集均分的估算 */
+  sourceConfidence?: string;
 }
 
 export interface ScriptDetail {

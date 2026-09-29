@@ -122,6 +122,33 @@ onMounted(() => {
   void loadAll();
 });
 
+/** 原始稿框选（当前选中的字符区间与文本） */
+const sourceAreaRef = ref<HTMLTextAreaElement | null>(null);
+const sourceSelection = ref<null | {
+  end: number;
+  start: number;
+  text: string;
+}>(null);
+/** 只读展示：直接绑 script.sourceText，写不进去（readonly） */
+const sourceDraftView = computed(() => script.value?.sourceText ?? '');
+
+function onSourceSelect() {
+  const el = sourceAreaRef.value;
+  if (!el) return;
+  const start = el.selectionStart ?? 0;
+  const end = el.selectionEnd ?? 0;
+  const text = el.value.slice(start, end);
+  sourceSelection.value = text.trim().length > 0 ? { start, end, text } : null;
+}
+
+function clearSourceSelection() {
+  sourceSelection.value = null;
+  const el = sourceAreaRef.value;
+  if (el) {
+    el.selectionStart = el.selectionEnd = 0;
+  }
+}
+
 /** 洗稿细化选项（A–E；键名与后端 RewriteOptions 一致） */
 const rewriteOpts = ref<Record<string, any>>(defaultRewriteOptions());
 /** 选项面板是否展开（默认收起，保持剧本页干净） */
@@ -477,13 +504,29 @@ function reqStatusColor(s: string): string {
 
               <div class="grid grid-cols-2 gap-4">
                 <div>
-                  <div class="mb-1 text-sm text-muted-foreground">
-                    原始稿（不可变）
+                  <div
+                    class="mb-1 flex items-center gap-2 text-sm text-muted-foreground"
+                  >
+                    <span>原始稿（不可变）</span>
+                    <span v-if="sourceSelection" class="text-xs text-primary">
+                      已选 {{ sourceSelection.text.length }} 字（第
+                      {{ sourceSelection.start }}–{{ sourceSelection.end }} 字）
+                      <a class="ml-1" @click="clearSourceSelection">清除</a>
+                    </span>
                   </div>
-                  <Input.TextArea
-                    :value="script.sourceText"
-                    :rows="14"
+                  <!--
+                    用原生 textarea 而不是 Input.TextArea：
+                    antd 的 readonly TextArea 在部分浏览器下无法用鼠标框选文本
+                    （用户报「原始稿里没法选择片段」）。原生只读 textarea 可正常选中。
+                  -->
+                  <textarea
+                    ref="sourceAreaRef"
+                    v-model="sourceDraftView"
+                    class="h-[350px] w-full resize-none rounded border border-border bg-transparent p-3 font-mono text-sm"
                     readonly
+                    spellcheck="false"
+                    @mouseup="onSourceSelect"
+                    @keyup="onSourceSelect"
                   />
                 </div>
                 <div>
