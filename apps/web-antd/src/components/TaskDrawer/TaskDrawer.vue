@@ -11,8 +11,8 @@
  *
  * 契约注意：控制器全部 [FromForm]，api 层已统一处理；此处不写 toast（拦截器已弹）。
  */
-import { computed, ref, watch } from 'vue';
-
+import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import {
   Button,
   Descriptions,
@@ -38,7 +38,13 @@ import {
   taskUpdate,
 } from '#/api/core/dramafloow';
 import { TimeTag } from '#/components/TimeTag';
-import { TASK_STATUS_TEXT, taskStatusColor } from '#/composables/useTaskStream';
+import {
+  TASK_STATUS_TEXT,
+  TASK_TYPE_TEXT,
+  taskStatusColor,
+} from '#/composables/useTaskStream';
+
+import { elapsedSecondsOf, formatElapsed, formatTokens } from './taskDisplay';
 
 const props = defineProps<{
   /** 要查看的任务 id；null 表示关闭 */
@@ -55,6 +61,37 @@ const open = ref(false);
 const loading = ref(false);
 const detail = ref<null | TaskDetail>(null);
 const acting = ref(false);
+
+const router = useRouter();
+
+/** 跳到剧目详情（任务属于哪个剧目，一眼可查） */
+function openDrama(dramaId: number) {
+  if (!dramaId) return;
+  router.push({ name: 'DramaDetail', query: { id: dramaId } });
+}
+
+/** 每秒走字：在飞任务的「已耗时」实时刷新（终态后停止） */
+const nowTick = ref(Date.now());
+let tickTimer: null | ReturnType<typeof setInterval> = null;
+onMounted(() => {
+  tickTimer = setInterval(() => {
+    nowTick.value = Date.now();
+  }, 1000);
+});
+onUnmounted(() => {
+  if (tickTimer) clearInterval(tickTimer);
+});
+
+/** 已耗时（在飞走字；结束后固定为实际耗时） */
+const elapsedText = computed(() => {
+  const d = detail.value;
+  if (!d) return '-';
+  const sec = elapsedSecondsOf(d, nowTick.value);
+  return sec === null ? '-' : formatElapsed(0, sec);
+});
+
+/** LLM token 汇总（后端按 llm_call_log.task_id 归集） */
+const tokens = computed(() => detail.value?.tokens ?? null);
 
 /** 手动修改的表单（打开时用当前值初始化） */
 const editError = ref('');
@@ -204,7 +241,9 @@ const jobColumns = [
         </Tag>
         <Tag v-if="stuck" color="error" class="!mr-0">疑似卡住（心跳超时）</Tag>
         <span class="text-xs text-muted-foreground">
-          #{{ detail.id }} · {{ detail.type }} · v{{ detail.version }}
+          #{{ detail.id }} ·
+          {{ TASK_TYPE_TEXT[detail.type] ?? detail.type }}（{{ detail.type }}）·
+          v{{ detail.version }}
         </span>
         <div class="flex-1" />
         <Space>
@@ -243,15 +282,45 @@ const jobColumns = [
       />
 
       <Descriptions bordered size="small" :column="2" class="mb-4">
-        <Descriptions.Item label="类型">{{ detail.type }}</Descriptions.Item>
+        <Descriptions.Item label="类型">
+          {{ TASK_TYPE_TEXT[detail.type] ?? detail.type }}（{{ detail.type }}）
+        </Descriptions.Item>
         <Descriptions.Item label="剧目">
-          {{ detail.dramaId }}
+          <a v-if="detail.dramaId" @click="openDrama(detail.dramaId)">
+            {{ detail.dramaName || `#${detail.dramaId}` }}
+          </a>
+          <span v-else class="text-muted-foreground">-</span>
         </Descriptions.Item>
         <Descriptions.Item label="关联实体">
           {{ detail.refEntityType }} #{{ detail.refEntityId ?? '-' }}
         </Descriptions.Item>
         <Descriptions.Item label="变体进度">
           {{ detail.currentVariant }}
+        </Descriptions.Item>
+        <Descriptions.Item label="已耗时">
+          <span class="tabular-nums">{{ elapsedText }}</span>
+          <span v-if="!isFinished" class="ml-1 text-xs text-muted-foreground">
+            （进行中）
+          </span>
+        </Descriptions.Item>
+        <Descriptions.Item label="LLM tokens">
+          <template v-if="tokens">
+            <span class="tabular-nums">
+              {{ formatTokens(tokens.totalTokens) }}
+            </span>
+            <span class="ml-1 text-xs text-muted-foreground">
+              （{{ tokens.calls }} 次调用）
+            </span>
+            <Tag
+              v-if="tokens.estimated"
+              class="ml-1 !mr-0"
+              color="warning"
+              title="网关未返回 usage，按字符数估算"
+            >
+              估算
+            </Tag>
+          </template>
+          <span v-else class="text-muted-foreground">-</span>
         </Descriptions.Item>
         <Descriptions.Item label="开始">
           <TimeTag v-if="detail.startedAt" :time="detail.startedAt" />

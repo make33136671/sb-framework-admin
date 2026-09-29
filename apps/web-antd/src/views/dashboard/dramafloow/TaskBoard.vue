@@ -5,10 +5,11 @@
  * 按**线路**（剧本/分镜/素材/视频/成片）分组，而不是按状态平铺 ——
  * 这是架构设计 §8「按线路分组」的原意，也对应编排器 TaskTypes 的实际形态。
  *
- * 数据源：Task/List 首屏 + WS task 事件增量（useTaskStream）。
+ * 数据源：Task/List 首屏 + WS task 事件增量（useTaskStream）+ Task/Stats（token 汇总）。
+ * 每行回答「哪个剧目、在跑什么、跑了多久、烧了多少 token」；
  * 失败行可直接 Retry / Cancel，不必跳页（设计原则 §1「一行一动作」）。
  */
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 
 import { useRouter } from 'vue-router';
 
@@ -24,12 +25,24 @@ import {
   Tooltip,
 } from 'ant-design-vue';
 
-import type { TaskItem } from '#/api/core/dramafloow';
+import type { TaskItem, TaskTokenSummary } from '#/api/core/dramafloow';
 
-import { taskCancel, taskList, taskRetry } from '#/api/core/dramafloow';
+import {
+  taskCancel,
+  taskList,
+  taskRetry,
+  taskStats,
+} from '#/api/core/dramafloow';
+import { RunningTaskList } from '#/components/RunningTaskList';
+import {
+  elapsedSecondsOf,
+  formatElapsed,
+  formatTokens,
+} from '#/components/TaskDrawer/taskDisplay';
 import { TaskDrawer } from '#/components/TaskDrawer';
 import {
   TASK_STATUS_TEXT,
+  TASK_TYPE_TEXT,
   taskStatusColor,
   useTaskStream,
 } from '#/composables/useTaskStream';
@@ -54,12 +67,23 @@ const acting = ref<number | null>(null);
 /** 子任务详情抽屉：null = 关闭 */
 const taskId = ref<null | number>(null);
 
+/** 未终态任务的 token 汇总：taskId → 汇总（Task/Stats 带出，避免看板 N+1） */
+const tokensByTask = ref<Record<number, TaskTokenSummary>>({});
+
+/** 每秒 tick：让在飞任务的「已耗时」实时走字 */
+const nowTick = ref(Date.now());
+let tickTimer: null | ReturnType<typeof setInterval> = null;
+
 async function load() {
   loading.value = true;
   try {
     // 一次拉取全部任务（面板是全局视图，量级可控），前端按线路/状态分组
-    const res = await taskList({ page: 1, pageSize: 200 });
-    tasks.value = res.items;
+    const [list, stats] = await Promise.all([
+      taskList({ page: 1, pageSize: 200 }),
+      taskStats(),
+    ]);
+    tasks.value = list.items;
+    tokensByTask.value = stats.tokensByTask ?? {};
   } catch {
     // 拦截器已提示
   } finally {
@@ -69,6 +93,12 @@ async function load() {
 
 onMounted(() => {
   void load();
+  tickTimer = setInterval(() => {
+    nowTick.value = Date.now();
+  }, 1000);
+});
+onUnmounted(() => {
+  if (tickTimer) clearInterval(tickTimer);
 });
 
 /** WS 增量与 REST 首屏合并：同一 task id 以 WS 最新事件为准 */
@@ -89,6 +119,11 @@ const merged = computed<TaskItem[]>(() => {
       error: e.error ?? prev?.error,
       refEntityType: e.refEntityType ?? prev?.refEntityType,
       refEntityId: e.refEntityId ?? prev?.refEntityId,
+      // 剧目名/开始时间/结束时间只有 REST 带得回来：WS 事件缺这些字段时保留首屏值
+      dramaName: prev?.dramaName,
+      dramaCode: prev?.dramaCode,
+      startedAt: prev?.startedAt ?? e.ts,
+      finishedAt: prev?.finishedAt,
       createdAt: prev?.createdAt ?? e.ts,
       updatedAt: e.ts,
     });
@@ -182,12 +217,45 @@ function openDrama(dramaId: number) {
   router.push({ name: 'DramaDetail', query: { id: dramaId } });
 }
 
+/** 该任务已耗时：在飞走字，结束固定（后端不返回 total，前端按 started_at/finished_at 算） */
+function elapsedText(t: TaskItem | Record<string, any>): string {
+  const sec = elapsedSecondsOf(t, nowTick.value);
+  return sec === null ? '-' : formatElapsed(0, sec);
+}
+
+/** 任务类型中文名（回退英文 type，不显示空白） */
+function typeText(type?: string): string {
+  if (!type) return '-';
+  const cn = TASK_TYPE_TEXT[type];
+  return cn ? `${cn}（${type}）` : type;
+}
+
+/** 该任务的 token 汇总（看板只统计未终态任务，见 Task/Stats） */
+function tokensOf(t: TaskItem | Record<string, any>): null | TaskTokenSummary {
+  return tokensByTask.value[t.id] ?? null;
+}
+
+function tokensTip(t: TaskItem | Record<string, any>): string {
+  const s = tokensOf(t);
+  if (!s) return '暂无 LLM 调用记录（该线路不消耗 token，或数据未归集）';
+  const lines = [
+    `共 ${s.calls} 次 LLM 调用`,
+    `输入 ${s.promptTokens.toLocaleString('zh-CN')} tokens`,
+    `输出 ${s.completionTokens.toLocaleString('zh-CN')} tokens`,
+  ];
+  if (s.estimated) lines.push('含估算值（网关未返回 usage）');
+  return lines.join('\n');
+}
+
 const columns = [
-  { title: '线路', key: 'line', width: 90 },
-  { title: '类型', dataIndex: 'type', key: 'type', width: 100 },
-  { title: '版本', key: 'version', width: 80 },
-  { title: '状态', key: 'status', width: 110 },
-  { title: '进度', key: 'progress', width: 160 },
+  { title: '剧目', key: 'drama', width: 190 },
+  { title: '线路', key: 'line', width: 84 },
+  { title: '在跑什么', key: 'type', width: 130 },
+  { title: '版本', key: 'version', width: 84 },
+  { title: '状态', key: 'status', width: 104 },
+  { title: '进度', key: 'progress', width: 140 },
+  { title: '已耗时', key: 'elapsed', width: 110 },
+  { title: 'tokens', key: 'tokens', width: 100 },
   { title: '信息', key: 'message', ellipsis: true },
   { title: '操作', key: 'action', width: 150 },
 ];
@@ -250,6 +318,19 @@ const viewOptions = [
       </div>
     </div>
 
+    <!-- 正在跑什么：复用 RunningTaskList（与「AI 任务列表」页同一套实时卡，逻辑不漂移） -->
+    <div class="mb-3">
+      <RunningTaskList
+        compact
+        :tasks="merged"
+        :tokens-by-task="tokensByTask"
+        @detail="(id) => (taskId = id)"
+      />
+      <div class="mt-1 text-right text-xs text-muted-foreground">
+        完整列表见「AI 任务列表」页
+      </div>
+    </div>
+
     <Table
       v-if="filtered.length > 0"
       :columns="columns"
@@ -260,8 +341,24 @@ const viewOptions = [
       size="small"
     >
       <template #bodyCell="{ column, record }">
-        <template v-if="column.key === 'line'">
+        <template v-if="column.key === 'drama'">
+          <div v-if="record.dramaId" class="flex flex-col">
+            <a class="truncate" @click="openDrama(record.dramaId)">
+              {{ record.dramaName || `剧目 #${record.dramaId}` }}
+            </a>
+            <span v-if="record.dramaCode" class="text-xs text-muted-foreground">
+              {{ record.dramaCode }}
+            </span>
+          </div>
+          <span v-else class="text-muted-foreground">-</span>
+        </template>
+
+        <template v-else-if="column.key === 'line'">
           <Tag class="!mr-0">{{ lineLabel(record.type) }}</Tag>
+        </template>
+
+        <template v-else-if="column.key === 'type'">
+          <span class="text-xs">{{ typeText(record.type) }}</span>
         </template>
 
         <template v-else-if="column.key === 'version'">
@@ -287,6 +384,28 @@ const viewOptions = [
           />
         </template>
 
+        <template v-else-if="column.key === 'elapsed'">
+          <span class="text-xs tabular-nums" :title="elapsedText(record)">
+            {{ elapsedText(record) }}
+          </span>
+        </template>
+
+        <template v-else-if="column.key === 'tokens'">
+          <Tooltip :title="tokensTip(record)">
+            <span class="text-xs tabular-nums">
+              <template v-if="tokensOf(record)">
+                {{ formatTokens(tokensOf(record)!.totalTokens) }}
+                <span
+                  v-if="tokensOf(record)!.estimated"
+                  class="text-muted-foreground"
+                  >（估）</span
+                >
+              </template>
+              <span v-else class="text-muted-foreground">-</span>
+            </span>
+          </Tooltip>
+        </template>
+
         <template v-else-if="column.key === 'message'">
           <Tooltip v-if="record.error" :title="record.error">
             <span class="text-xs">{{ record.error }}</span>
@@ -294,29 +413,28 @@ const viewOptions = [
           <span v-else-if="isStuck(record)" class="text-xs">
             疑似卡住（心跳超时）
           </span>
-          <span v-else class="text-xs text-muted-foreground">
-            <a v-if="record.dramaId" @click="openDrama(record.dramaId)">
-              查看剧目
-            </a>
+          <span
+            v-else-if="record.refEntityType"
+            class="text-xs text-muted-foreground"
+          >
+            {{ record.refEntityType }} #{{ record.refEntityId ?? '-' }}
           </span>
+          <span v-else class="text-xs text-muted-foreground">-</span>
         </template>
 
         <template v-else-if="column.key === 'action'">
           <Space>
-            <Button type="link" size="small" @click="taskId = record.id">
-              详情
-            </Button>
+            <Button size="small" @click="taskId = record.id">详情</Button>
             <template v-if="record.status === 'failed'">
               <Button
-                type="link"
                 size="small"
+                type="primary"
                 :loading="acting === record.id"
                 @click="retry(record)"
               >
                 重试
               </Button>
               <Button
-                type="link"
                 size="small"
                 danger
                 :loading="acting === record.id"
@@ -329,7 +447,6 @@ const viewOptions = [
               v-else-if="['queued', 'preparing'].includes(record.status)"
             >
               <Button
-                type="link"
                 size="small"
                 danger
                 :loading="acting === record.id"

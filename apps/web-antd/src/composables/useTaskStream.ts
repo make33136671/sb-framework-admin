@@ -326,3 +326,13 @@ export const TASK_STATUS_TEXT: Record<string, string> = {
   failed: '失败',
   done: '已完成',
 };
+
+/** 任务类型中文名（与后端 TaskTypes 一一对应；看板/抽屉展示，不再让用户看英文 type） */
+export const TASK_TYPE_TEXT: Record<string, string> = {
+  rewrite: '洗稿',
+  storyboard: '分镜',
+  asset_extract: '素材提取',
+  t2i: '素材出图',
+  i2v: '片段生成',
+  concat: '成片合并',
+};

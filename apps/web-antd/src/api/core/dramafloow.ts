@@ -142,6 +142,14 @@ export interface TaskItem {
   id: number;
   type: string;
   dramaId: number;
+  /** 剧目名（Task/List 批量带出，看板显示「哪个剧目在跑」） */
+  dramaName?: string;
+  /** 剧目编码 */
+  dramaCode?: string;
+  /** 本次任务使用的剧本版本（0 = 尚无剧本） */
+  scriptVersion?: number;
+  /** 「具体在跑什么」：素材 key / 第几集第几镜等（后端已翻成人话） */
+  target?: string;
   refEntityType?: string;
   refEntityId?: number;
   status: string;
@@ -156,7 +164,21 @@ export interface TaskItem {
   updatedAt: string;
 }
 
+/** 任务 LLM token 汇总（按 llm_call_log.task_id 归集） */
+export interface TaskTokenSummary {
+  calls: number;
+  promptTokens: number;
+  completionTokens: number;
+  totalTokens: number;
+  /** 含估算值（网关未回 usage 时按字符数估算）→ 展示必须标注 */
+  estimated: boolean;
+}
+
 export interface TaskDetail extends TaskItem {
+  /** 剧目名（Task/Get 带出） */
+  dramaName?: string;
+  /** 该任务的 LLM token 汇总 */
+  tokens?: null | TaskTokenSummary;
   versions: {
     id: number;
     versionNo: number;
@@ -739,6 +761,8 @@ export async function taskStats(dramaId?: number) {
     byStatus: Record<string, number>;
     byType: Record<string, number>;
     recentFailures: TaskItem[];
+    /** 未终态任务的 token 汇总：taskId → 汇总（看板显示在跑任务烧了多少 token） */
+    tokensByTask: Record<number, TaskTokenSummary>;
   }>('/Task/Stats', { params: dramaId ? { dramaId } : {} });
 }
 
