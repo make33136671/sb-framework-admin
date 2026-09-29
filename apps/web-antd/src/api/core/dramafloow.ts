@@ -67,11 +67,19 @@ export interface AssetRequirementItem {
   id: number;
   dramaId: number;
   key: string;
+  /** 版本号（append-only：同一 key 可多版） */
+  version: number;
+  /** 是否为该 key 的当前生效版本 */
+  isCurrent: boolean;
+  /** 来源：storyboard（分镜推导）/ extract（LLM 提取）/ manual（人工） */
+  source?: string;
   kind: string;
   description?: string;
   spec?: string;
   status: string;
   approvedAssetId?: number;
+  /** 该 key 的版本总数（用于显示"共 N 版"） */
+  versionCount?: number;
   candidateCount: number;
   approvedCount: number;
   pendingCount: number;
@@ -171,6 +179,14 @@ export interface TaskDetail extends TaskItem {
   }[];
 }
 
+/** tokens 桶（今日 / 近 7 天共用形状） */
+export interface TokenBucket {
+  prompt: number;
+  completion: number;
+  calls: number;
+  failedCalls: number;
+}
+
 export interface DashboardMetrics {
   throughput: { today: number; week: number; trend: number[] };
   rejectRate: { image: number; video: number; windowDays: number };
@@ -181,6 +197,116 @@ export interface DashboardMetrics {
   };
   gpu: { inFlight: number; queue: number; windowOpen: boolean; window: string };
   eta: { remainingTasks: number; estHours: number };
+  /** 第 6 指标（设计 §B）：AI tokens 消耗 */
+  tokens: {
+    today: TokenBucket;
+    week: TokenBucket;
+    trend: {
+      date: string;
+      prompt: number;
+      completion: number;
+      calls: number;
+    }[];
+    byPurpose: {
+      purpose: string;
+      calls: number;
+      tokens: number;
+      avgLatencyMs: number;
+    }[];
+    /** 估算调用数 / 实测调用数（数据可信性，P0 配套） */
+    estimated: number;
+    measured: number;
+  };
+}
+
+/** D 区：待我决策（轻量预览，设计 §D） */
+export interface PendingDecisions {
+  images: {
+    requirementId: number;
+    requirementKey?: string;
+    kind?: string;
+    dramaId: number;
+    dramaName?: string;
+    version: number;
+    candidateCount: number;
+    previews: { candidateId: number; filePath?: string }[];
+  }[];
+  videos: {
+    clipId: number;
+    dramaId: number;
+    dramaName?: string;
+    shotId: number;
+    status: string;
+    error?: string;
+    videoPath?: string;
+  }[];
+  products: {
+    episodeId: number;
+    dramaId: number;
+    dramaName?: string;
+    episodeNo: number;
+    coverPath?: string;
+    videoPath?: string;
+    durationSec?: number;
+  }[];
+  scripts: {
+    scriptId: number;
+    dramaId: number;
+    dramaName?: string;
+    version: number;
+    status: string;
+  }[];
+  counts: {
+    images: number;
+    videos: number;
+    products: number;
+    scripts: number;
+    total: number;
+  };
+}
+
+/** E 区：AI 消耗（设计 §E） */
+export interface TokenUsage {
+  range: { days: number; from: string; to: string };
+  today: TokenBucket;
+  totals: TokenBucket;
+  trend: {
+    date: string;
+    prompt: number;
+    completion: number;
+    calls: number;
+    failedCalls: number;
+  }[];
+  byModel: {
+    model: string;
+    provider?: string;
+    prompt: number;
+    completion: number;
+    calls: number;
+    failedCalls: number;
+    avgLatencyMs: number;
+  }[];
+  byPurpose: {
+    purpose: string;
+    prompt: number;
+    completion: number;
+    calls: number;
+    failedCalls: number;
+    avgLatencyMs: number;
+  }[];
+  recentErrors: {
+    purpose: string;
+    model?: string;
+    provider?: string;
+    error?: string;
+    createdAt: string;
+  }[];
+  /** 数据可信性：估算 vs 实测调用数、涉及的 provider */
+  quality: {
+    estimatedCalls: number;
+    measuredCalls: number;
+    providers: string[];
+  };
 }
 
 export interface NightReport {
@@ -452,11 +578,40 @@ export async function assetRequirementList(params: {
   status?: string;
   page?: number;
   pageSize?: number;
+  /** 默认只看当前生效版本；传 false 可列出全部历史版本 */
+  currentOnly?: boolean;
 }) {
   return api.get<{ items: AssetRequirementItem[]; total: number }>(
     '/Asset/RequirementList',
     { params },
   );
+}
+
+/** 素材提取历史版本（append-only，可回选） */
+export async function assetVersionList(dramaId: number, key: string) {
+  return api.get<AssetRequirementItem[]>('/Asset/VersionList', {
+    params: { dramaId, key },
+  });
+}
+
+/** 回选某个历史版本为当前生效版本 */
+export async function assetSetCurrentVersion(id: number) {
+  return api.post<{ id: number; version: number }>('/Asset/SetCurrentVersion', {
+    id,
+  });
+}
+
+/** 软删除某个素材版本 */
+export async function assetVersionDelete(id: number) {
+  return api.post('/Asset/VersionDelete', { id });
+}
+
+/**
+ * 触发「素材提取」：用 LLM 从剧本正文提取 角色/道具/场景。
+ * 每次调用新增一版（不覆盖），返回 taskId 供跟踪进度。
+ */
+export async function assetExtractStart(dramaId: number) {
+  return api.post<{ taskId: number }>('/Asset/ExtractStart', { dramaId });
 }
 
 export async function assetRequirementGet(id: number) {
@@ -553,6 +708,28 @@ export async function taskCancel(id: number) {
   return api.post('/Task/Cancel', { id });
 }
 
+/** 重新生成：任意状态都可再跑一版（开新版本、保留历史），用于"结果不满意，重做" */
+export async function taskRegenerate(id: number, note?: string) {
+  return api.post<{ taskId: number; version: number }>('/Task/Regenerate', {
+    id,
+    note,
+  });
+}
+
+/** 删除子任务（保留记录可追溯；在飞任务需先取消） */
+export async function taskDelete(id: number, reason?: string) {
+  return api.post('/Task/Delete', { id, reason });
+}
+
+/** 手动修改子任务常用字段（备注/进度） */
+export async function taskUpdate(data: {
+  id: number;
+  error?: string;
+  progress?: number;
+}) {
+  return api.post('/Task/Update', data);
+}
+
 export async function taskStats(dramaId?: number) {
   return api.get<{
     total: number;
@@ -619,6 +796,24 @@ export async function dashboardNightReport(dramaId?: number) {
   return api.get<NightReport>('/Dashboard/NightReport', {
     params: dramaId ? { dramaId } : {},
   });
+}
+
+/** D 区：待我决策预览（图片候选缩略 + 视频/成片/剧本待办） */
+export async function dashboardPendingDecisions(params: {
+  dramaId?: number;
+  limit?: number;
+  previewsPerGroup?: number;
+}) {
+  return api.get<PendingDecisions>('/Dashboard/PendingDecisions', { params });
+}
+
+/** E 区：AI 消耗聚合（趋势 / 按模型 / 按用途 / 最近错误） */
+export async function dashboardTokenUsage(params: {
+  days?: number;
+  purpose?: string;
+  model?: string;
+}) {
+  return api.get<TokenUsage>('/Dashboard/TokenUsage', { params });
 }
 
 // ─────────────────────────── Template ───────────────────────────

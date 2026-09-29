@@ -52,6 +52,9 @@ export interface HealthEvent {
   api: string;
   comfyui: string;
   llm?: string;
+  /** 契约 §7 /healthz 四探活：数据库与 n8n（面板 A 区展示，设计 §A「待补」） */
+  db?: string;
+  n8n?: string;
   comfyuiBase?: string;
   lastBeat: string;
 }

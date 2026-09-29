@@ -32,6 +32,7 @@ import type {
   WordParseResult,
 } from '#/api/core/dramafloow';
 import {
+  assetExtractStart,
   assetGenerate,
   assetRequirementList,
   dramaGet,
@@ -44,7 +45,9 @@ import {
   shotList,
   shotStaleReplay,
 } from '#/api/core/dramafloow';
+import { AssetVersionDrawer } from '#/components/AssetVersionDrawer';
 import { PhaseStepper } from '#/components/PhaseStepper';
+import { TaskDrawer } from '#/components/TaskDrawer';
 import { TimeTag } from '#/components/TimeTag';
 import { useTaskStream } from '#/composables/useTaskStream';
 
@@ -150,6 +153,19 @@ async function generateAsset(row: AssetRequirementItem) {
   await loadAll();
 }
 
+/** 素材提取抽屉 / 子任务详情抽屉 */
+const assetKey = ref<null | string>(null);
+const taskId = ref<null | number>(null);
+
+/** 触发「素材提取」：LLM 从剧本正文提取 角色/道具/场景（每次新增一版） */
+async function extractAssets() {
+  const res = await assetExtractStart(dramaId.value);
+  message.success(
+    `素材提取已入队（任务 #${res.taskId}），完成后可在「历史版本」查看`,
+  );
+  await loadAll();
+}
+
 async function replayShot(row: ShotItem) {
   await shotStaleReplay(row.id);
   await loadAll();
@@ -173,12 +189,21 @@ const shotColumns = [
 
 const reqColumns = [
   { title: 'Key', dataIndex: 'key', width: 180 },
-  { title: '种类', dataIndex: 'kind', width: 90 },
+  { title: '种类', key: 'kind', width: 90 },
+  { title: '版本', key: 'version', width: 110 },
   { title: '描述', dataIndex: 'description', ellipsis: true },
   { title: '候选', key: 'cand', width: 110 },
   { title: '状态', key: 'status', width: 100 },
-  { title: '操作', key: 'action', width: 100 },
+  { title: '操作', key: 'action', width: 150 },
 ];
+
+/** 素材种类中文名（角色 / 场景 / 道具） */
+function kindText(kind: string): string {
+  if (kind === 'character') return '角色';
+  if (kind === 'scene') return '场景';
+  if (kind === 'prop') return '道具';
+  return kind;
+}
 
 function shotStatusColor(s: string): string {
   if (s === 'done') return 'success';
@@ -196,7 +221,7 @@ function reqStatusColor(s: string): string {
 </script>
 
 <template>
-  <Page :title="detail?.drama.name ?? '剧目详情'">
+  <Page class="df-page" :title="detail?.drama.name ?? '剧目详情'">
     <template #extra>
       <Space>
         <Tag>{{ detail?.drama.code }}</Tag>
@@ -360,6 +385,16 @@ function reqStatusColor(s: string): string {
 
         <!-- 3) 素材 -->
         <Tabs.TabPane key="assets" :tab="`素材（${requirements.length}）`">
+          <div class="mb-3 flex flex-wrap items-center gap-3">
+            <Button size="small" type="primary" @click="extractAssets">
+              素材提取（角色 / 道具 / 场景）
+            </Button>
+            <span class="text-xs text-muted-foreground">
+              用 LLM
+              从剧本正文提取，每次新增一版；不满意可重新提取，历史版本可回选
+            </span>
+          </div>
+
           <Table
             :columns="reqColumns"
             :data-source="requirements"
@@ -368,7 +403,21 @@ function reqStatusColor(s: string): string {
             size="small"
           >
             <template #bodyCell="{ column, record }">
-              <template v-if="column.key === 'cand'">
+              <template v-if="column.key === 'kind'">
+                <Tag class="!mr-0">{{ kindText(record.kind) }}</Tag>
+              </template>
+              <template v-else-if="column.key === 'version'">
+                <span>v{{ record.version }}</span>
+                <Tag v-if="record.isCurrent" color="success" class="ml-1 !mr-0">
+                  当前
+                </Tag>
+                <div v-if="(record.versionCount ?? 1) > 1" class="text-xs">
+                  <a @click="assetKey = record.key">
+                    共 {{ record.versionCount }} 版
+                  </a>
+                </div>
+              </template>
+              <template v-else-if="column.key === 'cand'">
                 {{ record.approvedCount }}/{{ record.candidateCount }} 通过
               </template>
               <template v-else-if="column.key === 'status'">
@@ -377,13 +426,22 @@ function reqStatusColor(s: string): string {
                 </Tag>
               </template>
               <template v-else-if="column.key === 'action'">
-                <Button
-                  size="small"
-                  type="link"
-                  @click="generateAsset(record as AssetRequirementItem)"
-                >
-                  生成
-                </Button>
+                <Space>
+                  <Button
+                    size="small"
+                    type="link"
+                    @click="generateAsset(record as AssetRequirementItem)"
+                  >
+                    生成
+                  </Button>
+                  <Button
+                    size="small"
+                    type="link"
+                    @click="assetKey = record.key"
+                  >
+                    历史版本
+                  </Button>
+                </Space>
               </template>
             </template>
           </Table>
@@ -482,5 +540,16 @@ function reqStatusColor(s: string): string {
         </Tabs.TabPane>
       </Tabs>
     </Spin>
+
+    <!-- 素材历史版本抽屉（回选/删除/重新提取） -->
+    <AssetVersionDrawer
+      :drama-id="dramaId"
+      :asset-key="assetKey"
+      @close="assetKey = null"
+      @changed="loadAll"
+    />
+
+    <!-- 子任务详情抽屉（查看/重新生成/取消/删除/手动修改） -->
+    <TaskDrawer :task-id="taskId" @close="taskId = null" @changed="loadAll" />
   </Page>
 </template>
