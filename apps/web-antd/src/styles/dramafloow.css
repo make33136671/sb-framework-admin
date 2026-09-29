@@ -1,0 +1,72 @@
+/**
+ * DramaFlow 业务页面统一样式（卡片内边距 / 卡片间距 / Statistic 指标块）
+ *
+ * ⚠️ 特异性策略（重要，别改回全 :where()）：
+ * antd 的组件样式是**运行时注入**的，特异性为 (0,1,0)（如 `.ant-statistic-title`）。
+ * 若本文件也把**目标选择器**放进 `:where()`，整条规则特异性降为 0，
+ * 会被 antd 直接覆盖 —— 实测：`:where(.df-page) :where(.ant-statistic-title){margin-bottom:8px}`
+ * 算出来仍是 antd 的 4px，**看起来改了其实没生效**。
+ *
+ * 因此这里的写法是：
+ *   - **作用域**（.df-page）保留原样，用于限定只影响 DramaFlow 业务页面；
+ *   - **目标**（.ant-card-body 等）用真实类名，让特异性 ≥ antd，确保生效。
+ * 需要更强时给 .df-page 加一道类（.df-page.df-page …）即可，不必用 !important。
+ */
+
+/* ① 卡片内边距：size=small 时 antd 固定 12px → 16px */
+.df-page .ant-card-small > .ant-card-body {
+  padding: 16px;
+}
+
+/* ② 卡片标题行：略增高，标题文字不贴上下边缘 */
+.df-page .ant-card-small > .ant-card-head {
+  min-height: 40px;
+}
+
+.df-page .ant-card-small > .ant-card-head .ant-card-head-title {
+  padding: 8px 0;
+}
+
+/*
+ * ③ 卡片之间的垂直间距
+ *
+ * 业务页面常见结构是「筛选卡 → 内容卡」直接相邻，或卡片被 div 包一层
+ * （如 <div class="mb-4"><TaskBoard /></div>，此时 `.ant-card + .ant-card` 匹配不到，
+ * 因为中间隔了一层 div）。所以两种形态都要覆盖：
+ *   a) 裸相邻的两张卡片；
+ *   b) 一个「只包着一张卡片」的 div 之后紧跟的卡片。
+ */
+.df-page .ant-card + .ant-card,
+.df-page div:has(> .ant-card) + .ant-card {
+  margin-top: 16px;
+}
+
+/* ④ 栅格/弹性布局里由 gap 负责间距，避免叠加成双倍 */
+.df-page .grid > .ant-card + .ant-card,
+.df-page .flex > .ant-card + .ant-card {
+  margin-top: 0;
+}
+
+/*
+ * ⑤ Statistic 指标块（六指标卡 / 剩余工时预估 的主要形态）
+ *
+ * antd 把 Statistic 的 title 作为卡片正文的第一个元素渲染，其自身规则只有
+ * `.ant-statistic-title { margin-bottom: marginXXS }`（= 4px）。在 small 卡片里
+ * 标题距卡顶 16px、距数值仅 4px，看起来标题浮在卡片上沿、数值挤在下面 —— 即用户截图红圈处。
+ *
+ * 这里把「标题 → 数值」拉开到 8px，并给标题一点行高，避免文字上下被挤。
+ */
+.df-page .ant-statistic-title {
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+
+.df-page .ant-statistic-content {
+  line-height: 1.2;
+}
+
+/* 指标块与其后的说明小字（卡片正文里的 mt-1 等）之间留出距离 */
+.df-page .ant-statistic + div,
+.df-page .ant-statistic + p {
+  margin-top: 8px;
+}

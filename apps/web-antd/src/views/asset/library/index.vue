@@ -88,11 +88,14 @@ const gridOptions: VxeGridProps<Row> = {
 };
 
 const [Grid] = useVbenVxeGrid({ formOptions, gridOptions });
-
 </script>
 
 <template>
-  <Page title="素材库" description="审核通过并入库的角色 / 场景 / 道具素材">
+  <Page
+    class="df-page"
+    title="素材库"
+    description="审核通过并入库的角色 / 场景 / 道具素材"
+  >
     <Grid>
       <template #preview="{ row }">
         <Image

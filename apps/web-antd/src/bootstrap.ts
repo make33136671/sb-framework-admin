@@ -10,6 +10,8 @@ import '@vben/styles/antd';
 import { useTitle } from '@vueuse/core';
 
 import { $t, setupI18n } from '#/locales';
+// DramaFlow 业务页面统一样式（卡片内边距与间距，仅作用于 .df-page）
+import '#/styles/dramafloow.css';
 
 import { initComponentAdapter } from './adapter/component';
 import { initSetupVbenForm } from './adapter/form';

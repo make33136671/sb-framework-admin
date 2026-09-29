@@ -201,7 +201,7 @@ function openDetail(row: DramaItem) {
 </script>
 
 <template>
-  <Page title="剧目管理">
+  <Page class="df-page" title="剧目管理">
     <Grid>
       <template #toolbar-actions>
         <Button type="primary" @click="openCreate">新建剧目</Button>

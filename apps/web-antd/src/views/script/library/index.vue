@@ -77,6 +77,7 @@ const columns = [
 
 <template>
   <Page
+    class="df-page"
     title="剧本仓库"
     description="各剧目剧本版本（原始稿不可变，改写只新增版本）"
   >

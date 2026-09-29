@@ -114,7 +114,7 @@ const sizeText = computed(() => (b?: number) => {
 </script>
 
 <template>
-  <Page title="成片" description="片段合并成集 → 发布">
+  <Page class="df-page" title="成片" description="片段合并成集 → 发布">
     <Card class="mb-4" size="small">
       <div class="flex flex-wrap items-center gap-3">
         <span class="text-sm">剧目</span>

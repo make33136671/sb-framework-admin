@@ -154,7 +154,11 @@ function next() {
 </script>
 
 <template>
-  <Page title="审核队列" description="图（候选）与剧（成集）人工审核门">
+  <Page
+    class="df-page"
+    title="审核队列"
+    description="图（候选）与剧（成集）人工审核门"
+  >
     <Card class="mb-4" size="small">
       <div class="flex flex-wrap items-center justify-between gap-3">
         <Space>
