@@ -16,6 +16,7 @@ import {
   Empty,
   Input,
   message,
+  Segmented,
   Space,
   Spin,
   Table,
@@ -48,6 +49,7 @@ import {
 } from '#/api/core/dramafloow';
 import type { ResourceDetailType } from '#/components/ResourceDetailModal';
 import { AiProviderSelect } from '#/components/AiProviderSelect';
+import { AssetCategoryView } from '#/components/AssetCategoryView';
 import { AssetVersionDrawer } from '#/components/AssetVersionDrawer';
 import { PhaseStepper } from '#/components/PhaseStepper';
 import { ResourceDetailModal } from '#/components/ResourceDetailModal';
@@ -68,6 +70,9 @@ const requirements = ref<AssetRequirementItem[]>([]);
 const episodes = ref<ProductEpisodeItem[]>([]);
 const loading = ref(true);
 const activeTab = ref('script');
+/** 素材页视图：分类视图（默认）/ 列表视图（原始清单） */
+const assetView = ref<'category' | 'list'>('category');
+const assetCategoryRef = ref<null | { reload: () => void }>(null);
 const sourceDraft = ref('');
 const saving = ref(false);
 const parsing = ref(false);
@@ -80,6 +85,8 @@ const stages = computed(
 
 async function loadAll() {
   loading.value = true;
+  // 分类视图是独立数据源（含预览图/出场集数），一起刷新
+  const refreshCategoryView = () => assetCategoryRef.value?.reload();
   try {
     detail.value = await dramaGet(dramaId.value);
     // 剧本可能尚未创建（后端返回错误），静默处理
@@ -101,6 +108,7 @@ async function loadAll() {
     // 拦截器已提示
   } finally {
     loading.value = false;
+    refreshCategoryView();
   }
 }
 
@@ -161,6 +169,23 @@ async function rewrite() {
 async function generateAsset(row: AssetRequirementItem) {
   await assetGenerate(row.id, t2iProviderId.value);
   await loadAll();
+}
+
+/** 分类视图里只有 id（它是另一套视图模型）：按 id 找到需求再走原逻辑 */
+function requirementById(id: number): null | AssetRequirementItem {
+  return requirements.value.find((r) => r.id === id) ?? null;
+}
+
+function openAssetDetailById(id: number) {
+  const row = requirementById(id);
+  if (row) openAssetDetail(row);
+}
+
+async function generateAssetById(id: number) {
+  const row = requirementById(id);
+  if (!row) return;
+  await generateAsset(row);
+  assetCategoryRef.value?.reload();
 }
 
 /** 素材提取抽屉 / 子任务详情抽屉 */
@@ -518,73 +543,97 @@ function reqStatusColor(s: string): string {
               v-model:value="extractProviderId"
               task-type="asset_extract"
             />
-            <span class="text-xs text-muted-foreground">
-              用 LLM
-              从剧本正文提取，每次新增一版；不满意可重新提取，历史版本可回选
-            </span>
+            <span class="flex-1" />
+            <Segmented
+              v-model:value="assetView"
+              :options="[
+                { label: '分类视图', value: 'category' },
+                { label: '列表视图', value: 'list' },
+              ]"
+            />
           </div>
 
-          <div class="mb-2 flex flex-wrap items-center gap-2">
-            <span class="text-xs text-muted-foreground">出图线路</span>
-            <AiProviderSelect v-model:value="t2iProviderId" task-type="t2i" />
-          </div>
+          <!-- 分类视图（默认）：分类树 + 素材网格 -->
+          <AssetCategoryView
+            v-if="assetView === 'category'"
+            ref="assetCategoryRef"
+            :drama-id="dramaId"
+            @changed="loadAll"
+            @generate="(it) => generateAssetById(it.id)"
+            @open="(it) => openAssetDetailById(it.id)"
+            @versions="(it) => (assetKey = it.key)"
+          />
 
-          <Table
-            :columns="reqColumns"
-            :custom-row="onRequirementRow"
-            :data-source="requirements"
-            :pagination="{ pageSize: 20 }"
-            :scroll="{ x: 'max-content' }"
-            row-key="id"
-            size="small"
-          >
-            <template #bodyCell="{ column, record }">
-              <template v-if="column.key === 'kind'">
-                <Tag class="!mr-0">{{ kindText(record.kind) }}</Tag>
-              </template>
-              <template v-else-if="column.key === 'version'">
-                <span>v{{ record.version }}</span>
-                <Tag v-if="record.isCurrent" color="success" class="ml-1 !mr-0">
-                  当前
-                </Tag>
-                <div v-if="(record.versionCount ?? 1) > 1" class="text-xs">
-                  <a @click.stop="assetKey = record.key">
-                    共 {{ record.versionCount }} 版
-                  </a>
-                </div>
-              </template>
-              <template v-else-if="column.key === 'cand'">
-                {{ record.approvedCount }}/{{ record.candidateCount }} 通过
-              </template>
-              <template v-else-if="column.key === 'status'">
-                <Tag :color="reqStatusColor(record.status)" class="!mr-0">
-                  {{ record.status }}
-                </Tag>
-              </template>
-              <template v-else-if="column.key === 'action'">
-                <Space>
-                  <Button
-                    size="small"
-                    @click.stop="
-                      openAssetDetail(record as AssetRequirementItem)
-                    "
+          <!-- 列表视图：原始清单（key/版本/候选/状态），便于处理没有图的行 -->
+          <template v-else>
+            <div class="mb-2 flex flex-wrap items-center gap-2 pt-3">
+              <span class="text-xs text-muted-foreground">出图线路</span>
+              <AiProviderSelect v-model:value="t2iProviderId" task-type="t2i" />
+            </div>
+
+            <Table
+              :columns="reqColumns"
+              :custom-row="onRequirementRow"
+              :data-source="requirements"
+              :pagination="{ pageSize: 20 }"
+              :scroll="{ x: 'max-content' }"
+              row-key="id"
+              size="small"
+            >
+              <template #bodyCell="{ column, record }">
+                <template v-if="column.key === 'kind'">
+                  <Tag class="!mr-0">{{ kindText(record.kind) }}</Tag>
+                </template>
+                <template v-else-if="column.key === 'version'">
+                  <span>v{{ record.version }}</span>
+                  <Tag
+                    v-if="record.isCurrent"
+                    color="success"
+                    class="ml-1 !mr-0"
                   >
-                    详情
-                  </Button>
-                  <Button
-                    size="small"
-                    type="primary"
-                    @click.stop="generateAsset(record as AssetRequirementItem)"
-                  >
-                    生成
-                  </Button>
-                  <Button size="small" @click.stop="assetKey = record.key">
-                    历史版本
-                  </Button>
-                </Space>
+                    当前
+                  </Tag>
+                  <div v-if="(record.versionCount ?? 1) > 1" class="text-xs">
+                    <a @click.stop="assetKey = record.key">
+                      共 {{ record.versionCount }} 版
+                    </a>
+                  </div>
+                </template>
+                <template v-else-if="column.key === 'cand'">
+                  {{ record.approvedCount }}/{{ record.candidateCount }} 通过
+                </template>
+                <template v-else-if="column.key === 'status'">
+                  <Tag :color="reqStatusColor(record.status)" class="!mr-0">
+                    {{ record.status }}
+                  </Tag>
+                </template>
+                <template v-else-if="column.key === 'action'">
+                  <Space>
+                    <Button
+                      size="small"
+                      @click.stop="
+                        openAssetDetail(record as AssetRequirementItem)
+                      "
+                    >
+                      详情
+                    </Button>
+                    <Button
+                      size="small"
+                      type="primary"
+                      @click.stop="
+                        generateAsset(record as AssetRequirementItem)
+                      "
+                    >
+                      生成
+                    </Button>
+                    <Button size="small" @click.stop="assetKey = record.key">
+                      历史版本
+                    </Button>
+                  </Space>
+                </template>
               </template>
-            </template>
-          </Table>
+            </Table>
+          </template>
         </Tabs.TabPane>
 
         <!-- 4) 片段 -->
