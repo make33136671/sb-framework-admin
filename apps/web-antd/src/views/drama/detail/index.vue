@@ -47,6 +47,7 @@ import {
   shotStaleReplay,
 } from '#/api/core/dramafloow';
 import type { ResourceDetailType } from '#/components/ResourceDetailModal';
+import { AiProviderSelect } from '#/components/AiProviderSelect';
 import { AssetVersionDrawer } from '#/components/AssetVersionDrawer';
 import { PhaseStepper } from '#/components/PhaseStepper';
 import { ResourceDetailModal } from '#/components/ResourceDetailModal';
@@ -108,6 +109,12 @@ onMounted(() => {
   void loadAll();
 });
 
+/** 各能力当前选中的线路（null = 自动，走该能力的默认线路） */
+const rewriteProviderId = ref<null | number>(null);
+const extractProviderId = ref<null | number>(null);
+const t2iProviderId = ref<null | number>(null);
+const i2vProviderId = ref<null | number>(null);
+
 async function saveSource() {
   if (!sourceDraft.value.trim()) return;
   saving.value = true;
@@ -147,12 +154,12 @@ async function onWordPicked(e: Event) {
 }
 
 async function rewrite() {
-  await scriptRewrite(dramaId.value);
+  await scriptRewrite(dramaId.value, rewriteProviderId.value);
   await loadAll();
 }
 
 async function generateAsset(row: AssetRequirementItem) {
-  await assetGenerate(row.id);
+  await assetGenerate(row.id, t2iProviderId.value);
   await loadAll();
 }
 
@@ -162,7 +169,7 @@ const taskId = ref<null | number>(null);
 
 /** 触发「素材提取」：LLM 从剧本正文提取 角色/道具/场景（每次新增一版） */
 async function extractAssets() {
-  const res = await assetExtractStart(dramaId.value);
+  const res = await assetExtractStart(dramaId.value, extractProviderId.value);
   message.success(
     `素材提取已入队（任务 #${res.taskId}），完成后可在「历史版本」查看`,
   );
@@ -170,7 +177,7 @@ async function extractAssets() {
 }
 
 async function replayShot(row: ShotItem) {
-  await shotStaleReplay(row.id);
+  await shotStaleReplay(row.id, i2vProviderId.value);
   await loadAll();
 }
 
@@ -389,6 +396,10 @@ function reqStatusColor(s: string): string {
                 <span>当前版本 v{{ script.version }}</span>
                 <Tag>{{ script.episodeCount }} 集</Tag>
                 <Tag v-if="script.model">{{ script.model }}</Tag>
+                <AiProviderSelect
+                  v-model:value="rewriteProviderId"
+                  task-type="rewrite"
+                />
                 <Button
                   type="primary"
                   size="small"
@@ -455,6 +466,11 @@ function reqStatusColor(s: string): string {
 
         <!-- 2) 分镜 -->
         <Tabs.TabPane key="shots" :tab="`分镜（${shots.length}）`">
+          <div class="mb-2 flex flex-wrap items-center gap-2">
+            <span class="text-xs text-muted-foreground">片段线路</span>
+            <AiProviderSelect v-model:value="i2vProviderId" task-type="i2v" />
+          </div>
+
           <Table
             :columns="shotColumns"
             :custom-row="onShotRow"
@@ -497,10 +513,19 @@ function reqStatusColor(s: string): string {
             <Button size="small" type="primary" @click="extractAssets">
               素材提取（角色 / 道具 / 场景）
             </Button>
+            <AiProviderSelect
+              v-model:value="extractProviderId"
+              task-type="asset_extract"
+            />
             <span class="text-xs text-muted-foreground">
               用 LLM
               从剧本正文提取，每次新增一版；不满意可重新提取，历史版本可回选
             </span>
+          </div>
+
+          <div class="mb-2 flex flex-wrap items-center gap-2">
+            <span class="text-xs text-muted-foreground">出图线路</span>
+            <AiProviderSelect v-model:value="t2iProviderId" task-type="t2i" />
           </div>
 
           <Table

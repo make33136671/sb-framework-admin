@@ -37,6 +37,7 @@ import {
   taskRegenerate,
   taskUpdate,
 } from '#/api/core/dramafloow';
+import { requiredCapabilityText } from '#/composables/useAiProviders';
 import { TimeTag } from '#/components/TimeTag';
 import {
   TASK_STATUS_TEXT,
@@ -290,6 +291,26 @@ const jobColumns = [
             {{ detail.dramaName || `#${detail.dramaId}` }}
           </a>
           <span v-else class="text-muted-foreground">-</span>
+        </Descriptions.Item>
+        <Descriptions.Item label="AI 线路">
+          <template v-if="detail.providerName">
+            {{ detail.providerName }}
+            <span class="text-xs text-muted-foreground">
+              （需要 {{ requiredCapabilityText(detail.type) }}）
+            </span>
+          </template>
+          <template
+            v-else-if="requiredCapabilityText(detail.type).includes('无需')"
+          >
+            <span class="text-muted-foreground">
+              {{ requiredCapabilityText(detail.type) }}
+            </span>
+          </template>
+          <template v-else>
+            <span class="text-muted-foreground">
+              自动（默认线路）· 需要 {{ requiredCapabilityText(detail.type) }}
+            </span>
+          </template>
         </Descriptions.Item>
         <Descriptions.Item label="关联实体">
           {{ detail.refEntityType }} #{{ detail.refEntityId ?? '-' }}

@@ -41,6 +41,7 @@ import {
   taskRetry,
   taskStats,
 } from '#/api/core/dramafloow';
+import { requiredCapabilityText } from '#/composables/useAiProviders';
 import { RunningTaskList } from '#/components/RunningTaskList';
 import {
   elapsedSecondsOf,
@@ -287,7 +288,8 @@ async function cancel(t: TaskItem | Record<string, any>) {
 
 const columns = [
   { title: '剧目 / 剧本', key: 'drama', width: 240 },
-  { title: '线路', key: 'line', width: 120 },
+  { title: '任务线路', key: 'line', width: 120 },
+  { title: 'AI 线路（模型）', key: 'provider', width: 190 },
   { title: '具体任务', key: 'target', ellipsis: true },
   { title: '状态', key: 'status', width: 110 },
   { title: '进度', key: 'progress', width: 150 },
@@ -435,9 +437,29 @@ const columns = [
             <span v-else class="text-muted-foreground">-</span>
           </template>
 
-          <!-- 线路 -->
+          <!-- 任务线路（任务类型所属生产线） -->
           <template v-else-if="column.key === 'line'">
-            <Tag class="!mr-0" color="blue">{{ typeText(record.type) }}</Tag>
+            <Tooltip
+              :title="`该任务需要「${requiredCapabilityText(record.type)}」能力的线路`"
+            >
+              <Tag class="!mr-0" color="blue">{{ typeText(record.type) }}</Tag>
+            </Tooltip>
+          </template>
+
+          <!-- 实际使用的 AI 线路（模型） -->
+          <template v-else-if="column.key === 'provider'">
+            <div v-if="record.providerName" class="flex flex-col">
+              <span class="text-xs">{{ record.providerName }}</span>
+              <span class="text-xs text-muted-foreground"> 指定线路 </span>
+            </div>
+            <div v-else class="flex flex-col">
+              <span class="text-xs text-muted-foreground"
+                >自动（默认线路）</span
+              >
+              <span class="text-xs text-muted-foreground">
+                需要 {{ requiredCapabilityText(record.type) }}
+              </span>
+            </div>
           </template>
 
           <!-- 具体任务 -->

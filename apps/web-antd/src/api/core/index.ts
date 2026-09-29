@@ -1,4 +1,5 @@
 export * from './admin';
+export * from './aiProvider';
 export * from './auth';
 export * from './dramafloow';
 export * from './menu';

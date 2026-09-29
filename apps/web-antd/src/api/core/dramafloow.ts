@@ -150,6 +150,12 @@ export interface TaskItem {
   scriptVersion?: number;
   /** 「具体在跑什么」：素材 key / 第几集第几镜等（后端已翻成人话） */
   target?: string;
+  /** 指定线路 id（null/undefined = 未指定，执行时走该能力的默认线路） */
+  providerId?: null | number;
+  /** 线路名（展示「用哪条线路跑」） */
+  providerName?: null | string;
+  /** 该任务类型需要的能力位掩码（说明「为什么有些线路是灰的」） */
+  requiredCapability?: number;
   refEntityType?: string;
   refEntityId?: number;
   status: string;
@@ -517,8 +523,8 @@ export async function scriptImportWord(dramaId: number, file: File) {
   );
 }
 
-export async function scriptRewrite(dramaId: number) {
-  return api.post<{ taskId: number }>('/Script/Rewrite', { dramaId });
+export async function scriptRewrite(dramaId: number, providerId?: null | number) {
+  return api.post<{ taskId: number }>('/Script/Rewrite', { dramaId, providerId });
 }
 
 export async function scriptVersionList(dramaId: number) {
@@ -586,9 +592,10 @@ export async function shotSave(data: Record<string, any>) {
   return api.post('/Shot/Save', data);
 }
 
-export async function shotStaleReplay(id: number) {
+export async function shotStaleReplay(id: number, providerId?: null | number) {
   return api.post<{ taskId: number; version: number }>('/Shot/StaleReplay', {
     id,
+    providerId,
   });
 }
 
@@ -632,8 +639,14 @@ export async function assetVersionDelete(id: number) {
  * 触发「素材提取」：用 LLM 从剧本正文提取 角色/道具/场景。
  * 每次调用新增一版（不覆盖），返回 taskId 供跟踪进度。
  */
-export async function assetExtractStart(dramaId: number) {
-  return api.post<{ taskId: number }>('/Asset/ExtractStart', { dramaId });
+export async function assetExtractStart(
+  dramaId: number,
+  providerId?: null | number,
+) {
+  return api.post<{ taskId: number }>('/Asset/ExtractStart', {
+    dramaId,
+    providerId,
+  });
 }
 
 export async function assetRequirementGet(id: number) {
@@ -662,9 +675,13 @@ export async function assetCandidateList(requirementId: number) {
   });
 }
 
-export async function assetGenerate(requirementId: number) {
+export async function assetGenerate(
+  requirementId: number,
+  providerId?: null | number,
+) {
   return api.post<{ taskId: number; version: number }>('/Asset/Generate', {
     requirementId,
+    providerId,
   });
 }
 
