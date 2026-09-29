@@ -28,6 +28,7 @@ import type {
   DramaDetail,
   ProductEpisodeItem,
   ScriptDetail,
+  ScriptEpisode,
   ShotItem,
   WordParseResult,
 } from '#/api/core/dramafloow';
@@ -45,8 +46,10 @@ import {
   shotList,
   shotStaleReplay,
 } from '#/api/core/dramafloow';
+import type { ResourceDetailType } from '#/components/ResourceDetailModal';
 import { AssetVersionDrawer } from '#/components/AssetVersionDrawer';
 import { PhaseStepper } from '#/components/PhaseStepper';
+import { ResourceDetailModal } from '#/components/ResourceDetailModal';
 import { TaskDrawer } from '#/components/TaskDrawer';
 import { TimeTag } from '#/components/TimeTag';
 import { useTaskStream } from '#/composables/useTaskStream';
@@ -176,6 +179,74 @@ async function renderProduct() {
   await loadAll();
 }
 
+// ─────────────────── 详情弹窗（分镜 / 片段 / 素材 / 成片 / 剧本集） ───────────────────
+
+/** 当前打开的详情类型；null = 全部关闭 */
+const detailType = ref<null | ResourceDetailType>(null);
+const detailShot = ref<null | ShotItem>(null);
+const detailClipShot = ref<null | ShotItem>(null);
+const detailRequirement = ref<null | AssetRequirementItem>(null);
+const detailEpisode = ref<null | ProductEpisodeItem>(null);
+const detailScriptEpisode = ref<null | ScriptEpisode>(null);
+
+function openShotDetail(row: ShotItem) {
+  detailShot.value = row;
+  detailType.value = 'shot';
+}
+
+/** 片段详情：与分镜详情分开存行数据，避免两个弹窗互相覆盖 */
+function openClipDetail(row: ShotItem) {
+  detailClipShot.value = row;
+  detailType.value = 'clip';
+}
+
+function openAssetDetail(row: AssetRequirementItem) {
+  detailRequirement.value = row;
+  detailType.value = 'asset';
+}
+
+function openEpisodeDetail(row: ProductEpisodeItem) {
+  detailEpisode.value = row;
+  detailType.value = 'product';
+}
+
+function openScriptEpisode(ep: ScriptEpisode) {
+  detailScriptEpisode.value = ep;
+  detailType.value = 'script-ep';
+}
+
+function closeDetail() {
+  detailType.value = null;
+}
+
+/** 弹窗内的子任务「详情」→ 关弹窗并打开 TaskDrawer（避免双层遮罩叠在一起） */
+function openTaskFromDetail(id: number) {
+  closeDetail();
+  taskId.value = id;
+}
+
+// ── 各行点击（antd customRow 收 any，这里统一在 TS 里断言成业务类型） ──
+
+/** 点分镜行 → 分镜详情 */
+function onShotRow(record: ShotItem) {
+  return { onClick: () => openShotDetail(record) };
+}
+
+/** 点素材行 → 素材需求详情 */
+function onRequirementRow(record: AssetRequirementItem) {
+  return { onClick: () => openAssetDetail(record) };
+}
+
+/** 点片段行 → 片段详情 */
+function onClipRow(record: ShotItem) {
+  return { onClick: () => openClipDetail(record) };
+}
+
+/** 点成片行 → 成片详情 */
+function onEpisodeRow(record: ProductEpisodeItem) {
+  return { onClick: () => openEpisodeDetail(record) };
+}
+
 const shotColumns = [
   { title: '集', dataIndex: 'episodeNo', width: 60 },
   { title: '镜', dataIndex: 'shotNo', width: 60 },
@@ -184,7 +255,7 @@ const shotColumns = [
   { title: '秒', dataIndex: 'durationSec', width: 60 },
   { title: '描述', dataIndex: 'description', ellipsis: true },
   { title: '状态', key: 'status', width: 100 },
-  { title: '操作', key: 'action', width: 100 },
+  { title: '操作', key: 'action', width: 70 },
 ];
 
 const reqColumns = [
@@ -194,7 +265,27 @@ const reqColumns = [
   { title: '描述', dataIndex: 'description', ellipsis: true },
   { title: '候选', key: 'cand', width: 110 },
   { title: '状态', key: 'status', width: 100 },
-  { title: '操作', key: 'action', width: 150 },
+  { title: '操作', key: 'action', width: 130 },
+];
+
+/** 片段列表列（片段 = 分镜的 clip） */
+const clipColumns = [
+  { title: '集', dataIndex: 'episodeNo', width: 60 },
+  { title: '镜', dataIndex: 'shotNo', width: 60 },
+  { title: '分镜状态', key: 'status', width: 110 },
+  { title: '片段状态', key: 'clip', width: 110 },
+  { title: '视频', key: 'video' },
+  { title: '操作', key: 'action', width: 70 },
+];
+
+/** 成片列 */
+const productColumns = [
+  { title: '集', dataIndex: 'episodeNo', width: 60 },
+  { title: '版本', dataIndex: 'version', width: 70 },
+  { title: '状态', key: 'status', width: 100 },
+  { title: '时长', dataIndex: 'durationSec', width: 80 },
+  { title: '发布', key: 'published', width: 170 },
+  { title: '操作', key: 'action', width: 70 },
 ];
 
 /** 素材种类中文名（角色 / 场景 / 道具） */
@@ -333,8 +424,17 @@ function reqStatusColor(s: string): string {
                         :key="ep.no"
                         class="mb-3"
                       >
-                        <div class="font-medium">
-                          第 {{ ep.no }} 集 {{ ep.title }}
+                        <div class="flex items-center gap-2">
+                          <span class="font-medium">
+                            第 {{ ep.no }} 集 {{ ep.title }}
+                          </span>
+                          <Button
+                            size="small"
+                            type="primary"
+                            @click="openScriptEpisode(ep)"
+                          >
+                            查看详情
+                          </Button>
                         </div>
                         <div
                           v-for="(sc, i) in ep.scenes"
@@ -357,6 +457,7 @@ function reqStatusColor(s: string): string {
         <Tabs.TabPane key="shots" :tab="`分镜（${shots.length}）`">
           <Table
             :columns="shotColumns"
+            :custom-row="onShotRow"
             :data-source="shots"
             :pagination="{ pageSize: 20 }"
             row-key="id"
@@ -369,15 +470,22 @@ function reqStatusColor(s: string): string {
                 </Tag>
               </template>
               <template v-else-if="column.key === 'action'">
-                <Button
-                  v-if="record.status === 'stale'"
-                  size="small"
-                  type="link"
-                  @click="replayShot(record as ShotItem)"
-                >
-                  重跑
-                </Button>
-                <span v-else class="text-muted-foreground">-</span>
+                <Space>
+                  <Button
+                    size="small"
+                    @click.stop="openShotDetail(record as ShotItem)"
+                  >
+                    详情
+                  </Button>
+                  <Button
+                    v-if="record.status === 'stale'"
+                    size="small"
+                    type="primary"
+                    @click.stop="replayShot(record as ShotItem)"
+                  >
+                    重跑
+                  </Button>
+                </Space>
               </template>
             </template>
           </Table>
@@ -397,6 +505,7 @@ function reqStatusColor(s: string): string {
 
           <Table
             :columns="reqColumns"
+            :custom-row="onRequirementRow"
             :data-source="requirements"
             :pagination="{ pageSize: 20 }"
             row-key="id"
@@ -412,7 +521,7 @@ function reqStatusColor(s: string): string {
                   当前
                 </Tag>
                 <div v-if="(record.versionCount ?? 1) > 1" class="text-xs">
-                  <a @click="assetKey = record.key">
+                  <a @click.stop="assetKey = record.key">
                     共 {{ record.versionCount }} 版
                   </a>
                 </div>
@@ -429,16 +538,20 @@ function reqStatusColor(s: string): string {
                 <Space>
                   <Button
                     size="small"
-                    type="link"
-                    @click="generateAsset(record as AssetRequirementItem)"
+                    @click.stop="
+                      openAssetDetail(record as AssetRequirementItem)
+                    "
                   >
-                    生成
+                    详情
                   </Button>
                   <Button
                     size="small"
-                    type="link"
-                    @click="assetKey = record.key"
+                    type="primary"
+                    @click.stop="generateAsset(record as AssetRequirementItem)"
                   >
+                    生成
+                  </Button>
+                  <Button size="small" @click.stop="assetKey = record.key">
                     历史版本
                   </Button>
                 </Space>
@@ -454,13 +567,8 @@ function reqStatusColor(s: string): string {
               片段由分镜 i2v 生成（无人工审核）；失效片段需在分镜页手动重跑。
             </div>
             <Table
-              :columns="[
-                { title: '集', dataIndex: 'episodeNo', width: 60 },
-                { title: '镜', dataIndex: 'shotNo', width: 60 },
-                { title: '分镜状态', key: 'status', width: 110 },
-                { title: '片段状态', key: 'clip', width: 110 },
-                { title: '视频', key: 'video' },
-              ]"
+              :columns="clipColumns"
+              :custom-row="onClipRow"
               :data-source="shots.filter((s) => s.clip)"
               :pagination="{ pageSize: 20 }"
               row-key="id"
@@ -485,6 +593,14 @@ function reqStatusColor(s: string): string {
                     record.clip.videoPath
                   }}</span>
                 </template>
+                <template v-else-if="column.key === 'action'">
+                  <Button
+                    size="small"
+                    @click.stop="openClipDetail(record as ShotItem)"
+                  >
+                    详情
+                  </Button>
+                </template>
               </template>
             </Table>
           </Card>
@@ -505,13 +621,8 @@ function reqStatusColor(s: string): string {
 
             <Table
               v-if="episodes.length > 0"
-              :columns="[
-                { title: '集', dataIndex: 'episodeNo', width: 60 },
-                { title: '版本', dataIndex: 'version', width: 70 },
-                { title: '状态', key: 'status', width: 100 },
-                { title: '时长', dataIndex: 'durationSec', width: 80 },
-                { title: '发布', key: 'published', width: 170 },
-              ]"
+              :columns="productColumns"
+              :custom-row="onEpisodeRow"
               :data-source="episodes"
               :pagination="false"
               row-key="id"
@@ -533,6 +644,16 @@ function reqStatusColor(s: string): string {
                   />
                   <span v-else class="text-muted-foreground">未发布</span>
                 </template>
+                <template v-else-if="column.key === 'action'">
+                  <Button
+                    size="small"
+                    @click.stop="
+                      openEpisodeDetail(record as ProductEpisodeItem)
+                    "
+                  >
+                    详情
+                  </Button>
+                </template>
               </template>
             </Table>
             <Empty v-else description="尚未渲染成片（需先有已完成片段）" />
@@ -551,5 +672,17 @@ function reqStatusColor(s: string): string {
 
     <!-- 子任务详情抽屉（查看/重新生成/取消/删除/手动修改） -->
     <TaskDrawer :task-id="taskId" @close="taskId = null" @changed="loadAll" />
+
+    <!-- 统一详情弹窗：分镜 / 片段 / 素材需求 / 成片 / 剧本集 -->
+    <ResourceDetailModal
+      :product-episode="detailEpisode"
+      :requirement="detailRequirement"
+      :script-episode="detailScriptEpisode"
+      :shot="detailType === 'clip' ? detailClipShot : detailShot"
+      :type="detailType"
+      @changed="loadAll"
+      @close="closeDetail"
+      @open-task="openTaskFromDetail"
+    />
   </Page>
 </template>

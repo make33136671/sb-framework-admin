@@ -70,3 +70,102 @@
 .df-page .ant-statistic + p {
   margin-top: 8px;
 }
+
+/*
+ * ⑥ 「正在跑」动态效果（AI 任务列表页 / 仪表盘看板共用）
+ *
+ * 设计原则：
+ *   - 颜色一律走主题 token（primary / success / border），不硬编码，亮暗主题都成立；
+ *   - 只给**真正在干活**的卡片上动效（排队中不动，避免整屏乱闪）；
+ *   - prefers-reduced-motion 下全部关闭（可访问性）。
+ * 用到的 token 都挂在 :root（shadcn 体系），因此自绘 div 里可以直接用。
+ */
+.df-live-dot {
+  position: relative;
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: hsl(var(--primary));
+  border-radius: 9999px;
+}
+
+/* 呼吸光环：让「在跑」这件事一眼可辨 */
+.df-live-dot::after {
+  position: absolute;
+  inset: 0;
+  content: '';
+  background: hsl(var(--primary));
+  border-radius: 9999px;
+  animation: df-ping 1.6s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes df-ping {
+  0% {
+    opacity: 0.6;
+    transform: scale(1);
+  }
+
+  75%,
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
+/* 卡片流光：一条淡色高光从左扫到右，暗示数据在实时刷新 */
+.df-live-card-active::after {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  content: '';
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    hsl(var(--primary) / 8%) 45%,
+    hsl(var(--primary) / 14%) 50%,
+    hsl(var(--primary) / 8%) 55%,
+    transparent 100%
+  );
+  animation: df-sweep 2.8s ease-in-out infinite;
+}
+
+@keyframes df-sweep {
+  0% {
+    transform: translateX(-100%);
+  }
+
+  60%,
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+/* 走字数字：轻微呼吸，强调「还在涨」 */
+.df-live-num {
+  font-weight: 600;
+  animation: df-pulse 2s ease-in-out infinite;
+}
+
+@keyframes df-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.65;
+  }
+}
+
+/* 在跑卡片的左侧强调条 */
+.df-live-card-active {
+  border-left: 2px solid hsl(var(--primary));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .df-live-dot::after,
+  .df-live-card-active::after,
+  .df-live-num {
+    animation: none;
+  }
+}
