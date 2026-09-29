@@ -57,6 +57,8 @@ export interface ScriptDetail {
   episodes: ScriptEpisode[];
   episodeCount: number;
   model?: string;
+  /** 本版洗稿使用的细化选项快照（JSON 字符串） */
+  rewriteOptions?: null | string;
   llmCallId?: number;
   status: string;
   createdAt: string;
@@ -523,8 +525,17 @@ export async function scriptImportWord(dramaId: number, file: File) {
   );
 }
 
-export async function scriptRewrite(dramaId: number, providerId?: null | number) {
-  return api.post<{ taskId: number }>('/Script/Rewrite', { dramaId, providerId });
+export async function scriptRewrite(
+  dramaId: number,
+  providerId?: null | number,
+  /** 洗稿细化选项（JSON 字符串，键名与后端 RewriteOptions 一致） */
+  rewriteOptions?: null | string,
+) {
+  return api.post<{ options: number; taskId: number }>('/Script/Rewrite', {
+    dramaId,
+    providerId,
+    rewriteOptions,
+  });
 }
 
 export async function scriptVersionList(dramaId: number) {

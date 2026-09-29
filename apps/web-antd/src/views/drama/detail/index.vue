@@ -49,11 +49,14 @@ import {
 } from '#/api/core/dramafloow';
 import type { ResourceDetailType } from '#/components/ResourceDetailModal';
 import { AiProviderSelect } from '#/components/AiProviderSelect';
+import { RewriteOptionsPanel } from '#/components/RewriteOptionsPanel';
+import { defaultRewriteOptions } from '#/composables/rewriteOptions';
 import { AssetCategoryView } from '#/components/AssetCategoryView';
 import { AssetVersionDrawer } from '#/components/AssetVersionDrawer';
 import { PhaseStepper } from '#/components/PhaseStepper';
 import { ResourceDetailModal } from '#/components/ResourceDetailModal';
 import { TaskDrawer } from '#/components/TaskDrawer';
+import { episodeTitle } from '#/components/TaskDrawer/taskDisplay';
 import { TimeTag } from '#/components/TimeTag';
 import { useTaskStream } from '#/composables/useTaskStream';
 
@@ -93,6 +96,8 @@ async function loadAll() {
     try {
       script.value = await scriptGet(dramaId.value);
       sourceDraft.value = script.value.sourceText ?? '';
+      // 回填该版洗稿用的选项，支持"照上次参数再洗一版"
+      loadOptionsFromScript();
     } catch {
       script.value = null;
     }
@@ -116,6 +121,11 @@ onMounted(() => {
   stream.subscribeDrama(dramaId.value);
   void loadAll();
 });
+
+/** 洗稿细化选项（A–E；键名与后端 RewriteOptions 一致） */
+const rewriteOpts = ref<Record<string, any>>(defaultRewriteOptions());
+/** 选项面板是否展开（默认收起，保持剧本页干净） */
+const rewriteOptsOpen = ref(false);
 
 /** 各能力当前选中的线路（null = 自动，走该能力的默认线路） */
 const rewriteProviderId = ref<null | number>(null);
@@ -162,8 +172,23 @@ async function onWordPicked(e: Event) {
 }
 
 async function rewrite() {
-  await scriptRewrite(dramaId.value, rewriteProviderId.value);
+  await scriptRewrite(
+    dramaId.value,
+    rewriteProviderId.value,
+    JSON.stringify(rewriteOpts.value),
+  );
   await loadAll();
+}
+
+/** 载入历史版本时，把该版的选项回填到面板（便于"照上次参数再洗一版"） */
+function loadOptionsFromScript() {
+  const raw = script.value?.rewriteOptions;
+  if (!raw) return;
+  try {
+    rewriteOpts.value = { ...defaultRewriteOptions(), ...JSON.parse(raw) };
+  } catch {
+    // 快照损坏就用默认值，不打断页面
+  }
 }
 
 async function generateAsset(row: AssetRequirementItem) {
@@ -417,7 +442,7 @@ function reqStatusColor(s: string): string {
             </template>
 
             <template v-else>
-              <div class="mb-2 flex items-center gap-3">
+              <div class="mb-2 flex flex-wrap items-center gap-3">
                 <span>当前版本 v{{ script.version }}</span>
                 <Tag>{{ script.episodeCount }} 集</Tag>
                 <Tag v-if="script.model">{{ script.model }}</Tag>
@@ -431,9 +456,23 @@ function reqStatusColor(s: string): string {
                   :disabled="script.status === 'rewriting'"
                   @click="rewrite"
                 >
-                  洗稿（生成 10 集）
+                  洗稿（生成 {{ rewriteOpts.episodeCount }} 集）
+                </Button>
+                <Button
+                  size="small"
+                  @click="rewriteOptsOpen = !rewriteOptsOpen"
+                >
+                  {{ rewriteOptsOpen ? '收起细化选项' : '细化选项' }}
                 </Button>
                 <Button size="small" @click="loadAll">刷新</Button>
+              </div>
+
+              <!-- 洗稿细化选项（A 集级结构 / B 强化分析 / C 内容策略 / D 人物主线 / E 各动作强化） -->
+              <div v-if="rewriteOptsOpen" class="mb-3">
+                <RewriteOptionsPanel
+                  v-model="rewriteOpts"
+                  :episode-target-count="detail?.drama.episodeTargetCount ?? 10"
+                />
               </div>
 
               <div class="grid grid-cols-2 gap-4">
@@ -462,7 +501,10 @@ function reqStatusColor(s: string): string {
                       >
                         <div class="flex items-center gap-2">
                           <span class="font-medium">
-                            第 {{ ep.no }} 集 {{ ep.title }}
+                            第 {{ ep.no }} 集
+                            <template v-if="episodeTitle(ep.title)">
+                              · {{ episodeTitle(ep.title) }}
+                            </template>
                           </span>
                           <Button
                             size="small"
@@ -489,51 +531,7 @@ function reqStatusColor(s: string): string {
           </Card>
         </Tabs.TabPane>
 
-        <!-- 2) 分镜 -->
-        <Tabs.TabPane key="shots" :tab="`分镜（${shots.length}）`">
-          <div class="mb-2 flex flex-wrap items-center gap-2">
-            <span class="text-xs text-muted-foreground">片段线路</span>
-            <AiProviderSelect v-model:value="i2vProviderId" task-type="i2v" />
-          </div>
-
-          <Table
-            :columns="shotColumns"
-            :custom-row="onShotRow"
-            :data-source="shots"
-            :pagination="{ pageSize: 20 }"
-            :scroll="{ x: 'max-content' }"
-            row-key="id"
-            size="small"
-          >
-            <template #bodyCell="{ column, record }">
-              <template v-if="column.key === 'status'">
-                <Tag :color="shotStatusColor(record.status)" class="!mr-0">
-                  {{ record.status }}
-                </Tag>
-              </template>
-              <template v-else-if="column.key === 'action'">
-                <Space>
-                  <Button
-                    size="small"
-                    @click.stop="openShotDetail(record as ShotItem)"
-                  >
-                    详情
-                  </Button>
-                  <Button
-                    v-if="record.status === 'stale'"
-                    size="small"
-                    type="primary"
-                    @click.stop="replayShot(record as ShotItem)"
-                  >
-                    重跑
-                  </Button>
-                </Space>
-              </template>
-            </template>
-          </Table>
-        </Tabs.TabPane>
-
-        <!-- 3) 素材 -->
+        <!-- 2) 素材 -->
         <Tabs.TabPane key="assets" :tab="`素材（${requirements.length}）`">
           <div class="mb-3 flex flex-wrap items-center gap-3">
             <Button size="small" type="primary" @click="extractAssets">
@@ -634,6 +632,50 @@ function reqStatusColor(s: string): string {
               </template>
             </Table>
           </template>
+        </Tabs.TabPane>
+
+        <!-- 3) 分镜 -->
+        <Tabs.TabPane key="shots" :tab="`分镜（${shots.length}）`">
+          <div class="mb-2 flex flex-wrap items-center gap-2">
+            <span class="text-xs text-muted-foreground">片段线路</span>
+            <AiProviderSelect v-model:value="i2vProviderId" task-type="i2v" />
+          </div>
+
+          <Table
+            :columns="shotColumns"
+            :custom-row="onShotRow"
+            :data-source="shots"
+            :pagination="{ pageSize: 20 }"
+            :scroll="{ x: 'max-content' }"
+            row-key="id"
+            size="small"
+          >
+            <template #bodyCell="{ column, record }">
+              <template v-if="column.key === 'status'">
+                <Tag :color="shotStatusColor(record.status)" class="!mr-0">
+                  {{ record.status }}
+                </Tag>
+              </template>
+              <template v-else-if="column.key === 'action'">
+                <Space>
+                  <Button
+                    size="small"
+                    @click.stop="openShotDetail(record as ShotItem)"
+                  >
+                    详情
+                  </Button>
+                  <Button
+                    v-if="record.status === 'stale'"
+                    size="small"
+                    type="primary"
+                    @click.stop="replayShot(record as ShotItem)"
+                  >
+                    重跑
+                  </Button>
+                </Space>
+              </template>
+            </template>
+          </Table>
         </Tabs.TabPane>
 
         <!-- 4) 片段 -->

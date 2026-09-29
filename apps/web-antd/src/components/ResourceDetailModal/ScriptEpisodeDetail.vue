@@ -10,6 +10,8 @@ import { Empty, Modal, Tag } from 'ant-design-vue';
 
 import type { ScriptEpisode } from '#/api/core/dramafloow';
 
+import { episodeTitle } from '#/components/TaskDrawer/taskDisplay';
+
 import { formatDuration } from './utils';
 
 const props = defineProps<{
@@ -36,7 +38,10 @@ const totalSec = computed(() =>
   <Modal
     :footer="null"
     :open="open"
-    :title="`第 ${episode?.no ?? ''} 集 · ${episode?.title ?? ''}`"
+    :title="
+      `第 ${episode?.no ?? ''} 集` +
+      (episodeTitle(episode?.title) ? ` · ${episodeTitle(episode?.title)}` : '')
+    "
     :width="820"
     @cancel="emit('close')"
   >

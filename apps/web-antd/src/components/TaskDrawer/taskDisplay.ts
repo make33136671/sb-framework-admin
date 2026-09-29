@@ -60,3 +60,21 @@ export function elapsedSecondsOf(
 export function isFinishedStatus(status?: string): boolean {
   return ['done', 'failed', 'rejected', 'approved'].includes(status ?? '');
 }
+
+/**
+ * 剧本集标题规整：模型常把「第2集 ·」也写进 title，而 UI 又会拼一次「第 N 集」，
+ * 于是出现「第 2 集 第2集 · xxx」这种重复。
+ * 这里统一剥掉标题里重复的集号前缀（支持 第2集 / 第 2 集 / 第2集· / 第2集： / 2. 等写法）。
+ */
+export function episodeTitle(title?: null | string): string {
+  const raw = (title ?? '').trim();
+  if (!raw) return '';
+  const stripped = raw
+    // 「第2集」「第 2 集」后可跟 ·、-、—、:、：、. 或空白
+    .replace(/^第\s*\d+\s*集\s*[·\-—:：.]?\s*/, '')
+    // 「2.」「2、」这种纯序号前缀
+    .replace(/^\d+\s*[.、)]\s*/, '')
+    .trim();
+  // 万一标题就等于集号（如「第2集」无正文），返回空以免只剩重复的集号
+  return stripped;
+}
