@@ -1,8 +1,9 @@
 <script lang="ts" setup>
 /**
- * DramaFlow 生产仪表盘（契约 §9 五指标 + NightReport）
+ * DramaFlow 生产仪表盘（契约 §9 六指标 + NightReport + 生产线看板 + 待我决策 + AI 消耗）
  *
- * 五指标：throughput / rejectRate / reviewBacklog / gpu / eta
+ * 设计文档 §2 六区：
+ *   A 实时健康与背压条（WS）/ B 六指标卡 / C 生产线看板 / D 待我决策 / E AI 消耗 / F 昨夜批产报告
  * 实时：队列与健康走 WS（useTaskStream），指标每 30s 轮询刷新。
  */
 import { onMounted, onUnmounted, ref } from 'vue';
@@ -25,8 +26,12 @@ import {
 import type { DashboardMetrics, NightReport } from '#/api/core/dramafloow';
 
 import { dashboardMetrics, dashboardNightReport } from '#/api/core/dramafloow';
-import { useTaskStream } from '#/composables/useTaskStream';
 import { TimeTag } from '#/components/TimeTag';
+import { useTaskStream } from '#/composables/useTaskStream';
+
+import PendingDecisions from './PendingDecisions.vue';
+import TaskBoard from './TaskBoard.vue';
+import TokenUsage from './TokenUsage.vue';
 
 const stream = useTaskStream();
 
@@ -64,6 +69,23 @@ function pct(v?: number): string {
   return `${((v ?? 0) * 100).toFixed(1)}%`;
 }
 
+/** 千分位 */
+function nf(v?: number): string {
+  return (v ?? 0).toLocaleString('zh-CN');
+}
+
+/** tokens 数据可信性标注（P0 配套：区分实测/估算） */
+const tokenQuality = () => {
+  const t = metrics.value?.tokens;
+  if (!t) return { text: '-', color: 'default' as const };
+  if (t.estimated > 0 && t.measured > 0) {
+    return { text: '部分估算', color: 'warning' as const };
+  }
+  if (t.estimated > 0) return { text: '估算', color: 'warning' as const };
+  if (t.measured > 0) return { text: '实测', color: 'success' as const };
+  return { text: '无数据', color: 'default' as const };
+};
+
 const reportColumns = [
   { title: '原因', dataIndex: 'name', key: 'name' },
   { title: '编码', dataIndex: 'code', key: 'code', width: 140 },
@@ -73,6 +95,7 @@ const reportColumns = [
 
 <template>
   <Page
+    class="df-page"
     title="DramaFlow 生产台"
     description="短剧全链路：洗稿 → 分镜 → 素材 → 片段 → 成片"
   >
@@ -110,14 +133,40 @@ const reportColumns = [
               {{ stream.health.value.comfyui }}
             </Tag>
           </span>
-          <span>LLM：{{ stream.health.value.llm || '-' }}</span>
+          <span>
+            LLM
+            <Tag
+              :color="stream.health.value.llm === 'ok' ? 'success' : 'default'"
+              class="!mr-0"
+            >
+              {{ stream.health.value.llm || '-' }}
+            </Tag>
+          </span>
+          <span>
+            DB
+            <Tag
+              :color="stream.health.value.db === 'ok' ? 'success' : 'default'"
+              class="!mr-0"
+            >
+              {{ stream.health.value.db || '-' }}
+            </Tag>
+          </span>
+          <span>
+            n8n
+            <Tag
+              :color="stream.health.value.n8n === 'ok' ? 'success' : 'default'"
+              class="!mr-0"
+            >
+              {{ stream.health.value.n8n || '-' }}
+            </Tag>
+          </span>
         </template>
       </div>
     </Card>
 
-    <!-- 五指标 -->
+    <!-- 六指标 -->
     <Row :gutter="16" class="mb-4">
-      <Col :span="6">
+      <Col :span="4">
         <Card size="small">
           <Statistic
             title="吞吐（今日完成）"
@@ -129,7 +178,7 @@ const reportColumns = [
           </div>
         </Card>
       </Col>
-      <Col :span="6">
+      <Col :span="4">
         <Card size="small">
           <Statistic
             title="驳回率（近 7 天）"
@@ -143,7 +192,7 @@ const reportColumns = [
           </div>
         </Card>
       </Col>
-      <Col :span="6">
+      <Col :span="4">
         <Card size="small">
           <Statistic
             title="待审积压"
@@ -157,7 +206,7 @@ const reportColumns = [
           </div>
         </Card>
       </Col>
-      <Col :span="6">
+      <Col :span="4">
         <Card size="small">
           <Statistic
             title="GPU 负载"
@@ -168,6 +217,40 @@ const reportColumns = [
             队列 {{ metrics?.gpu.queue ?? 0 }} ·
             {{ metrics?.gpu.windowOpen ? '窗口开放' : '窗口关闭' }}
             （{{ metrics?.gpu.window }}）
+          </div>
+        </Card>
+      </Col>
+      <Col :span="4">
+        <Card size="small">
+          <Statistic
+            title="AI tokens（今日）"
+            :value="
+              (metrics?.tokens.today.prompt ?? 0) +
+              (metrics?.tokens.today.completion ?? 0)
+            "
+          />
+          <div
+            class="mt-1 flex items-center gap-1 text-xs text-muted-foreground"
+          >
+            <Tag :color="tokenQuality().color" class="!mr-0">
+              {{ tokenQuality().text }}
+            </Tag>
+            调用 {{ metrics?.tokens.today.calls ?? 0 }}
+          </div>
+        </Card>
+      </Col>
+      <Col :span="4">
+        <Card size="small">
+          <Statistic
+            title="近 7 天 tokens"
+            :value="
+              (metrics?.tokens.week.prompt ?? 0) +
+              (metrics?.tokens.week.completion ?? 0)
+            "
+          />
+          <div class="mt-1 text-xs text-muted-foreground">
+            输入 {{ nf(metrics?.tokens.week.prompt) }} · 输出
+            {{ nf(metrics?.tokens.week.completion) }}
           </div>
         </Card>
       </Col>
@@ -208,6 +291,21 @@ const reportColumns = [
         </div>
       </div>
     </Card>
+
+    <!-- C 区：生产线看板 -->
+    <div class="mb-4">
+      <TaskBoard />
+    </div>
+
+    <!-- D 区：待我决策 -->
+    <div class="mb-4">
+      <PendingDecisions />
+    </div>
+
+    <!-- E 区：AI 消耗 -->
+    <div class="mb-4">
+      <TokenUsage />
+    </div>
 
     <!-- 昨夜批产报告 -->
     <Card size="small" title="昨夜批产报告">
