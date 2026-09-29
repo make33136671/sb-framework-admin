@@ -134,19 +134,6 @@ const coreRoutes: RouteRecordRaw[] = [
       },
     ],
   },
-  /**
-   * 授权页面 — 独立的顶级路由（不使用 AuthPageLayout，避免左侧宣传区干扰）
-   * 全屏显示授权状态和续期操作，自带 header bar
-   */
-  {
-    name: 'License',
-    path: '/auth/license',
-    component: () => import('#/views/_core/authentication/license.vue'),
-    meta: {
-      hideInTab: true,
-      title: '系统授权',
-    },
-  },
 ];
 
 export { coreRoutes, fallbackNotFoundRoute };

@@ -8,7 +8,6 @@ import { BasicLayout, LockScreen, UserDropdown } from '@vben/layouts';
 import { preferences } from '@vben/preferences';
 import { useAccessStore, useUserStore } from '@vben/stores';
 
-import { LicenseExpiryReminder } from '#/components/LicenseExpiryReminder';
 import { $t } from '#/locales';
 import { useAuthStore } from '#/store';
 import LoginForm from '#/views/_core/authentication/login.vue';
@@ -90,8 +89,6 @@ watch(
       >
         <LoginForm />
       </AuthenticationLoginExpiredModal>
-      <!-- 进入后台时检查授权剩余时间，阈值内弹倒计时提醒 -->
-      <LicenseExpiryReminder />
     </template>
     <template #lock-screen>
       <LockScreen :avatar @to-login="handleLogout" />

@@ -453,7 +453,7 @@ async function doInstall() {
     // 安装成功后延迟检测服务器重启
     if (r.code === 0) {
       // 安装完成即进入新系统, 清除所有历史登录态 (accessToken / userInfo / 菜单路由等)
-      // 避免浏览器残留的旧 token 让后续进入 /auth/license 或 / 时看起来"已登录"但实际 401
+      // 避免浏览器残留的旧 token 让后续进入首页时看起来"已登录"但实际 401
       resetAllStores();
       setTimeout(() => checkServerReady(), 3000);
     }
@@ -496,14 +496,8 @@ async function checkServerReady() {
 }
 
 // 用 router.push 保证 hash / history 两种路由模式下 URL 都正确
-// (生产环境 VITE_ROUTER_HISTORY=hash, 直接 window.location.href='/auth/license'
-// 会走到非 hash 形式的 URL, 页面虽然加载但 vue-router 识别不到预期路由)
 function goHome() {
   router.push('/');
-}
-
-function goLicense() {
-  router.push('/auth/license');
 }
 
 // === 配置导入导出 ===
@@ -683,9 +677,6 @@ function fillFormFromConfig(config: any) {
               <Space>
                 <Button type="primary" :disabled="!serverReady" @click="goHome">
 前往首页
-</Button>
-                <Button :disabled="!serverReady" @click="goLicense">
-前往授权
 </Button>
               </Space>
             </template>

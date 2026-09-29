@@ -117,22 +117,9 @@ _client.addResponseInterceptor({
   },
 });
 
-// 授权无效拦截：403 + license_invalid → 跳转授权页面
-// 如果已经在 /auth/license 页面(比如 license.vue 自己 fetchStatus 被拦),
-// 只更新 sessionStorage message, 不重复跳转, 避免死循环
-_client.addResponseInterceptor({
-  rejected: (error: any) => {
-    const data = error?.response?.data;
-    if (error?.response?.status === 403 && data?.type === 'license_invalid') {
-      sessionStorage.setItem('license_message', data.message || '');
-      if (!window.location.pathname.startsWith('/auth/license')) {
-        window.location.href = '/auth/license';
-      }
-      return new Promise(() => {});
-    }
-    return Promise.reject(error);
-  },
-});
+// 注：原先这里有一段「403 + license_invalid → 跳 /auth/license」的授权拦截器。
+// 本项目未启用授权体系（框架 0.5.x 已移除授权），且 /auth/license 页面与路由已一并删除，
+// 保留该拦截只会把用户跳到一个不存在的页面，故移除。
 
 _client.addResponseInterceptor(
   errorMessageResponseInterceptor((msg: string, error) => {
