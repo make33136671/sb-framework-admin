@@ -34,6 +34,15 @@ export type ResourceDetailType =
 const props = defineProps<{
   requirement?: null | AssetRequirementItem;
   scriptEpisode?: null | ScriptEpisode;
+  /** 剧本集：该集展示版本号与历史版本（可回退） */
+  scriptEpisodeHistory?: {
+    createdAt: string;
+    id: number;
+    isCurrent: boolean;
+    origin: string;
+    version: string;
+  }[];
+  scriptEpisodeVersion?: null | string;
   shot?: null | ShotItem;
   productEpisode?: null | ProductEpisodeItem;
   /** 当前打开的详情类型；null 表示全部关闭 */
@@ -44,6 +53,8 @@ const emit = defineEmits<{
   (e: 'changed'): void;
   (e: 'close'): void;
   (e: 'open-task', taskId: number): void;
+  /** 剧本集单集回退 */
+  (e: 'revert-episode', id: number): void;
 }>();
 </script>
 
@@ -78,6 +89,9 @@ const emit = defineEmits<{
   <ScriptEpisodeDetail
     v-else-if="type === 'script-ep'"
     :episode="scriptEpisode ?? null"
+    :history="scriptEpisodeHistory ?? []"
+    :version="scriptEpisodeVersion ?? null"
     @close="emit('close')"
+    @revert="(id) => emit('revert-episode', id)"
   />
 </template>

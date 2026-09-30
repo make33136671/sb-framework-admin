@@ -42,7 +42,7 @@ const emit = defineEmits<{
 }>();
 
 /** 展开的分组（默认展开 A、B：最常用） */
-const activeGroups = ref<string[]>(['A', 'B']);
+const activeGroups = ref<string[]>(['A', 'B', 'B2']);
 
 /** 已开启的强化项数量（给个"你改了多少"的直观反馈） */
 const changedCount = computed(() => {

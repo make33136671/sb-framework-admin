@@ -51,8 +51,8 @@ export type RewriteOption =
   | StrengthOption;
 
 export interface RewriteOptionGroup {
-  /** A–E，与后端注释一致 */
-  key: 'A' | 'B' | 'C' | 'D' | 'E';
+  /** 分组标识（A / B / B2 / C / D / E，与后端注释一致） */
+  key: string;
   title: string;
   desc: string;
   options: RewriteOption[];
@@ -151,6 +151,52 @@ export const REWRITE_OPTION_GROUPS: RewriteOptionGroup[] = [
         type: 'strength',
         desc: '每集爽点数量',
         detail: '每集至少 N 个爽点/反转，且每 3 集必须有一次主线级大反转',
+      },
+    ],
+  },
+  {
+    key: 'B2',
+    title: 'B2 AI 剧本润色',
+    desc: '原稿只写了概要/大纲时，把它润色成可直接拍摄的完整剧本（强度与深度独立可调）',
+    options: [
+      {
+        key: 'polishStrength',
+        label: '润色强度',
+        type: 'strength',
+        desc: '补全的主动程度（0=关）',
+        detail:
+          '越大越主动：把「两人吵架后分手」这类一句话情节补成完整场景与对白；4 级以上允许补足细节与情绪层次',
+      },
+      {
+        key: 'polishDepth',
+        label: '润色深度',
+        type: 'strength',
+        desc: '改写彻底程度（0=关）',
+        detail:
+          '1=只补对白；2=补对白+动作；3=重写场景内部；4=可调场景顺序与节奏；5=按短剧标准彻底重写该段',
+      },
+      {
+        key: 'polishStyle',
+        label: '润色风格',
+        type: 'enum',
+        desc: '展开成什么样',
+        options: [
+          {
+            label: '保留原意',
+            value: 'preserve',
+            desc: '不新增情节，只把概要展开成可拍场景与对白',
+          },
+          {
+            label: '小说化',
+            value: 'novel',
+            desc: '允许心理与环境描写（仍需转成可拍画面）',
+          },
+          {
+            label: '标准剧本',
+            value: 'screenplay',
+            desc: '场景标题 + 动作描述 + 角色名:对白',
+          },
+        ],
       },
     ],
   },
@@ -367,6 +413,10 @@ export function defaultRewriteOptions(): Record<string, any> {
     strengthenPacing: 0,
     strengthenDurationAlloc: 0,
     payoffDensity: 0,
+    // B2 润色
+    polishStrength: 0,
+    polishDepth: 0,
+    polishStyle: 'preserve',
     // C
     fidelity: 'balanced',
     adaptationScale: 'medium',
@@ -427,6 +477,15 @@ export const REWRITE_PRESETS: {
       characterConsistency: true,
       relationMap: true,
       strengthenPacing: 2,
+    },
+  },
+  {
+    name: '概要润色',
+    desc: '原稿只有概要：强度 4 + 深度 3，展开成可拍剧本',
+    patch: {
+      polishStrength: 4,
+      polishDepth: 3,
+      polishStyle: 'preserve',
     },
   },
   {

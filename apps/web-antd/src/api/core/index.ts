@@ -3,6 +3,7 @@ export * from './aiProvider';
 export * from './auth';
 export * from './dramafloow';
 export * from './menu';
+export * from './scriptEpisode';
 export * from './setup';
 export * from './upload';
 export * from './user';

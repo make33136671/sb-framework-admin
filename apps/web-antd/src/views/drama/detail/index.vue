@@ -56,6 +56,14 @@ import { AssetVersionDrawer } from '#/components/AssetVersionDrawer';
 import { PhaseStepper } from '#/components/PhaseStepper';
 import { ResourceDetailModal } from '#/components/ResourceDetailModal';
 import { TaskDrawer } from '#/components/TaskDrawer';
+import {
+  scriptEpisodeHistory,
+  scriptEpisodeList,
+  scriptEpisodeSetCurrent,
+  scriptPartialPlan,
+  scriptPartialRewrite,
+} from '#/api/core/scriptEpisode';
+import type { ScriptEpisodeRow } from '#/api/core/scriptEpisode';
 import { episodeTitle } from '#/components/TaskDrawer/taskDisplay';
 import { TimeTag } from '#/components/TimeTag';
 import { useTaskStream } from '#/composables/useTaskStream';
@@ -114,6 +122,7 @@ async function loadAll() {
   } finally {
     loading.value = false;
     refreshCategoryView();
+    void loadEpisodeVersions();
   }
 }
 
@@ -121,6 +130,40 @@ onMounted(() => {
   stream.subscribeDrama(dramaId.value);
   void loadAll();
 });
+
+/** 每集当前版本（100 / 100.1） */
+const episodeVersions = ref<ScriptEpisodeRow[]>([]);
+/** 选区重洗的预览结果 */
+const partialPlan = ref<null | {
+  episodes: {
+    current: string;
+    episodeNo: number;
+    next: string;
+    sourceLength: number;
+  }[];
+  selectionLength: number;
+}>(null);
+const partialLoading = ref(false);
+
+async function loadEpisodeVersions() {
+  try {
+    episodeVersions.value = await scriptEpisodeList(dramaId.value);
+  } catch {
+    episodeVersions.value = [];
+  }
+}
+
+/** 某集的展示版本号（无按集数据时回退到整本版本） */
+function episodeVersion(no: number): string {
+  const row = episodeVersions.value.find((e) => e.episodeNo === no);
+  return row?.version ?? String(script.value?.version ?? '-');
+}
+
+/** 某集是否已被局部重洗过（用于高亮标记） */
+function isPartial(no: number): boolean {
+  const row = episodeVersions.value.find((e) => e.episodeNo === no);
+  return row?.origin === 'partial';
+}
 
 /** 原始稿框选（当前选中的字符区间与文本） */
 const sourceAreaRef = ref<HTMLTextAreaElement | null>(null);
@@ -139,6 +182,72 @@ function onSourceSelect() {
   const end = el.selectionEnd ?? 0;
   const text = el.value.slice(start, end);
   sourceSelection.value = text.trim().length > 0 ? { start, end, text } : null;
+}
+
+/** 预览：选区会影响哪几集、各变成什么版本号 */
+async function previewPartial() {
+  const sel = sourceSelection.value;
+  if (!sel) return;
+  partialLoading.value = true;
+  try {
+    const plan = await scriptPartialPlan(dramaId.value, sel.start, sel.end);
+    partialPlan.value = plan;
+  } catch {
+    partialPlan.value = null;
+  } finally {
+    partialLoading.value = false;
+  }
+}
+
+/** 提交选区重洗（入队，完成后可刷新查看） */
+async function submitPartial() {
+  const sel = sourceSelection.value;
+  if (!sel) return;
+  partialLoading.value = true;
+  try {
+    await scriptPartialRewrite({
+      dramaId: dramaId.value,
+      start: sel.start,
+      end: sel.end,
+      providerId: rewriteProviderId.value,
+      rewriteOptions: JSON.stringify(rewriteOpts.value),
+    });
+    partialPlan.value = null;
+    clearSourceSelection();
+    await loadAll();
+  } finally {
+    partialLoading.value = false;
+  }
+}
+
+/** 当前查看的集的历史版本（供弹窗回退用） */
+const episodeHistory = ref<
+  {
+    createdAt: string;
+    id: number;
+    isCurrent: boolean;
+    origin: string;
+    version: string;
+  }[]
+>([]);
+
+/** 打开某集详情时按需拉取该集历史 */
+async function loadEpisodeHistory(no: number) {
+  try {
+    episodeHistory.value = await scriptEpisodeHistory(dramaId.value, no);
+  } catch {
+    episodeHistory.value = [];
+  }
+}
+
+/** 单集回退：切到指定历史版本（不改其它集） */
+async function onRevertEpisode(id: number) {
+  const no = detailScriptEpisode.value?.no;
+  if (!no) return;
+  await scriptEpisodeSetCurrent(dramaId.value, no, id);
+  await loadEpisodeHistory(no);
+  await loadEpisodeVersions();
+  await loadAll();
 }
 
 function clearSourceSelection() {
@@ -297,6 +406,7 @@ function openEpisodeDetail(row: ProductEpisodeItem) {
 function openScriptEpisode(ep: ScriptEpisode) {
   detailScriptEpisode.value = ep;
   detailType.value = 'script-ep';
+  void loadEpisodeHistory(ep.no);
 }
 
 function closeDetail() {
@@ -508,10 +618,28 @@ function reqStatusColor(s: string): string {
                     class="mb-1 flex items-center gap-2 text-sm text-muted-foreground"
                   >
                     <span>原始稿（不可变）</span>
-                    <span v-if="sourceSelection" class="text-xs text-primary">
+                    <span
+                      v-if="sourceSelection"
+                      class="flex flex-wrap items-center gap-2 text-xs text-primary"
+                    >
                       已选 {{ sourceSelection.text.length }} 字（第
                       {{ sourceSelection.start }}–{{ sourceSelection.end }} 字）
-                      <a class="ml-1" @click="clearSourceSelection">清除</a>
+                      <Button
+                        size="small"
+                        :loading="partialLoading"
+                        @click="previewPartial"
+                      >
+                        预览影响
+                      </Button>
+                      <Button
+                        size="small"
+                        type="primary"
+                        :loading="partialLoading"
+                        @click="submitPartial"
+                      >
+                        重洗选中部分
+                      </Button>
+                      <a @click="clearSourceSelection">清除</a>
                     </span>
                   </div>
                   <!--
@@ -528,6 +656,26 @@ function reqStatusColor(s: string): string {
                     @mouseup="onSourceSelect"
                     @keyup="onSourceSelect"
                   />
+                  <!-- 选区重洗预览：明确告诉用户"会影响哪几集、各变成什么版本号" -->
+                  <div
+                    v-if="partialPlan"
+                    class="mt-2 rounded border border-border p-2 text-xs"
+                  >
+                    <div class="mb-1 text-muted-foreground">
+                      选中 {{ partialPlan.selectionLength }} 字，将影响
+                      {{ partialPlan.episodes.length }} 集：
+                    </div>
+                    <div class="flex flex-wrap gap-2">
+                      <Tag
+                        v-for="e in partialPlan.episodes"
+                        :key="e.episodeNo"
+                        class="!mr-0"
+                        color="processing"
+                      >
+                        第 {{ e.episodeNo }} 集：{{ e.current }} → {{ e.next }}
+                      </Tag>
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <div class="mb-1 text-sm text-muted-foreground">
@@ -549,6 +697,15 @@ function reqStatusColor(s: string): string {
                               · {{ episodeTitle(ep.title) }}
                             </template>
                           </span>
+                          <Tag class="!mr-0">v{{ episodeVersion(ep.no) }}</Tag>
+                          <Tag
+                            v-if="isPartial(ep.no)"
+                            class="!mr-0"
+                            color="processing"
+                            title="该集做过局部重洗"
+                          >
+                            局部重洗
+                          </Tag>
                           <Button
                             size="small"
                             type="primary"
@@ -839,11 +996,16 @@ function reqStatusColor(s: string): string {
       :product-episode="detailEpisode"
       :requirement="detailRequirement"
       :script-episode="detailScriptEpisode"
+      :script-episode-history="episodeHistory"
+      :script-episode-version="
+        detailScriptEpisode ? episodeVersion(detailScriptEpisode.no) : null
+      "
       :shot="detailType === 'clip' ? detailClipShot : detailShot"
       :type="detailType"
       @changed="loadAll"
       @close="closeDetail"
       @open-task="openTaskFromDetail"
+      @revert-episode="onRevertEpisode"
     />
   </Page>
 </template>

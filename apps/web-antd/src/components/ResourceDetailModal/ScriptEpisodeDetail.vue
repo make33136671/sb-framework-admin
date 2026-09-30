@@ -6,7 +6,7 @@
  */
 import { computed } from 'vue';
 
-import { Empty, Modal, Tag } from 'ant-design-vue';
+import { Empty, Modal, Space, Tag } from 'ant-design-vue';
 
 import type { ScriptEpisode } from '#/api/core/dramafloow';
 
@@ -14,13 +14,28 @@ import { episodeTitle } from '#/components/TaskDrawer/taskDisplay';
 
 import { formatDuration } from './utils';
 
-const props = defineProps<{
-  /** 要查看的集；null 表示弹窗关闭 */
-  episode: null | ScriptEpisode;
-}>();
+const props = withDefaults(
+  defineProps<{
+    /** 要查看的集；null 表示弹窗关闭 */
+    episode: null | ScriptEpisode;
+    /** 该集的展示版本号（100 / 100.1） */
+    version?: null | string;
+    /** 该集的历史版本（可回退；空数组则隐藏回退区） */
+    history?: {
+      id: number;
+      version: string;
+      origin: string;
+      isCurrent: boolean;
+      createdAt: string;
+    }[];
+  }>(),
+  { history: () => [], version: null },
+);
 
 const emit = defineEmits<{
   (e: 'close'): void;
+  /** 单集回退到指定历史版本 id */
+  (e: 'revert', id: number): void;
 }>();
 
 const open = computed(() => props.episode !== null);
@@ -59,6 +74,25 @@ const totalSec = computed(() =>
         <Tag v-else color="warning" class="!mr-0">
           原稿出处为估算（未匹配到关键词，按集均分）
         </Tag>
+      </div>
+
+      <!-- 该集版本历史：可单独回退（不改其它集） -->
+      <div v-if="history.length > 1" class="mb-3">
+        <div class="mb-1 text-sm text-muted-foreground">
+          该集历史版本（可单独回退，不影响其它集）
+        </div>
+        <Space :size="[4, 4]" wrap>
+          <Tag
+            v-for="h in history"
+            :key="h.id"
+            :color="h.isCurrent ? 'success' : 'default'"
+            class="!mr-0 cursor-pointer"
+            :title="h.origin === 'partial' ? '选区重洗产出' : '整本洗稿产出'"
+            @click="emit('revert', h.id)"
+          >
+            v{{ h.version }}{{ h.isCurrent ? '（当前）' : '' }}
+          </Tag>
+        </Space>
       </div>
 
       <!-- 左右对照：左=本集改写内容，右=对应的原始稿片段 -->
