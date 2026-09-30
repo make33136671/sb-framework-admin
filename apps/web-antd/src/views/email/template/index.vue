@@ -196,7 +196,9 @@ const handleCancel = () => {
     >
       <div style="padding: 20px 0">
         <div class="form-item">
-          <label class="form-label">模板代码 <span class="required">*</span></label>
+          <label class="form-label"
+            >模板代码 <span class="required">*</span></label
+          >
           <Input
             v-model:value="formData.code"
             placeholder="如: RegisterVerify"
@@ -207,7 +209,9 @@ const handleCancel = () => {
         </div>
 
         <div class="form-item">
-          <label class="form-label">模板名称 <span class="required">*</span></label>
+          <label class="form-label"
+            >模板名称 <span class="required">*</span></label
+          >
           <Input
             v-model:value="formData.name"
             placeholder="如: 注册验证码"
@@ -216,7 +220,9 @@ const handleCancel = () => {
         </div>
 
         <div class="form-item">
-          <label class="form-label">邮件主题 <span class="required">*</span></label>
+          <label class="form-label"
+            >邮件主题 <span class="required">*</span></label
+          >
           <Input
             v-model:value="formData.subject"
             placeholder="如: 您的注册验证码"

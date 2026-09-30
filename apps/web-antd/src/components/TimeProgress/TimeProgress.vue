@@ -285,7 +285,8 @@ const activeColor = computed(() => {
             :class="{
               'time-progress__sub-value--expired': status === 'expired',
             }"
-            >{{ remainingText }}</span>
+            >{{ remainingText }}</span
+          >
         </span>
         <span v-if="showExpires" class="time-progress__sub-right">
           <span class="time-progress__sub-label">到期</span>

@@ -216,17 +216,17 @@ function formatSize(bytes?: number): string {
               danger
               size="small"
               @click="emit('cancel', item.uid)"
-              >
-取消
-</Button>
+            >
+              取消
+            </Button>
             <Button
               v-else-if="item.status === 'error'"
               type="primary"
               size="small"
               @click="emit('retry', item.uid)"
-              >
-重试
-</Button>
+            >
+              重试
+            </Button>
             <Button size="small" @click="emit('remove', item.uid)">删除</Button>
           </div>
         </div>
@@ -380,28 +380,28 @@ function formatSize(bytes?: number): string {
               v-if="item.status === 'done' && item.absfileName"
               size="small"
               @click="triggerDownload(item.absfileName!, item.name)"
-              >
-下载
-</Button>
+            >
+              下载
+            </Button>
             <Button
               v-if="item.status === 'uploading'"
               danger
               size="small"
               @click="emit('cancel', item.uid)"
-              >
-取消
-</Button>
+            >
+              取消
+            </Button>
             <Button
               v-if="item.status === 'error'"
               type="primary"
               size="small"
               @click="emit('retry', item.uid)"
-              >
-重试
-</Button>
+            >
+              重试
+            </Button>
             <Button danger size="small" @click="emit('remove', item.uid)">
-删除
-</Button>
+              删除
+            </Button>
           </div>
         </div>
 

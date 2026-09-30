@@ -138,8 +138,8 @@ onMounted(load);
 <template>
   <div style="padding: 24px">
     <Button style="margin-bottom: 16px" @click="router.back()">
-← 返回产品列表
-</Button>
+      ← 返回产品列表
+    </Button>
 
     <Card>
       <div

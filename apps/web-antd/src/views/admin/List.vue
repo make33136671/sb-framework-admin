@@ -62,7 +62,7 @@ const formOptions: VbenFormProps = {
         filterOption: true,
         showSearch: true,
 
-        afterFetch: (data: { items: { id: number; name: string; }[] }) => {
+        afterFetch: (data: { items: { id: number; name: string }[] }) => {
           return data.items.map((item: any) => ({
             label: item.name,
             value: item.id,

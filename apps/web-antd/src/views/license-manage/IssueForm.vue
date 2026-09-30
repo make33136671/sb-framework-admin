@@ -323,10 +323,8 @@ async function handleSubmit() {
         :label-style="{ width: '110px', whiteSpace: 'nowrap' }"
       >
         <DescriptionsItem label="产品中文名">
-{{
-          props.client.productCn || '—'
-        }}
-</DescriptionsItem>
+          {{ props.client.productCn || '—' }}
+        </DescriptionsItem>
         <DescriptionsItem label="产品英文名">
           <span style="font-family: monospace">{{
             props.client.productEn || '—'
@@ -357,15 +355,11 @@ async function handleSubmit() {
           }}</span>
         </DescriptionsItem>
         <DescriptionsItem label="机器名">
-{{
-          props.client.machineName || '—'
-        }}
-</DescriptionsItem>
+          {{ props.client.machineName || '—' }}
+        </DescriptionsItem>
         <DescriptionsItem label="CPU 核心">
-{{
-          props.client.processorCount || '—'
-        }}
-</DescriptionsItem>
+          {{ props.client.processorCount || '—' }}
+        </DescriptionsItem>
         <DescriptionsItem label="操作系统">
           <span style="font-size: 12px">{{
             props.client.osDescription || '—'
@@ -378,28 +372,21 @@ async function handleSubmit() {
               font-size: 12px;
               word-break: break-all;
             "
-            >{{ props.client.macAddresses || '—' }}</span>
+            >{{ props.client.macAddresses || '—' }}</span
+          >
         </DescriptionsItem>
         <DescriptionsItem label="服务器 IP">
-{{
-          props.client.serverIP || '—'
-        }}
-</DescriptionsItem>
+          {{ props.client.serverIP || '—' }}
+        </DescriptionsItem>
         <DescriptionsItem label="验证次数">
-{{
-          props.client.verifyCount ?? 0
-        }}
-</DescriptionsItem>
+          {{ props.client.verifyCount ?? 0 }}
+        </DescriptionsItem>
         <DescriptionsItem label="首次注册">
-{{
-          fmtTime(props.client.createdTime)
-        }}
-</DescriptionsItem>
+          {{ fmtTime(props.client.createdTime) }}
+        </DescriptionsItem>
         <DescriptionsItem label="最近验证">
-{{
-          fmtTime(props.client.lastVerifyTime)
-        }}
-</DescriptionsItem>
+          {{ fmtTime(props.client.lastVerifyTime) }}
+        </DescriptionsItem>
       </Descriptions>
 
       <!-- 域名不一致提示 -->
@@ -431,9 +418,9 @@ async function handleSubmit() {
                 :key="opt.label"
                 size="small"
                 @click="setQuick(opt)"
-                >
-{{ opt.label }}
-</Button>
+              >
+                {{ opt.label }}
+              </Button>
             </Space>
           </div>
           <div
@@ -446,7 +433,8 @@ async function handleSubmit() {
           >
             授权时长：<span
               style="font-weight: 500; color: var(--ant-color-primary)"
-              >{{ remainingText }}</span>
+              >{{ remainingText }}</span
+            >
           </div>
         </FormItem>
 
@@ -499,7 +487,8 @@ async function handleSubmit() {
                       ? 'text-decoration: line-through; opacity: 0.65'
                       : ''
                   "
-                  >{{ d.domain }}</span>
+                  >{{ d.domain }}</span
+                >
                 <Button
                   v-if="!d.deleted && showAppendWildcardBtn(d.domain)"
                   size="small"
@@ -562,8 +551,8 @@ async function handleSubmit() {
 
         <FormItem>
           <Checkbox v-model:checked="enableHardwareId">
-验证 HardwareId
-</Checkbox>
+            验证 HardwareId
+          </Checkbox>
           <Input
             v-if="enableHardwareId"
             v-model:value="hardwareId"

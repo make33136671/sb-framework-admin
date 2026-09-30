@@ -207,7 +207,8 @@ const enumMatch = computed(() => {
   <Card v-else-if="fieldType === 'array'" size="small">
     <template #title>
       <div
-        class="card-title" :class="[{ clickable: collapsible }]"
+        class="card-title"
+        :class="[{ clickable: collapsible }]"
         @click="toggleCollapse"
       >
         <IconifyIcon

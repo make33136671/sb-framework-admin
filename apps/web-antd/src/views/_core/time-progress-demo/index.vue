@@ -300,7 +300,8 @@ const halfEnd = now + 5 * 24 * 60 * 60 * 1000;
           show-expires
         />
         <pre class="demo-code">
-同样区间, mode=elapsed → 已耗 50%, 条从左填到一半</pre>
+同样区间, mode=elapsed → 已耗 50%, 条从左填到一半</pre
+        >
       </Card>
 
       <!-- 15. 进度 50% rtl + elapsed -->

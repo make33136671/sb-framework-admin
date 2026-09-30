@@ -40,7 +40,7 @@ interface SetupConfig {
     productEn: string;
     timeZone: string;
   };
-  admin: { displayName: string; password: string; username: string; };
+  admin: { displayName: string; password: string; username: string };
 }
 
 const exporting = ref(false);

@@ -27,7 +27,7 @@ export function saveAppSettings(rawText: string, restart = true) {
 }
 
 export function diffAppSettings(rawText: string) {
-  return api.post<{ newText: string; oldText: string; }>('/AppSettings/Diff', {
+  return api.post<{ newText: string; oldText: string }>('/AppSettings/Diff', {
     rawText,
   });
 }

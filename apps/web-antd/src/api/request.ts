@@ -167,7 +167,9 @@ async function request<T = any>(
   try {
     const config: any = { params: options?.params };
     if (silent) config._silent = true;
-    body = await (method === 'GET' ? _client.get(url, config) : _client.post(url, data, config));
+    body = await (method === 'GET'
+      ? _client.get(url, config)
+      : _client.post(url, data, config));
   } catch (error) {
     hideLoading?.();
     throw error;

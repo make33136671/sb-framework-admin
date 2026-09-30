@@ -45,7 +45,9 @@ export async function postCategoryAdd(data: any) {
 }
 
 export async function postCategoryEdit(params: any) {
-  return params.id ? api.post('/SystemSettingCategory/Edit', params) : postCategoryAdd(params);
+  return params.id
+    ? api.post('/SystemSettingCategory/Edit', params)
+    : postCategoryAdd(params);
 }
 
 export async function postCategoryDel(id: any) {

@@ -68,7 +68,8 @@ const showTimezone = computed(() => {
 <template>
   <Tag
     :color="color"
-    class="time-tag" :class="[
+    class="time-tag"
+    :class="[
       { 'time-tag--two-line': showTimezone, 'time-tag--tabular': tabular },
     ]"
   >

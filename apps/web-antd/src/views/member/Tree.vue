@@ -124,8 +124,8 @@ const switchToOverview = () => {
       <!-- 顶部栏 -->
       <div class="tree-header">
         <Button v-if="focusMemberId > 0" @click="switchToOverview">
-全部会员
-</Button>
+          全部会员
+        </Button>
         <span class="tree-title">会员架构</span>
       </div>
 
@@ -138,10 +138,12 @@ const switchToOverview = () => {
           </div>
           <Tag color="blue">ID: {{ focusMember.id }}</Tag>
           <Tag v-if="focusMember.invitationCode" color="orange">
-邀请码: {{ focusMember.invitationCode }}
-</Tag>
+            邀请码: {{ focusMember.invitationCode }}
+          </Tag>
           <Tag color="green">直推: {{ focusMember.directChildCount }} 人</Tag>
-          <span class="focus-time">注册: {{ fmtTime(focusMember.createTime) }}</span>
+          <span class="focus-time"
+            >注册: {{ fmtTime(focusMember.createTime) }}</span
+          >
         </div>
       </div>
 

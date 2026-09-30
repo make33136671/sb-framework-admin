@@ -305,7 +305,7 @@ function scopeBadges(scopes?: string) {
     .map((s) => ({
       key: s,
       label: s,
-      color: s === '*' ? 'orange' : (s.startsWith('read:') ? 'blue' : 'green'),
+      color: s === '*' ? 'orange' : s.startsWith('read:') ? 'blue' : 'green',
     }));
 }
 </script>
@@ -328,8 +328,8 @@ function scopeBadges(scopes?: string) {
 
       <template #scopes="{ row }">
         <Typography.Text v-if="row.fullAccess" type="secondary">
-—
-</Typography.Text>
+          —
+        </Typography.Text>
         <Space v-else :size="4" wrap>
           <Tag
             v-for="s in scopeBadges(row.scopes)"
@@ -363,29 +363,29 @@ function scopeBadges(scopes?: string) {
         <Tag
           v-else-if="row.expiresAt && dayjs(row.expiresAt).isBefore(dayjs())"
           color="red"
-          >
-已过期
-</Tag>
+        >
+          已过期
+        </Tag>
         <Tag v-else color="green">活跃</Tag>
       </template>
 
       <template #action="{ row }">
         <Space>
           <Button type="primary" size="small" @click="openAudit(row)">
-审计
-</Button>
+            审计
+          </Button>
           <Button v-if="!row.isDeleted" size="small" @click="handleEdit(row)">
-编辑
-</Button>
+            编辑
+          </Button>
           <Button
             v-if="!row.isDeleted"
             type="primary"
             danger
             size="small"
             @click="handleRevokeAsk(row)"
-            >
-吊销
-</Button>
+          >
+            吊销
+          </Button>
         </Space>
       </template>
     </Grid>
@@ -579,27 +579,23 @@ function scopeBadges(scopes?: string) {
           </template>
           <template v-else-if="column.dataIndex === 'result'">
             <Tag :color="record.result === 'Success' ? 'green' : 'red'">
-{{
-              record.result
-            }}
-</Tag>
+              {{ record.result }}
+            </Tag>
           </template>
           <template v-else-if="column.dataIndex === 'requestPath'">
             <Typography.Text
               v-if="record.requestPath"
               code
               style="font-size: 12px"
-              >
-{{ record.requestPath }}
-</Typography.Text>
+            >
+              {{ record.requestPath }}
+            </Typography.Text>
             <Typography.Text v-else type="secondary">-</Typography.Text>
           </template>
           <template v-else-if="column.dataIndex === 'denyReason'">
             <Typography.Text v-if="record.denyReason" type="danger">
-{{
-              record.denyReason
-            }}
-</Typography.Text>
+              {{ record.denyReason }}
+            </Typography.Text>
             <Typography.Text v-else type="secondary">-</Typography.Text>
           </template>
         </template>

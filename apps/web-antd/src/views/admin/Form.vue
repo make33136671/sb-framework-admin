@@ -85,7 +85,7 @@ const [BaseForm, baseFormApi] = useVbenForm({
       rules: 'required',
       componentProps: {
         placeholder: '请选择角色',
-        afterFetch: (data: { items: { id: number; name: string; }[] }) => {
+        afterFetch: (data: { items: { id: number; name: string }[] }) => {
           if (id.value == undefined || id.value <= 0) {
             baseFormApi.setValues({ roleId: data.items[0]?.id });
           }

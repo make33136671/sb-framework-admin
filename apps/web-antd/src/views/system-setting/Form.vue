@@ -46,7 +46,7 @@ const displayTypeOptions = [
 ];
 
 // 每种 DisplayType 对应的示例配置
-const configExamples: Record<number, { json: string; tip: string; }> = {
+const configExamples: Record<number, { json: string; tip: string }> = {
   0: {
     tip: 'placeholder (可选)',
     json: '{"placeholder":"请输入内容"}',

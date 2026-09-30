@@ -33,7 +33,9 @@ export async function postRoleAdd(data: any) {
 }
 
 export async function postRoleEdit(params: any) {
-  return params.id ? api.post('/Manager/RoleEdit', params) : postRoleAdd(params);
+  return params.id
+    ? api.post('/Manager/RoleEdit', params)
+    : postRoleAdd(params);
 }
 
 export async function postRoleDel(id: any) {

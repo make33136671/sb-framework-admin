@@ -633,7 +633,9 @@ onUnmounted(stopTimers);
                   :time="currentByTarget[target.key]!.deployFinishedAt!"
                   :timezone="appInfo?.timeZone"
                 />
-                <span v-else style="color: var(--ant-color-text-tertiary)">—</span>
+                <span v-else style="color: var(--ant-color-text-tertiary)"
+                  >—</span
+                >
               </div>
               <div class="deploy-card__row">
                 <span class="deploy-card__label">部署人</span>
@@ -652,7 +654,9 @@ onUnmounted(stopTimers);
             <!-- 路径 -->
             <div class="deploy-card__path">
               <Tooltip :title="target.path">
-                <span class="deploy-card__file">📁 {{ target.path || '—' }}</span>
+                <span class="deploy-card__file"
+                  >📁 {{ target.path || '—' }}</span
+                >
               </Tooltip>
             </div>
 

@@ -9,12 +9,12 @@ import { useVbenVxeGrid } from '#/adapter/vxe-table';
 
 import { getList } from './api';
 
-const userTypeMap: Record<number, { color: string; label: string; }> = {
+const userTypeMap: Record<number, { color: string; label: string }> = {
   0: { label: 'H5会员', color: 'processing' },
   1: { label: '管理员', color: 'warning' },
 };
 
-const statusMap: Record<number, { color: string; label: string; }> = {
+const statusMap: Record<number, { color: string; label: string }> = {
   0: { label: '成功', color: 'success' },
   1: { label: '失败', color: 'error' },
 };

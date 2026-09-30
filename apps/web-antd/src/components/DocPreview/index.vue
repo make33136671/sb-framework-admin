@@ -197,8 +197,8 @@ defineExpose({ openPreview, download: downloadDirect, openHistory, copyLink });
     >
       <Button @click="copyLink(previewSourceId)">复制链接</Button>
       <Button @click="doDownload(previewRawContent, previewTitle)">
-下载 MD
-</Button>
+        下载 MD
+      </Button>
       <Button @click="previewVisible = false">关闭</Button>
     </div>
   </Modal>
@@ -226,8 +226,8 @@ defineExpose({ openPreview, download: downloadDirect, openHistory, copyLink });
           </div>
           <Space size="small">
             <Button size="small" @click="viewVersion(v.id, v.version)">
-查看
-</Button>
+              查看
+            </Button>
             <Popconfirm title="确定回档到此版本？" @confirm="rollback(v.id)">
               <Button size="small" type="primary" ghost>回档</Button>
             </Popconfirm>

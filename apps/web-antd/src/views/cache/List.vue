@@ -176,7 +176,9 @@ onMounted(loadCacheInfo);
             <Tag v-if="cacheInfo.stats?.instance_name">
               {{ cacheInfo.stats.instance_name }}
             </Tag>
-            <span v-else style="color: var(--ant-color-text-tertiary)">(无前缀)</span>
+            <span v-else style="color: var(--ant-color-text-tertiary)"
+              >(无前缀)</span
+            >
           </Descriptions.Item>
 
           <template v-if="isRedis">
@@ -190,7 +192,8 @@ onMounted(loadCacheInfo);
               <span
                 v-if="(cacheInfo.stats?.instance_keys ?? -1) < 0"
                 style="color: var(--ant-color-text-tertiary)"
-                >—</span>
+                >—</span
+              >
               <span v-else>{{
                 formatNumber(cacheInfo.stats?.instance_keys)
               }}</span>

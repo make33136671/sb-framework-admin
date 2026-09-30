@@ -19,7 +19,7 @@ const fmtTime = (v: null | string | undefined) => {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
 };
 
-const statusMap: Record<number, { color: string; text: string; }> = {
+const statusMap: Record<number, { color: string; text: string }> = {
   0: { text: '未认证', color: 'default' },
   1: { text: '审核中', color: 'processing' },
   2: { text: '已通过', color: 'success' },
@@ -192,10 +192,8 @@ const handleReject = async () => {
 
       <template #status="{ row }">
         <Tag :color="statusMap[row.status]?.color">
-{{
-          statusMap[row.status]?.text
-        }}
-</Tag>
+          {{ statusMap[row.status]?.text }}
+        </Tag>
       </template>
 
       <template #time="{ row }">
@@ -210,8 +208,8 @@ const handleReject = async () => {
       <template #action="{ row }">
         <Space v-if="row.status === 1">
           <Button type="primary" size="small" @click="handleApprove(row.id)">
-通过
-</Button>
+            通过
+          </Button>
           <Button danger size="small" @click="showReject(row.id)">拒绝</Button>
         </Space>
         <span v-else style="font-size: 12px; color: #999">已处理</span>

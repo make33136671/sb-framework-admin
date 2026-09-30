@@ -48,7 +48,9 @@ const meta = computed(() => {
 
 // 提取描述内容(## <descLabel> 之后)
 const descContent = computed(() => {
-  const pattern = new RegExp(String.raw`##\s*${props.descLabel}\s*\n([\s\S]*)$`);
+  const pattern = new RegExp(
+    String.raw`##\s*${props.descLabel}\s*\n([\s\S]*)$`,
+  );
   const match = props.content.match(pattern);
   return match ? match[1]!.trim() : '';
 });

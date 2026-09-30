@@ -130,7 +130,7 @@ const loading = ref(false);
 const saving = ref(false);
 const originalText = ref('');
 const editText = ref('');
-const meta = ref<{ lastModified?: string; path?: string; size?: number; }>({});
+const meta = ref<{ lastModified?: string; path?: string; size?: number }>({});
 const autoRestart = ref(true);
 
 const isDirty = computed(
@@ -545,55 +545,35 @@ onMounted(() => {
     <Drawer v-model:open="serverInfoOpen" title="服务器信息" :width="560">
       <Descriptions :column="2" size="small" bordered>
         <DescriptionsItem label="版本">
-{{
-          serverInfo.version || '-'
-        }}
-</DescriptionsItem>
+          {{ serverInfo.version || '-' }}
+        </DescriptionsItem>
         <DescriptionsItem label="环境">
-{{
-          serverInfo.environment || '-'
-        }}
-</DescriptionsItem>
+          {{ serverInfo.environment || '-' }}
+        </DescriptionsItem>
         <DescriptionsItem label=".NET">
-{{
-          serverInfo.dotnetVersion || '-'
-        }}
-</DescriptionsItem>
+          {{ serverInfo.dotnetVersion || '-' }}
+        </DescriptionsItem>
         <DescriptionsItem label="时区">
-{{
-          serverInfo.timeZone || '-'
-        }}
-</DescriptionsItem>
+          {{ serverInfo.timeZone || '-' }}
+        </DescriptionsItem>
         <DescriptionsItem label="启动时间">
-{{
-          serverInfo.startTime || '-'
-        }}
-</DescriptionsItem>
+          {{ serverInfo.startTime || '-' }}
+        </DescriptionsItem>
         <DescriptionsItem label="运行时长">
-{{
-          serverInfo.uptime || '-'
-        }}
-</DescriptionsItem>
+          {{ serverInfo.uptime || '-' }}
+        </DescriptionsItem>
         <DescriptionsItem label="服务器时间">
-{{
-          serverInfo.serverTime || '-'
-        }}
-</DescriptionsItem>
+          {{ serverInfo.serverTime || '-' }}
+        </DescriptionsItem>
         <DescriptionsItem label="主机">
-{{
-          serverInfo.machineName || '-'
-        }}
-</DescriptionsItem>
+          {{ serverInfo.machineName || '-' }}
+        </DescriptionsItem>
         <DescriptionsItem label="进程 ID">
-{{
-          serverInfo.processId ?? '-'
-        }}
-</DescriptionsItem>
+          {{ serverInfo.processId ?? '-' }}
+        </DescriptionsItem>
         <DescriptionsItem label="线程数">
-{{
-          serverInfo.threadCount ?? '-'
-        }}
-</DescriptionsItem>
+          {{ serverInfo.threadCount ?? '-' }}
+        </DescriptionsItem>
         <DescriptionsItem label="工作集 (RSS)">
           {{
             serverInfo.workingSetMb != null
@@ -607,26 +587,22 @@ onMounted(() => {
           }}
         </DescriptionsItem>
         <DescriptionsItem label="CPU 核心">
-{{
-          serverInfo.processorCount ?? '-'
-        }}
-</DescriptionsItem>
+          {{ serverInfo.processorCount ?? '-' }}
+        </DescriptionsItem>
         <DescriptionsItem label="操作系统" :span="2">
-{{
-          serverInfo.osVersion || '-'
-        }}
-</DescriptionsItem>
+          {{ serverInfo.osVersion || '-' }}
+        </DescriptionsItem>
         <DescriptionsItem label="安装路径" :span="2">
           <code>{{ serverInfo.installPath || '-' }}</code>
         </DescriptionsItem>
         <DescriptionsItem label="监听地址" :span="2">
           <Tag color="success">
-{{
-            serverInfo.listeningUrls || '(未识别)'
-          }}
-</Tag>
-          <span class="hint">由 appsettings.json 的 <code>Urls</code> 字段决定（启动命令不传
-            --urls 时）</span>
+            {{ serverInfo.listeningUrls || '(未识别)' }}
+          </Tag>
+          <span class="hint"
+            >由 appsettings.json 的 <code>Urls</code> 字段决定（启动命令不传
+            --urls 时）</span
+          >
         </DescriptionsItem>
       </Descriptions>
     </Drawer>
@@ -684,8 +660,8 @@ onMounted(() => {
               <Space>
                 <Button size="small" @click="previewHistory(item)">查看</Button>
                 <Button size="small" danger @click="doRollback(item)">
-回滚
-</Button>
+                  回滚
+                </Button>
               </Space>
             </div>
           </li>

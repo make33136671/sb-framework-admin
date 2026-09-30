@@ -132,15 +132,15 @@ function reset() {
         <div style="margin-bottom: 6px; font-weight: 500">客户端身份信息</div>
         <Textarea
           v-model:value="identityInput"
-          placeholder="粘贴客户端复制的 JSON，例如:
+          placeholder='粘贴客户端复制的 JSON，例如:
 {
-  &quot;productEn&quot;: &quot;sbsts&quot;,
-  &quot;productCn&quot;: &quot;管理系统&quot;,
-  &quot;clientKey&quot;: &quot;xxx&quot;,
-  &quot;hardwareId&quot;: &quot;xxx&quot;,
-  &quot;domain&quot;: &quot;example.com&quot;,
-  &quot;machineName&quot;: &quot;server-1&quot;
-}"
+  "productEn": "sbsts",
+  "productCn": "管理系统",
+  "clientKey": "xxx",
+  "hardwareId": "xxx",
+  "domain": "example.com",
+  "machineName": "server-1"
+}'
           :auto-size="{ minRows: 6, maxRows: 12 }"
           style="font-family: monospace; font-size: 12px"
         />
@@ -210,33 +210,25 @@ function reset() {
         style="margin-bottom: 16px"
       >
         <DescriptionsItem label="产品">
-{{
-          resultData?.productCn
-            ? `${resultData.productCn}（${resultData.productEn}）`
-            : resultData?.productEn || '-'
-        }}
-</DescriptionsItem>
+          {{
+            resultData?.productCn
+              ? `${resultData.productCn}（${resultData.productEn}）`
+              : resultData?.productEn || '-'
+          }}
+        </DescriptionsItem>
         <DescriptionsItem label="域名">
-{{
-          resultData?.domain || '-'
-        }}
-</DescriptionsItem>
+          {{ resultData?.domain || '-' }}
+        </DescriptionsItem>
         <DescriptionsItem label="签发时间">
-{{
-          fmtTime(resultData?.issuedAt)
-        }}
-</DescriptionsItem>
+          {{ fmtTime(resultData?.issuedAt) }}
+        </DescriptionsItem>
         <DescriptionsItem label="到期时间">
-{{
-          fmtTime(resultData?.expiresAt)
-        }}
-</DescriptionsItem>
+          {{ fmtTime(resultData?.expiresAt) }}
+        </DescriptionsItem>
         <DescriptionsItem label="验证模式">
           <Tag :color="deriveVerifyMode(resultData).color">
-{{
-            deriveVerifyMode(resultData).text
-          }}
-</Tag>
+            {{ deriveVerifyMode(resultData).text }}
+          </Tag>
         </DescriptionsItem>
       </Descriptions>
 
@@ -250,8 +242,8 @@ function reset() {
 
       <div style="display: flex; gap: 12px; justify-content: center">
         <Button type="primary" size="large" @click="copyLicenseKey">
-复制授权 Key
-</Button>
+          复制授权 Key
+        </Button>
         <Button size="large" @click="reset">继续签发</Button>
       </div>
     </Card>

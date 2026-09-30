@@ -82,7 +82,6 @@ const formSchema = computed((): VbenFormSchema[] => {
 });
 
 function handleSubmit(value: Recordable<any>) {
-   
   console.log('register submit:', value);
 }
 </script>

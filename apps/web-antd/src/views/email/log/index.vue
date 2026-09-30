@@ -203,35 +203,25 @@ const handleCloseDetail = () => {
         <Descriptions bordered :column="2" size="small">
           <DescriptionsItem label="ID">{{ currentLog.id }}</DescriptionsItem>
           <DescriptionsItem label="模板ID">
-{{
-            currentLog.templateId || '-'
-          }}
-</DescriptionsItem>
+            {{ currentLog.templateId || '-' }}
+          </DescriptionsItem>
           <DescriptionsItem label="收件人" :span="2">
-{{
-            currentLog.toEmail
-          }}
-</DescriptionsItem>
+            {{ currentLog.toEmail }}
+          </DescriptionsItem>
           <DescriptionsItem label="邮件主题" :span="2">
-{{
-            currentLog.subject
-          }}
-</DescriptionsItem>
+            {{ currentLog.subject }}
+          </DescriptionsItem>
           <DescriptionsItem label="状态">
             <Tag :color="getStatusColor(currentLog.status)">
               {{ getStatusText(currentLog.status) }}
             </Tag>
           </DescriptionsItem>
           <DescriptionsItem label="发送时间">
-{{
-            currentLog.sentAt ? formatDateTime(currentLog.sentAt) : '-'
-          }}
-</DescriptionsItem>
+            {{ currentLog.sentAt ? formatDateTime(currentLog.sentAt) : '-' }}
+          </DescriptionsItem>
           <DescriptionsItem label="创建时间">
-{{
-            formatDateTime(currentLog.createdAt)
-          }}
-</DescriptionsItem>
+            {{ formatDateTime(currentLog.createdAt) }}
+          </DescriptionsItem>
           <DescriptionsItem v-if="currentLog.errorMessage" label="错误信息">
             <span style="color: var(--ant-color-error)">{{
               currentLog.errorMessage

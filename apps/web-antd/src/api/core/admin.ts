@@ -4,7 +4,6 @@ import { api } from '#/api/request';
 
 /** 兼容旧业务 import { uploadFileApi } from '#/api/core/admin' */
 
-
 export namespace AdminApi {
   export interface LoginParams {
     password?: string;
@@ -82,4 +81,4 @@ export async function unbindGoogleCodeApi(totpCode: string, password: string) {
   return api.post('/Auth/UnbindGoogleCode', { totpCode, password });
 }
 
-export {directUploadApi as uploadFileApi} from '#/api/core/upload';
+export { directUploadApi as uploadFileApi } from '#/api/core/upload';

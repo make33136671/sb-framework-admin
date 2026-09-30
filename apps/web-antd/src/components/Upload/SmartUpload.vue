@@ -74,7 +74,7 @@ const items = ref<UploadItem[]>([]);
  * 把 v-model 值同步为 items（status='done' 占位）
  */
 function syncFromValue(v: string | string[]) {
-  const list = Array.isArray(v) ? v : (v ? [v] : []);
+  const list = Array.isArray(v) ? v : v ? [v] : [];
   const existingFileNames = new Set(
     items.value.filter((i) => i.fileName).map((i) => i.fileName),
   );

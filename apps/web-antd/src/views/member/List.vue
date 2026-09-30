@@ -153,7 +153,7 @@ const handleResetPassword = async () => {
   resetPwdVisible.value = false;
 };
 
-const realNameLabels: Record<number, { color: string; text: string; }> = {
+const realNameLabels: Record<number, { color: string; text: string }> = {
   0: { text: '未认证', color: 'default' },
   1: { text: '审核中', color: 'processing' },
   2: { text: '已认证', color: 'success' },
@@ -200,17 +200,17 @@ const realNameLabels: Record<number, { color: string; text: string; }> = {
             <Tag
               :color="row.status == 0 ? 'success' : 'error'"
               style="margin: 0"
-              >
-{{ row.status == 0 ? '正常' : '封禁' }}
-</Tag>
+            >
+              {{ row.status == 0 ? '正常' : '封禁' }}
+            </Tag>
           </div>
           <div style="margin-top: 4px">
             <Tag
               :color="realNameLabels[row.realNameStatus]?.color"
               style="margin: 0"
-              >
-{{ realNameLabels[row.realNameStatus]?.text }}
-</Tag>
+            >
+              {{ realNameLabels[row.realNameStatus]?.text }}
+            </Tag>
           </div>
           <div style="margin-top: 4px; color: #999">
             信用: {{ row.creditScore }}

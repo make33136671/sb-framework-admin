@@ -312,15 +312,21 @@ function removeSitePath(index: number) {
 // === 验证 ===
 function validateStep(step: number): boolean {
   // Step 0: 产品信息
-  if (step === 0 && (!productEn.value || !/^[a-z][a-z0-9]{1,19}$/.test(productEn.value))) {
-      message.warning('产品英文名称只允许小写字母和数字，2-20字符，字母开头');
-      return false;
-    }
+  if (
+    step === 0 &&
+    (!productEn.value || !/^[a-z][a-z0-9]{1,19}$/.test(productEn.value))
+  ) {
+    message.warning('产品英文名称只允许小写字母和数字，2-20字符，字母开头');
+    return false;
+  }
   // Step 1: 数据库
-  if (step === 1 && (!dbServer.value || !dbPort.value || !dbName.value || !dbUser.value)) {
-      message.warning('请填写完整的数据库配置');
-      return false;
-    }
+  if (
+    step === 1 &&
+    (!dbServer.value || !dbPort.value || !dbName.value || !dbUser.value)
+  ) {
+    message.warning('请填写完整的数据库配置');
+    return false;
+  }
   // Step 5: 管理员
   if (step === 5) {
     if (!adminUsername.value) {
@@ -676,8 +682,8 @@ function fillFormFromConfig(config: any) {
             <template #extra>
               <Space>
                 <Button type="primary" :disabled="!serverReady" @click="goHome">
-前往首页
-</Button>
+                  前往首页
+                </Button>
               </Space>
             </template>
           </Result>
@@ -896,9 +902,9 @@ function fillFormFromConfig(config: any) {
                   :key="origin"
                   closable
                   @close="removeCorsOrigin(i)"
-                  >
-{{ origin }}
-</Tag>
+                >
+                  {{ origin }}
+                </Tag>
               </div>
             </div>
           </template>
@@ -931,8 +937,8 @@ function fillFormFromConfig(config: any) {
                 style="flex: 1"
               />
               <Button danger size="small" @click="removeSitePath(idx)">
-删除
-</Button>
+                删除
+              </Button>
             </div>
             <Button size="small" @click="addSitePath">+ 添加站点</Button>
           </div>
@@ -980,8 +986,10 @@ function fillFormFromConfig(config: any) {
           </div>
 
           <div class="form-item">
-            <label>产品英文名称
-              <span style="color: var(--ant-color-error)">*</span></label>
+            <label
+              >产品英文名称
+              <span style="color: var(--ant-color-error)">*</span></label
+            >
             <Input
               v-model:value="productEn"
               placeholder="小写字母+数字，如 sb"
@@ -1173,7 +1181,9 @@ function fillFormFromConfig(config: any) {
                   border-radius: 4px;
                 "
               />
-              <span v-else style="color: var(--ant-color-text-tertiary)">使用默认 Logo</span>
+              <span v-else style="color: var(--ant-color-text-tertiary)"
+                >使用默认 Logo</span
+              >
             </DescriptionsItem>
             <DescriptionsItem label="系统时区">
               {{ timeZone }}
@@ -1208,7 +1218,8 @@ function fillFormFromConfig(config: any) {
               <span
                 v-if="!sitePaths.some((s) => s.type && s.path)"
                 style="color: var(--ant-color-text-tertiary)"
-                >未配置</span>
+                >未配置</span
+              >
             </DescriptionsItem>
           </Descriptions>
 

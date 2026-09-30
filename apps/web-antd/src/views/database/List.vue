@@ -159,9 +159,9 @@ function handleDel(row: any) {
   const tip =
     row.source === 'db_only'
       ? '该记录磁盘文件已不存在，仅删除 DB 记录'
-      : (row.source === 'disk_only'
+      : row.source === 'disk_only'
         ? '该文件无 DB 记录，仅删除磁盘文件'
-        : `确定要删除备份 ${row.fileName} 吗？文件 + 记录将同时被删除`);
+        : `确定要删除备份 ${row.fileName} 吗？文件 + 记录将同时被删除`;
   Modal.confirm({
     title: '确认删除',
     content: tip,
@@ -453,10 +453,8 @@ onMounted(() => {
             <Tag color="red" style="margin: 0">云端 ✗</Tag>
           </Tooltip>
           <Tag v-else style="margin: 0">
-{{
-            cloudUploadEnabled ? '云端 ○' : '云端未启用'
-          }}
-</Tag>
+            {{ cloudUploadEnabled ? '云端 ○' : '云端未启用' }}
+          </Tag>
         </div>
       </template>
 

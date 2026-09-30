@@ -55,7 +55,6 @@ const formSchema = computed((): VbenFormSchema[] => {
  * @param values 登录表单数据
  */
 async function handleLogin(values: Recordable<any>) {
-   
   console.log(values);
 }
 </script>

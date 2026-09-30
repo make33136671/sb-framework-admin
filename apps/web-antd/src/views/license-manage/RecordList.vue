@@ -62,7 +62,7 @@ function shortId(val: null | string | undefined, len = 20): string {
   return val.length > len ? `${val.slice(0, len)}...` : val;
 }
 
-function postExpiryLabel(row: any): { color: string; text: string; } {
+function postExpiryLabel(row: any): { color: string; text: string } {
   if (row.allowAdminAfterExpiry && row.allowClientApiAfterExpiry)
     return { text: '全部可用 (异常)', color: 'red' };
   if (row.allowAdminAfterExpiry)
@@ -136,7 +136,8 @@ onMounted(fetchData);
                     v-if="row.client?.isDeleted"
                     color="default"
                     style="margin-left: 6px"
-                    >客户已删除</Tag>
+                    >客户已删除</Tag
+                  >
                 </span>
                 <span class="card-title-tags">
                   <Tag v-if="row.status === 0" color="green">有效</Tag>
@@ -164,10 +165,8 @@ onMounted(fetchData);
               <DescriptionsItem label="记录 ID">{{ row.id }}</DescriptionsItem>
               <DescriptionsItem label="验证模式">
                 <Tag :color="deriveVerifyMode(row).color">
-{{
-                  deriveVerifyMode(row).text
-                }}
-</Tag>
+                  {{ deriveVerifyMode(row).text }}
+                </Tag>
               </DescriptionsItem>
               <DescriptionsItem label="产品标识">
                 <span class="mono-text">{{ row.productEn || '-' }}</span>
@@ -261,21 +260,15 @@ onMounted(fetchData);
                 </DescriptionsItem>
 
                 <DescriptionsItem label="机器名">
-{{
-                  row.client.machineName || '-'
-                }}
-</DescriptionsItem>
+                  {{ row.client.machineName || '-' }}
+                </DescriptionsItem>
                 <DescriptionsItem label="操作系统" :span="2">
-{{
-                  row.client.osDescription || '-'
-                }}
-</DescriptionsItem>
+                  {{ row.client.osDescription || '-' }}
+                </DescriptionsItem>
 
                 <DescriptionsItem label="CPU 核心">
-{{
-                  row.client.processorCount ?? '-'
-                }}
-</DescriptionsItem>
+                  {{ row.client.processorCount ?? '-' }}
+                </DescriptionsItem>
                 <DescriptionsItem label="MAC 地址" :span="2">
                   <span class="mono-text-sm">{{
                     row.client.macAddresses || '-'
@@ -289,13 +282,13 @@ onMounted(fetchData);
                     :time="fmtTime(row.client.lastHeartbeat)"
                     :timezone="localTimezone"
                   />
-                  <span v-else style="color: var(--ant-color-text-tertiary)">-</span>
+                  <span v-else style="color: var(--ant-color-text-tertiary)"
+                    >-</span
+                  >
                 </DescriptionsItem>
                 <DescriptionsItem label="客户备注" :span="2">
-{{
-                  row.client.remark || '-'
-                }}
-</DescriptionsItem>
+                  {{ row.client.remark || '-' }}
+                </DescriptionsItem>
               </Descriptions>
             </template>
           </Card>
