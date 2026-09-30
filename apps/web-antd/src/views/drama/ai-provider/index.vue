@@ -1,15 +1,19 @@
 <script lang="ts" setup>
 /**
- * AI 线路管理（一个模型 = 一条线路）
+ * AI 服务管理（一个模型 = 一个服务）
  *
- * 为什么需要这个页面：任务要「用哪条线路跑」必须先在这里登记模型，
+ * 为什么需要这个页面：任务要「用哪个服务跑」必须先在这里登记模型，
  * 并勾选它具备哪些能力（文本处理 / 图片生成 / 图片理解 / 视频生成）；
- * 任务侧按能力选线路，不具备该能力的线路在任务选择器里置灰。
+ * 任务侧按能力选服务，不具备该能力的服务在任务选择器里置灰。
+ *
+ * 算力调度（P2）：服务可归属一个「算力节点」（同节点服务争同一张卡，
+ * 受互斥/攒批/切换约束）；不挂节点 = 旧路径。列表额外展示运行状态
+ * （idle/busy/offline，由调度器与心跳维护）与失败熔断暂停。
  *
  * 关键规则（与后端一致）：
  *   - 能力必选至少一项；
- *   - 「默认线路」只能设置在已勾选的能力上（取消勾选会自动清掉对应默认）；
- *   - 同一能力同时只能有一条默认线路（后端保存时互斥清理，前端只提示）；
+ *   - 「默认服务」只能设置在已勾选的能力上（取消勾选会自动清掉对应默认）；
+ *   - 同一能力同时只能有一个默认服务（后端保存时互斥清理，前端只提示）；
  *   - 编辑时密钥留空 = 不修改（列表接口从不返回明文）。
  */
 import { computed, onMounted, ref } from 'vue';
@@ -39,11 +43,14 @@ import type { AiProviderItem } from '#/api/core/aiProvider';
 import {
   AI_CAPABILITY_OPTIONS,
   AI_PROVIDER_TYPES,
+  AI_RUN_STATUS,
   aiProviderDelete,
   aiProviderList,
   aiProviderSave,
   aiProviderSetEnabled,
 } from '#/api/core/aiProvider';
+
+import { computeNodeList } from '#/api/core/computeNode';
 
 // ─────────────────────────── 列表 ───────────────────────────
 
@@ -55,6 +62,7 @@ async function load() {
   loading.value = true;
   try {
     rows.value = await aiProviderList();
+    await loadNodeOptions();
   } catch {
     // 拦截器已提示
   } finally {
@@ -63,6 +71,28 @@ async function load() {
 }
 
 onMounted(() => void load());
+
+/** 「归属节点」下拉：0 = 不挂节点（旧路径） */
+const nodeOptions = ref<{ label: string; value: number }[]>([
+  { label: '不挂节点（旧路径，无调度约束）', value: 0 },
+]);
+
+async function loadNodeOptions() {
+  try {
+    const nodes = await computeNodeList();
+    nodeOptions.value = [
+      { label: '不挂节点（旧路径，无调度约束）', value: 0 },
+      ...nodes
+        .filter((n) => n.isEnabled)
+        .map((n) => ({
+          label: `${n.name}（${n.isOnline ? '在线' : '离线'}）`,
+          value: n.id,
+        })),
+    ];
+  } catch {
+    // 节点接口失败不影响服务编辑（降级为只有「不挂节点」）
+  }
+}
 
 // ─────────────────────────── 表单 ───────────────────────────
 
@@ -78,6 +108,8 @@ interface FormState {
   isEnabled: boolean;
   sortNo: number;
   remark: string;
+  /** 归属节点 id；0 = 不挂节点（旧路径） */
+  nodeId: number;
 }
 
 const editOpen = ref(false);
@@ -96,6 +128,7 @@ function blank(): FormState {
     isEnabled: true,
     sortNo: 0,
     remark: '',
+    nodeId: 0,
   };
 }
 
@@ -127,6 +160,7 @@ function openEdit(row: AiProviderItem | Record<string, any>) {
     isEnabled: row.isEnabled,
     sortNo: row.sortNo,
     remark: row.remark ?? '',
+    nodeId: row.nodeId ?? 0,
   };
   editOpen.value = true;
 }
@@ -148,7 +182,7 @@ const isComfy = computed(() =>
 async function submit() {
   const f = editing.value;
   if (!f.name.trim()) {
-    message.error('请填写线路名');
+    message.error('请填写服务名');
     return;
   }
   if (f.capabilities.length === 0) {
@@ -156,7 +190,7 @@ async function submit() {
     return;
   }
   if (!isMock.value && !f.baseUrl.trim()) {
-    message.error('该类型线路必须填写端点地址');
+    message.error('该类型服务必须填写端点地址');
     return;
   }
 
@@ -174,6 +208,7 @@ async function submit() {
       isEnabled: f.isEnabled,
       sortNo: f.sortNo,
       remark: f.remark.trim(),
+      nodeId: f.nodeId || null,
     });
     editOpen.value = false;
     await load();
@@ -227,41 +262,52 @@ function defaultNames(bits: number): string[] {
 }
 
 const columns = [
-  { title: '线路名', key: 'name', width: 200 },
+  { title: '服务名', key: 'name', width: 200 },
   { title: '类型', key: 'type', width: 130 },
   { title: '模型 / 端点', key: 'endpoint', ellipsis: true },
-  { title: '能力', key: 'capabilities', width: 240 },
-  { title: '默认线路', key: 'defaultFor', width: 170 },
-  { title: '启用', key: 'enabled', width: 90 },
-  { title: '排序', dataIndex: 'sortNo', key: 'sortNo', width: 70 },
+  { title: '归属节点', key: 'node', width: 160 },
+  { title: '运行状态', key: 'runStatus', width: 130 },
+  { title: '能力', key: 'capabilities', width: 200 },
+  { title: '默认服务', key: 'defaultFor', width: 150 },
+  { title: '启用', key: 'enabled', width: 80 },
+  { title: '排序', dataIndex: 'sortNo', key: 'sortNo', width: 60 },
   { title: '操作', key: 'action', width: 150 },
 ];
+
+function runStatusMeta(status: string) {
+  return (
+    AI_RUN_STATUS[status as keyof typeof AI_RUN_STATUS] ?? {
+      color: 'default',
+      label: status,
+    }
+  );
+}
 </script>
 
 <template>
   <Page
     class="df-page"
-    description="登记可用的 AI 模型（线路）：勾选它具备的能力，任务按能力选线路，不具备能力的线路自动置灰"
-    title="AI 线路"
+    description="登记可用的 AI 模型（服务）：勾选它具备的能力，任务按能力选服务，不具备能力的服务自动置灰"
+    title="AI 服务"
   >
     <template #extra>
       <Space>
         <Button :loading="loading" size="small" @click="load">刷新</Button>
         <Button size="small" type="primary" @click="openCreate">
-          添加线路
+          添加服务
         </Button>
       </Space>
     </template>
 
     <Alert
       class="mb-4"
-      message="「线路」= 一个可调用的 AI 模型"
-      description="添加时勾选它具备的能力；当某条线路被设为某能力的「默认线路」时，任务不指定线路就走它。任务选择器里不具备所需能力的线路会置灰不可选。"
+      message="「服务」= 一个可调用的 AI 模型"
+      description="添加时勾选它具备的能力；当某个服务被设为某能力的「默认服务」时，任务不指定服务就走它。服务可归属算力节点（同节点争同一张卡）；不挂节点则走旧路径。任务选择器里不具备所需能力的服务会置灰不可选。"
       show-icon
       type="info"
     />
 
-    <Card size="small" title="线路列表">
+    <Card size="small" title="服务列表">
       <Table
         v-if="rows.length > 0"
         :columns="columns"
@@ -300,6 +346,48 @@ const columns = [
             <div class="text-xs text-muted-foreground">
               密钥：{{ record.hasApiKey ? '已配置' : '未配置' }}
             </div>
+          </template>
+
+          <template v-else-if="column.key === 'node'">
+            <template v-if="record.nodeId">
+              <span class="text-xs">{{
+                record.nodeName ?? `#${record.nodeId}`
+              }}</span>
+              <Tag
+                v-if="record.nodeOnline === false"
+                color="error"
+                class="ml-1 !mr-0"
+              >
+                离线
+              </Tag>
+              <Tag
+                v-else-if="record.nodeSwitching"
+                color="processing"
+                class="ml-1 !mr-0"
+              >
+                切换中
+              </Tag>
+            </template>
+            <span v-else class="text-xs text-muted-foreground">
+              （不挂节点）
+            </span>
+          </template>
+
+          <template v-else-if="column.key === 'runStatus'">
+            <Space :size="[4, 4]" wrap>
+              <Tag :color="runStatusMeta(record.runStatus).color" class="!mr-0">
+                {{ runStatusMeta(record.runStatus).label }}
+              </Tag>
+              <Tag v-if="record.paused" color="warning" class="!mr-0">
+                熔断暂停
+              </Tag>
+              <span
+                v-if="record.currentTaskId"
+                class="text-xs text-muted-foreground"
+              >
+                #{{ record.currentTaskId }}
+              </span>
+            </Space>
           </template>
 
           <template v-else-if="column.key === 'capabilities'">
@@ -347,7 +435,7 @@ const columns = [
               <Button size="small" @click="openEdit(record)">编辑</Button>
               <Popconfirm
                 description="删除后任务将无法再选它（历史任务记录保留）。"
-                title="确认删除该线路？"
+                title="确认删除该服务？"
                 @confirm="remove(record)"
               >
                 <Button danger size="small" :loading="acting === record.id">
@@ -361,7 +449,7 @@ const columns = [
 
       <Empty
         v-else
-        description="还没有线路：点右上角「添加线路」登记一个 AI 模型"
+        description="还没有服务：点右上角「添加服务」登记一个 AI 模型"
       />
     </Card>
 
@@ -369,13 +457,13 @@ const columns = [
     <Modal
       v-model:open="editOpen"
       :confirm-loading="saving"
-      :title="editing.id ? '编辑线路' : '添加线路'"
+      :title="editing.id ? '编辑服务' : '添加服务'"
       :width="720"
       @ok="submit"
     >
       <div class="flex flex-col gap-3">
         <div>
-          <div class="mb-1 text-sm">线路名 *</div>
+          <div class="mb-1 text-sm">服务名 *</div>
           <Input
             v-model:value="editing.name"
             placeholder="如：本地 Qwen3-27B / 闭源 GPT-4o / ComfyUI 出图机"
@@ -391,7 +479,7 @@ const columns = [
           />
           <div class="mt-1 text-xs text-muted-foreground">
             <template v-if="isComfy">
-              ComfyUI 类线路用于出图/视频，模板在「模板管理」里维护。
+              ComfyUI 类服务用于出图/视频，模板在「模板管理」里维护。
             </template>
             <template v-else-if="isMock">
               Mock 不连外部服务，用于离线自测（确定性输出）。
@@ -404,7 +492,7 @@ const columns = [
 
         <div>
           <div class="mb-1 text-sm">
-            能力 *（任务按能力选线路；不勾选的能力无法被该类任务使用）
+            能力 *（任务按能力选服务；不勾选的能力无法被该类任务使用）
           </div>
           <Checkbox.Group
             v-model:value="editing.capabilities"
@@ -414,7 +502,7 @@ const columns = [
         </div>
 
         <div>
-          <div class="mb-1 text-sm">默认线路</div>
+          <div class="mb-1 text-sm">默认服务</div>
           <Checkbox.Group
             v-model:value="editing.defaultFor"
             :options="
@@ -424,7 +512,20 @@ const columns = [
             "
           />
           <div class="mt-1 text-xs text-muted-foreground">
-            勾选后：任务不指定线路时就用这条（同一能力只能有一条默认线路；未勾选则按排序取最靠前的可用线路）
+            勾选后：任务不指定服务时就用这个（同一能力只能有一个默认服务；未勾选则按排序取最靠前的可用服务）
+          </div>
+        </div>
+
+        <div>
+          <div class="mb-1 text-sm">归属节点</div>
+          <Select
+            v-model:value="editing.nodeId"
+            :options="nodeOptions"
+            style="width: 100%"
+          />
+          <div class="mt-1 text-xs text-muted-foreground">
+            挂到节点后：与同节点其他服务争同一张卡（受互斥 / 攒批 / 切换约束，
+            见「算力节点」页）；不挂节点则不受节点约束（旧路径）。
           </div>
         </div>
 

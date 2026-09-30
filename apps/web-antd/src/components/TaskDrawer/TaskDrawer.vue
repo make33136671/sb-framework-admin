@@ -292,7 +292,7 @@ const jobColumns = [
           </a>
           <span v-else class="text-muted-foreground">-</span>
         </Descriptions.Item>
-        <Descriptions.Item label="AI 线路">
+        <Descriptions.Item label="AI 服务">
           <template v-if="detail.providerName">
             {{ detail.providerName }}
             <span class="text-xs text-muted-foreground">
@@ -308,7 +308,7 @@ const jobColumns = [
           </template>
           <template v-else>
             <span class="text-muted-foreground">
-              自动（默认线路）· 需要 {{ requiredCapabilityText(detail.type) }}
+              自动（默认服务）· 需要 {{ requiredCapabilityText(detail.type) }}
             </span>
           </template>
         </Descriptions.Item>

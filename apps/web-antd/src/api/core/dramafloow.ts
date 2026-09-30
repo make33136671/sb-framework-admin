@@ -158,11 +158,11 @@ export interface TaskItem {
   scriptVersion?: number;
   /** 「具体在跑什么」：素材 key / 第几集第几镜等（后端已翻成人话） */
   target?: string;
-  /** 指定线路 id（null/undefined = 未指定，执行时走该能力的默认线路） */
+  /** 指定服务 id（null/undefined = 未指定，执行时走该能力的默认服务） */
   providerId?: null | number;
-  /** 线路名（展示「用哪条线路跑」） */
+  /** 服务名（展示「用哪个服务跑」） */
   providerName?: null | string;
-  /** 该任务类型需要的能力位掩码（说明「为什么有些线路是灰的」） */
+  /** 该任务类型需要的能力位掩码（说明「为什么有些服务是灰的」） */
   requiredCapability?: number;
   refEntityType?: string;
   refEntityId?: number;

@@ -289,7 +289,7 @@ async function cancel(t: TaskItem | Record<string, any>) {
 const columns = [
   { title: '剧目 / 剧本', key: 'drama', width: 220 },
   { title: '任务线路', key: 'line', width: 110 },
-  { title: 'AI 线路（模型）', key: 'provider', width: 170 },
+  { title: 'AI 服务（模型）', key: 'provider', width: 170 },
   // 具体任务不设固定宽：让它吃掉剩余宽度（配合表格横向滚动的 max-content 下限 1080）
   { title: '具体任务', key: 'target', ellipsis: true, width: 200 },
   { title: '状态', key: 'status', width: 104 },
@@ -446,21 +446,21 @@ const columns = [
           <!-- 任务线路（任务类型所属生产线） -->
           <template v-else-if="column.key === 'line'">
             <Tooltip
-              :title="`该任务需要「${requiredCapabilityText(record.type)}」能力的线路`"
+              :title="`该任务需要「${requiredCapabilityText(record.type)}」能力的服务`"
             >
               <Tag class="!mr-0" color="blue">{{ typeText(record.type) }}</Tag>
             </Tooltip>
           </template>
 
-          <!-- 实际使用的 AI 线路（模型） -->
+          <!-- 实际使用的 AI 服务（模型） -->
           <template v-else-if="column.key === 'provider'">
             <div v-if="record.providerName" class="flex flex-col">
               <span class="text-xs">{{ record.providerName }}</span>
-              <span class="text-xs text-muted-foreground"> 指定线路 </span>
+              <span class="text-xs text-muted-foreground"> 指定服务 </span>
             </div>
             <div v-else class="flex flex-col">
               <span class="text-xs text-muted-foreground"
-                >自动（默认线路）</span
+                >自动（默认服务）</span
               >
               <span class="text-xs text-muted-foreground">
                 需要 {{ requiredCapabilityText(record.type) }}

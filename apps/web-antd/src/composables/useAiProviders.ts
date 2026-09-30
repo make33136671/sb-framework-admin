@@ -2,7 +2,7 @@
  * 能力位 ↔ 中文名（与后端 AiCapabilities 一致）
  *
  * 任务列表/详情用它说明「这类任务需要什么能力」，
- * 与「AI 线路」页的勾选项、后端校验提示保持同一套文案。
+ * 与「AI 服务」页的勾选项、后端校验提示保持同一套文案。
  */
 import { AI_CAPABILITY, AI_CAPABILITY_OPTIONS } from '#/api/core/aiProvider';
 
@@ -17,7 +17,7 @@ export function capabilityNames(bits?: null | number): string[] {
 /** 位掩码 → 「文本处理」这样的单串（多个能力用 / 连接） */
 export function capabilityText(bits?: null | number): string {
   const names = capabilityNames(bits);
-  return names.length > 0 ? names.join(' / ') : '无需线路';
+  return names.length > 0 ? names.join(' / ') : '无需服务';
 }
 
 /** 任务类型 → 所需能力中文名（与后端 TaskCapabilityMap 一一对应） */
@@ -35,7 +35,7 @@ export function requiredCapabilityText(taskType: string): string {
       return capabilityText(AI_CAPABILITY.videoGen);
     }
     case 'concat': {
-      return '本地合并（无需线路）';
+      return '本地合并（无需服务）';
     }
     default: {
       return '未知';

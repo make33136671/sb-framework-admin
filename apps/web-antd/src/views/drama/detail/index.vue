@@ -263,7 +263,7 @@ const rewriteOpts = ref<Record<string, any>>(defaultRewriteOptions());
 /** 选项面板是否展开（默认收起，保持剧本页干净） */
 const rewriteOptsOpen = ref(false);
 
-/** 各能力当前选中的线路（null = 自动，走该能力的默认线路） */
+/** 各能力当前选中的服务（null = 自动，走该能力的默认服务） */
 const rewriteProviderId = ref<null | number>(null);
 const extractProviderId = ref<null | number>(null);
 const t2iProviderId = ref<null | number>(null);
@@ -765,7 +765,7 @@ function reqStatusColor(s: string): string {
           <!-- 列表视图：原始清单（key/版本/候选/状态），便于处理没有图的行 -->
           <template v-else>
             <div class="mb-2 flex flex-wrap items-center gap-2 pt-3">
-              <span class="text-xs text-muted-foreground">出图线路</span>
+              <span class="text-xs text-muted-foreground">出图服务</span>
               <AiProviderSelect v-model:value="t2iProviderId" task-type="t2i" />
             </div>
 
@@ -837,7 +837,7 @@ function reqStatusColor(s: string): string {
         <!-- 3) 分镜 -->
         <Tabs.TabPane key="shots" :tab="`分镜（${shots.length}）`">
           <div class="mb-2 flex flex-wrap items-center gap-2">
-            <span class="text-xs text-muted-foreground">片段线路</span>
+            <span class="text-xs text-muted-foreground">片段服务</span>
             <AiProviderSelect v-model:value="i2vProviderId" task-type="i2v" />
           </div>
 
