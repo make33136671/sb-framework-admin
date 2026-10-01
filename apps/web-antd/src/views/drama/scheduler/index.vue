@@ -109,12 +109,17 @@ const RUN_STATUS_COLOR: Record<string, string> = {
   offline: 'error',
 };
 
-/** 服务（provider_type）文案 */
+/**
+ * 接入类型（provider_key）文案。
+ * 二期（T14.12）：服务类型串已删除 —— comfyui_i2v 不再存在（适配器由「能力位」区分），
+ * provider_key 也改为动态来自 AdapterTypes；这里保留一张**兜底显示表**，
+ * 未命中的 key 直接原样展示（新适配器无需改前端）。
+ */
 const TYPE_TEXT: Record<string, string> = {
-  mock: 'Mock',
+  mock: 'Mock（本地确定性）',
   openai: 'OpenAI 兼容',
-  comfyui: 'ComfyUI 出图',
-  comfyui_i2v: 'ComfyUI 出视频',
+  deepseek: 'DeepSeek 官网',
+  comfyui: 'ComfyUI',
 };
 
 function typeText(t: string): string {

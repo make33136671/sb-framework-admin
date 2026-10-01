@@ -38,6 +38,7 @@ import {
   taskUpdate,
 } from '#/api/core/dramafloow';
 import { requiredCapabilityText } from '#/composables/useAiProviders';
+import { TaskRouteBadge } from '#/components/TaskRouteBadge';
 import { TimeTag } from '#/components/TimeTag';
 import {
   TASK_STATUS_TEXT,
@@ -292,7 +293,17 @@ const jobColumns = [
           </a>
           <span v-else class="text-muted-foreground">-</span>
         </Descriptions.Item>
-        <Descriptions.Item label="AI 服务">
+        <Descriptions.Item label="AI 服务 / 路由">
+          <!-- 成本感知调度 §6.4：路由徽标（🏠 本地 / ☁ 云端）+ 上云原因 tooltip + 金额 -->
+          <div class="mb-1">
+            <TaskRouteBadge
+              :cost-yuan="detail.costYuan"
+              :off-peak="detail.offPeak"
+              :reason="detail.routeReason"
+              :reason-text="detail.routeReasonText"
+              :route="detail.route"
+            />
+          </div>
           <template v-if="detail.providerName">
             {{ detail.providerName }}
             <span class="text-xs text-muted-foreground">

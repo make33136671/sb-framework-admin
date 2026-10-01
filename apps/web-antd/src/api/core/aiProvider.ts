@@ -1,17 +1,20 @@
 /**
- * AI 服务（模型/提供商）接口
+ * AI 模型接口（二期改造，设计 §7.2 / 前端设计 §3）
  *
- * 「服务」= 系统里配置的一个 AI 模型（OpenAI 兼容 / ComfyUI / mock），
- * 添加时勾选它具备的能力；任务按所需能力选服务，不具备该能力的服务在 UI 置灰。
+ * 语义升级：「AI 服务」页（一行一个模型，地址/Key 混填）→ 「AI 模型」页。
+ * 模型归属**提供商**（provider），能力由用户在提供商页的发现流程中勾选；
+ * 本页主要用于**事后调整**：改能力、设默认、挂节点、启停。
  *
- * 算力调度（P2）：服务可归属一个「算力节点」（nodeId），同节点服务争同一张卡
- * （受互斥/软攒批/切换经济学约束）；不挂节点 = 旧路径（无调度约束）。
- * List/Available 额外返回节点归属与运行状态（idle/busy/offline + 熔断暂停）。
+ * ⚠️ **模型不再手填创建**：`/AiProvider/Save` 已移除（后端保留端点但直接报错引导）。
+ * 新建走「AI 提供商」页的 测试连通性 → 勾选 → 保存（`aiProviderAdmin.ts`）。
  *
- * 约定：
- * - 能力/默认服务都是**位掩码**（见 AiCapabilities），前后端一致；
- * - List 返回的 apiKey 已脱敏（只有 hasApiKey），保存时留空 = 不修改密钥；
- * - 不写配对 toast（拦截器已统一处理）。
+ * 关键规则（与后端一致）：
+ *   - `List` / `Available` 现在返回**模型**（不是提供商），字段名兼容一期以降低改动面，
+ *     并新增 providerId / providerName / modelId / displayName / shadowCapabilities 等；
+ *   - 能力/默认都是**位掩码**（见 AiCapabilities，7 位）；
+ *   - 停用即撤销默认（后端行为）；默认位只能落在已勾选的能力上；
+ *   - 不挂节点 = 独立外部 API（不占卡，可并行）；
+ *   - 不写配对 toast（拦截器已统一处理）。
  */
 import { api } from '#/api/request';
 
@@ -26,45 +29,108 @@ export const AI_CAPABILITY = {
   imageUnderstand: 4,
   /** 视频生成：片段 i2v */
   videoGen: 8,
+  /** 向量：**暂无任务使用**（二期新增位，勾了也暂时没有任务会调它） */
+  embedding: 16,
+  /** 语音合成：**暂无任务使用** */
+  tts: 32,
+  /** 语音识别：**暂无任务使用** */
+  asr: 64,
 } as const;
 
+/**
+ * 「暂无任务使用」的能力位（二期新增的 3 位目前没有任务消费者）。
+ * 勾了也暂时没地方用 —— 界面必须**诚实标注**，不让用户以为勾了就生效。
+ */
+const AI_CAPABILITY_UNUSED: readonly number[] = [
+  AI_CAPABILITY.embedding,
+  AI_CAPABILITY.tts,
+  AI_CAPABILITY.asr,
+];
+
+/**
+ * 能力勾选项（前后端必须一致，共 **7** 项）。
+ * 顺序按"常用程度"排（文本 / 图片理解 / 生图 / 生视频 在前），不按位值排。
+ * `note` 非空 → 渲染时追加灰字（诚实告知勾了也暂时没地方用）。
+ */
 export const AI_CAPABILITY_OPTIONS = [
   { label: '文本处理', value: AI_CAPABILITY.text },
-  { label: '图片生成', value: AI_CAPABILITY.imageGen },
   { label: '图片理解', value: AI_CAPABILITY.imageUnderstand },
+  { label: '图片生成', value: AI_CAPABILITY.imageGen },
   { label: '视频生成', value: AI_CAPABILITY.videoGen },
-];
+  { label: '向量', value: AI_CAPABILITY.embedding },
+  { label: '语音合成', value: AI_CAPABILITY.tts },
+  { label: '语音识别', value: AI_CAPABILITY.asr },
+].map((o) => ({
+  ...o,
+  note: AI_CAPABILITY_UNUSED.includes(o.value) ? '暂无任务使用' : '',
+}));
 
-export const AI_PROVIDER_TYPES = [
-  { label: 'OpenAI 兼容（文本/视觉）', value: 'openai' },
-  { label: 'ComfyUI（出图工作流）', value: 'comfyui' },
-  { label: 'ComfyUI（视频工作流 i2v）', value: 'comfyui_i2v' },
-  { label: 'Mock（本地确定性，离线自测）', value: 'mock' },
-];
+/** 能力中文名（单个位值 → 文案；未命中返回空串） */
+export function aiCapabilityLabel(bit: number): string {
+  return AI_CAPABILITY_OPTIONS.find((o) => o.value === bit)?.label ?? '';
+}
 
-/** 服务运行态（与后端 ServiceRunStatus 一致；由调度器/心跳维护） */
+/** 位掩码 → 能力中文名数组 */
+export function aiCapabilityNames(bits?: null | number): string[] {
+  if (!bits) return [];
+  return AI_CAPABILITY_OPTIONS.filter((o) => (bits & o.value) !== 0).map(
+    (o) => o.label,
+  );
+}
+
+/** 能力来源（设计 §6.3 三级降级）：metadata → probed → manual */
+export const AI_CAPABILITY_SOURCE = {
+  metadata: '厂商接口元数据',
+  probed: '模型自述探测',
+  manual: '手工勾选',
+} as const;
+
+/** 提供商连通性状态（与后端 VerifyStatus 一致） */
+export const AI_VERIFY_STATUS = {
+  unverified: { color: 'default', label: '未验证' },
+  ok: { color: 'success', label: '正常' },
+  failed: { color: 'error', label: '失败' },
+} as const;
+
+/** 模型运行态（与后端 ServiceRunStatus 一致；由调度器/心跳维护） */
 export const AI_RUN_STATUS = {
   idle: { label: '空闲', color: 'default' },
   busy: { label: '执行中', color: 'processing' },
   offline: { label: '离线', color: 'error' },
 } as const;
 
+// ─────────────────────────── 类型 ───────────────────────────
+
+/** 模型列表项（字段名兼容一期，语义为**模型**） */
 export interface AiProviderItem {
   id: number;
+  /** 「提供商 / 模型名」（后端拼好，直接展示） */
   name: string;
+  /** = 提供商的 provider_key（接入类型），如 deepseek / openai / comfyui / mock */
   providerType: string;
-  baseUrl?: null | string;
+  providerId: number;
+  providerName: string;
+  /** 厂商侧的模型标识（如 deepseek-flash） */
+  modelId: string;
+  /** = modelId（兼容一期字段名） */
   model?: null | string;
-  /** 密钥已配置（列表不返回明文） */
-  hasApiKey: boolean;
-  /** 能力位掩码 */
+  displayName?: null | string;
+  /** 生效能力位掩码（**用户勾选值**） */
   capabilities: number;
-  /** 默认服务位掩码（该位命中 = 是某能力的默认服务） */
+  /** 厂商声明能力位掩码（对照展示「厂商支持但我没开」） */
+  shadowCapabilities: number;
+  /** metadata / probed / manual */
+  capabilitiesSource?: null | string;
+  contextWindow?: null | number;
+  maxOutputTokens?: null | number;
+  /** ComfyUI：绑定的工作流模板 id */
+  bindWorkflowId?: null | number;
+  /** 默认模型位掩码（该位命中 = 是某能力的默认模型） */
   defaultFor: number;
   isEnabled: boolean;
   sortNo: number;
   remark?: null | string;
-  /** 归属算力节点（null = 不挂节点，走旧路径） */
+  /** 归属算力节点（null = 独立外部 API，不占卡） */
   nodeId: null | number;
   nodeName: null | string;
   nodeOnline: null | boolean;
@@ -81,7 +147,7 @@ export interface AiProviderItem {
   updatedAt: string;
 }
 
-/** 任务选择器：按任务类型给出可选/置灰的服务 */
+/** 任务选择器：按任务类型给出可选/置灰的**模型** */
 export interface AiProviderAvailable {
   taskType: string;
   requiredCapabilities: number;
@@ -90,9 +156,14 @@ export interface AiProviderAvailable {
   autoProviderName?: null | string;
   items: {
     id: number;
+    /** 「提供商 / 模型名」 */
     name: string;
+    /** 提供商的 provider_key */
     providerType: string;
+    providerId: number;
+    providerName: string;
     model?: null | string;
+    displayName?: null | string;
     capabilities: number;
     defaultFor: number;
     isEnabled: boolean;
@@ -112,38 +183,47 @@ export interface AiProviderAvailable {
 
 // ─────────────────────────── 接口 ───────────────────────────
 
+/** 模型列表 */
 export async function aiProviderList() {
   return api.get<AiProviderItem[]>('/AiProvider/List');
 }
 
-/** 按任务类型列出服务（含 selectable，用于下拉置灰） */
+/** 按任务类型列出模型（含 selectable，用于下拉置灰） */
 export async function aiProviderAvailable(taskType: string, dramaId?: number) {
   return api.get<AiProviderAvailable>('/AiProvider/Available', {
     params: dramaId ? { taskType, dramaId } : { taskType },
   });
 }
 
-export async function aiProviderSave(data: {
-  id?: number;
-  name: string;
-  providerType: string;
-  capabilities: number;
-  baseUrl?: string;
-  /** 留空 = 不修改已保存的密钥 */
-  apiKey?: string;
-  model?: string;
-  defaultFor?: number;
-  isEnabled?: boolean;
-  sortNo?: number;
-  remark?: string;
-  /** 归属算力节点；0/null = 不挂节点（旧路径） */
-  nodeId?: null | number;
-}) {
-  return api.post<{ id: number }>('/AiProvider/Save', data);
-}
-
+/** 启用/停用（= 用户勾选；停用即撤销默认，后端行为） */
 export async function aiProviderSetEnabled(id: number, isEnabled: boolean) {
   return api.post('/AiProvider/SetEnabled', { id, isEnabled });
+}
+
+/**
+ * 改生效能力（用户勾选值）+ 默认位。
+ * ⚠️ 只能勾选适配器支持的能力（后端会拒绝并回显具体能力名）；默认位只能是已勾选能力的子集。
+ */
+export async function aiProviderSetCapabilities(
+  id: number,
+  capabilities: number,
+  defaultFor = 0,
+) {
+  return api.post('/AiProvider/SetCapabilities', {
+    id,
+    capabilities,
+    defaultFor,
+  });
+}
+
+/** 追加设某能力位的默认模型（capability 必须是**单一**能力位） */
+export async function aiProviderSetDefault(id: number, capability: number) {
+  return api.post('/AiProvider/SetDefault', { id, capability });
+}
+
+/** 改归属算力节点（null = 独立外部 API，不占卡） */
+export async function aiProviderSetNode(id: number, nodeId: null | number) {
+  return api.post('/AiProvider/SetNode', { id, nodeId: nodeId ?? undefined });
 }
 
 export async function aiProviderDelete(id: number) {

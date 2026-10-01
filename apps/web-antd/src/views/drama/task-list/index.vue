@@ -43,6 +43,7 @@ import {
 } from '#/api/core/dramafloow';
 import { requiredCapabilityText } from '#/composables/useAiProviders';
 import { RunningTaskList } from '#/components/RunningTaskList';
+import { TaskRouteBadge } from '#/components/TaskRouteBadge';
 import {
   elapsedSecondsOf,
   formatElapsed,
@@ -290,6 +291,8 @@ const columns = [
   { title: '剧目 / 剧本', key: 'drama', width: 220 },
   { title: '任务线路', key: 'line', width: 110 },
   { title: 'AI 服务（模型）', key: 'provider', width: 170 },
+  // 成本感知调度 §6.4：路由徽标（🏠 本地 / ☁ 云端）+ 上云原因 tooltip + 金额
+  { title: '路由', key: 'route', width: 140 },
   // 具体任务不设固定宽：让它吃掉剩余宽度（配合表格横向滚动的 max-content 下限 1080）
   { title: '具体任务', key: 'target', ellipsis: true, width: 200 },
   { title: '状态', key: 'status', width: 104 },
@@ -466,6 +469,20 @@ const columns = [
                 需要 {{ requiredCapabilityText(record.type) }}
               </span>
             </div>
+          </template>
+
+          <!-- 路由徽标（🏠 本地 / ☁ 云端）+ 上云原因 tooltip + 金额 -->
+          <template v-else-if="column.key === 'route'">
+            <TaskRouteBadge
+              :cost-yuan="record.costYuan"
+              :off-peak="record.offPeak"
+              :reason="record.routeReason"
+              :reason-text="record.routeReasonText"
+              :route="record.route"
+            />
+            <span v-if="!record.route" class="text-xs text-muted-foreground">
+              -
+            </span>
           </template>
 
           <!-- 具体任务 -->

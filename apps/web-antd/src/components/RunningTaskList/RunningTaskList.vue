@@ -25,6 +25,7 @@ import {
   formatTokens,
   isFinishedStatus,
 } from '#/components/TaskDrawer/taskDisplay';
+import { TaskRouteBadge } from '#/components/TaskRouteBadge';
 import { TimeTag } from '#/components/TimeTag';
 import {
   TASK_STATUS_TEXT,
@@ -158,6 +159,14 @@ function openDrama(dramaId?: number) {
               剧本 v{{ t.scriptVersion }}
             </span>
             <span v-if="t.target" class="text-xs">{{ t.target }}</span>
+            <!-- 成本感知调度 §6.4：路由徽标 + 上云原因 + 金额 -->
+            <TaskRouteBadge
+              :cost-yuan="t.costYuan"
+              :off-peak="t.offPeak"
+              :reason="t.routeReason"
+              :reason-text="t.routeReasonText"
+              :route="t.route"
+            />
             <span class="flex-1" />
             <span class="text-xs text-muted-foreground">#{{ t.id }}</span>
             <Button size="small" @click="emit('detail', t.id)">详情</Button>

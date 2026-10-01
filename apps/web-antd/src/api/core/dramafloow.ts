@@ -164,6 +164,23 @@ export interface TaskItem {
   providerName?: null | string;
   /** 该任务类型需要的能力位掩码（说明「为什么有些服务是灰的」） */
   requiredCapability?: number;
+  /**
+   * 上云路由（成本感知调度 §8.7 / T14.11）：
+   * **`cloud` = 该任务有成本感知上云决策；`null` = 无上云决策记录**（前端不展示徽标）。
+   * 后端目前只发 `cloud`，没有 `local` / `cloud_manual` 取值 —— 不要猜。
+   */
+  route?: null | string;
+  /** 上云原因码（目前只有 `cloud_cost_benefit`） */
+  routeReason?: null | string;
+  /**
+   * 上云原因的中文说明（后端拼好，**优先于前端本地映射表**展示），
+   * 如「优惠时段内性价比达标，自动上云执行」。
+   */
+  routeReasonText?: null | string;
+  /** 该次上云的预计花费（元）；仅 route=cloud 时非空 */
+  costYuan?: null | number;
+  /** 该次上云是否处于优惠时段（谷时）；null = 未知 */
+  offPeak?: null | boolean;
   refEntityType?: string;
   refEntityId?: number;
   status: string;
