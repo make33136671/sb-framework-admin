@@ -513,12 +513,12 @@ defineOptions({ name: 'SchedulerBoard' });
             </Table>
           </Card>
 
-          <!-- 独立服务（不挂节点 = 不占卡、可并行） -->
+          <!-- 独立服务（不挂节点 = 不占卡，独立算力） -->
           <Card
             v-if="(status?.standalone.length ?? 0) > 0"
             class="mt-3"
             size="small"
-            title="独立服务（未挂节点，不占卡可并行）"
+            title="独立服务（未挂节点，独立算力不占卡）"
           >
             <Space wrap>
               <Tag v-for="s in status?.standalone" :key="s.id">

@@ -228,7 +228,7 @@ const ratio = computed(() => form.value.ratio || 30);
               >
             </div>
             <div class="mt-1 text-xs text-muted-foreground">
-              开启后，系统会在【优惠时段】自动把"本地排队久"的任务送到云端并行执行。
+              开启后，系统会在【优惠时段】自动把"本地排队久"的任务送到云端执行（独立算力，不占本地槽位）。
               关闭后仅在紧急兜底与手动指定时上云。
             </div>
           </div>

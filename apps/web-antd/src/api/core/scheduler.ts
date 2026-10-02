@@ -76,7 +76,7 @@ export interface SchedStatusView {
   now: string;
   nodeCount: number;
   nodes: SchedNodeCard[];
-  /** 不挂节点的独立服务（不占卡、可并行） */
+  /** 不挂节点的独立服务（独立算力，不占卡） */
   standalone: {
     id: number;
     name: string;

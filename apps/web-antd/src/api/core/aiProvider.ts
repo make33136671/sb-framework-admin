@@ -13,7 +13,7 @@
  *     并新增 providerId / providerName / modelId / displayName / shadowCapabilities 等；
  *   - 能力/默认都是**位掩码**（见 AiCapabilities，7 位）；
  *   - 停用即撤销默认（后端行为）；默认位只能落在已勾选的能力上；
- *   - 不挂节点 = 独立外部 API（不占卡，可并行）；
+ *   - 不挂节点 = 独立外部 API（独立算力，不占卡）；
  *   - 不写配对 toast（拦截器已统一处理）。
  */
 import { api } from '#/api/request';
