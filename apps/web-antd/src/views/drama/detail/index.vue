@@ -4,7 +4,7 @@
  *   剧本（存原始稿 → 洗稿）/ 分镜 / 素材 / 片段 / 成片
  * WS 订阅 drama:<id>，阶段实时刷新。
  */
-import { computed, onMounted, ref } from 'vue';
+import { computed, onMounted, ref, watch } from 'vue';
 import { useRoute } from 'vue-router';
 
 import { Page } from '@vben/common-ui';
@@ -31,6 +31,10 @@ import type {
   ScriptDetail,
   ScriptEpisode,
   ShotItem,
+  StageEpisodeItem,
+  StageEpisodeProduceItem,
+  StageKey,
+  StageShotItem,
   WordParseResult,
 } from '#/api/core/dramafloow';
 import {
@@ -40,20 +44,23 @@ import {
   dramaGet,
   productEpisodeList,
   productRender,
+  scriptAnalyze,
+  scriptEpisodeSplit,
   scriptGet,
   scriptParseWord,
   scriptRewrite,
   scriptSave,
   shotList,
   shotStaleReplay,
+  shotStoryboard,
 } from '#/api/core/dramafloow';
+import { ArtifactTrace, StageRowList } from '#/components/StageRow';
 import type { ResourceDetailType } from '#/components/ResourceDetailModal';
 import { AiProviderSelect } from '#/components/AiProviderSelect';
 import { RewriteOptionsPanel } from '#/components/RewriteOptionsPanel';
 import { defaultRewriteOptions } from '#/composables/rewriteOptions';
 import { AssetCategoryView } from '#/components/AssetCategoryView';
 import { AssetVersionDrawer } from '#/components/AssetVersionDrawer';
-import { PhaseStepper } from '#/components/PhaseStepper';
 import { ResourceDetailModal } from '#/components/ResourceDetailModal';
 import { TaskDrawer } from '#/components/TaskDrawer';
 import {
@@ -90,9 +97,117 @@ const parsing = ref(false);
 const wordInfo = ref<null | WordParseResult>(null);
 const wordInputRef = ref<HTMLInputElement>();
 
-const stages = computed(
-  () => stream.dramaMap.value[dramaId.value]?.stages ?? null,
+/**
+ * 五横向（横向结构 P5）：`stagesV2` 优先，回落旧 `stages`（灰度期两套并存）。
+ * 仅用于「是否已有横向数据」的轻量判断 —— 实际渲染走 StageRowList 的后端聚合端点，
+ * 状态不在前端重算（避免后端算的与前端理解的各说各话）。
+ */
+const stagesV2 = computed(
+  () =>
+    stream.dramaMap.value[dramaId.value]?.stagesV2 ??
+    stream.dramaMap.value[dramaId.value]?.stages ??
+    null,
 );
+
+// ─────────────────── 横向（Stage Row）操作 ───────────────────
+
+const stageRowListRef = ref<null | { reload: () => void }>(null);
+/** WS drama 事件变化时 +1，驱动 StageRowList 重新拉取（状态由后端算，前端不重算） */
+const stageRefreshKey = ref(0);
+
+// 任一 drama 事件落地 → 刷新横向（含初次）
+watch(
+  () => stream.dramaMap.value[dramaId.value],
+  (v) => {
+    if (v) stageRefreshKey.value += 1;
+  },
+);
+
+/** 各横向的「开始/重跑」分发到对应端点 */
+async function onStageRun(key: StageKey) {
+  try {
+    if (key === 'analyze') {
+      await scriptAnalyze(dramaId.value, rewriteProviderId.value ?? undefined);
+    } else if (key === 'rewrite') {
+      await rewrite();
+      return; // rewrite() 自带提示与刷新
+    } else if (key === 'extract') {
+      await assetExtractStart(
+        dramaId.value,
+        rewriteProviderId.value ?? undefined,
+      );
+    } else if (key === 'episodes') {
+      await scriptEpisodeSplit(
+        dramaId.value,
+        rewriteProviderId.value ?? undefined,
+      );
+    } else if (key === 'produce') {
+      // 成片横向：先要求有分集，再对全部分集跑分镜
+      await shotStoryboard(
+        dramaId.value,
+        null,
+        rewriteProviderId.value ?? undefined,
+      );
+    }
+    // 入队后稍等再刷新，避免任务状态还没落库
+    setTimeout(() => {
+      stageRowListRef.value?.reload();
+      loadAll();
+    }, 600);
+  } catch {
+    // 拦截器已提示；此处只需保证不阻断 UI
+  }
+}
+
+/** 单集分镜（用户要求：每一集可以进入了 开始分镜） */
+async function storyboardEpisode(ep: StageEpisodeItem) {
+  await shotStoryboard(
+    dramaId.value,
+    ep.episodeNo,
+    rewriteProviderId.value ?? undefined,
+  );
+  setTimeout(() => {
+    stageRowListRef.value?.reload();
+    loadAll();
+  }, 600);
+}
+
+/** 把 characterRefs（CSV/JSON 两种历史格式）拆成标签数组 */
+function splitRefs(raw?: null | string): string[] {
+  if (!raw) return [];
+  const t = raw.trim();
+  if (t.startsWith('[')) {
+    try {
+      const arr = JSON.parse(t);
+      return Array.isArray(arr) ? arr.map((x) => String(x)) : [];
+    } catch {
+      return [];
+    }
+  }
+  return t
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+/** 单镜预览：复用既有片段详情弹窗（避免再造一个播放器） */
+// 表格插槽给出的 record 是宽松类型，此处收窄（表格数据源本身已强类型）
+function previewShot(row: Record<string, any>) {
+  openClipDetail(row as StageShotItem as unknown as ShotItem);
+}
+
+function previewEpisodeProduct(ep: StageEpisodeProduceItem) {
+  const found = episodes.value.find((p) => p.episodeNo === ep.episodeNo);
+  if (found) openEpisodeDetail(found);
+}
+
+/** 成片横向里的镜级表格列（与剧本 Tab 的分镜表列不同，故单独一份） */
+const stageShotColumns = [
+  { dataIndex: 'shotNo', key: 'shotNo', title: '镜', width: 70 },
+  { dataIndex: 'description', key: 'description', title: '画面描述' },
+  { key: 'assets', title: '用了哪些素材', width: 200 },
+  { key: 'clip', title: '产出的片段', width: 140 },
+];
 
 async function loadAll() {
   loading.value = true;
@@ -515,11 +630,168 @@ function reqStatusColor(s: string): string {
     </template>
 
     <Spin :spinning="loading">
-      <!-- 五阶段 -->
-      <Card class="mb-4" size="small" title="生产阶段（实时）">
-        <PhaseStepper :stages="stages" />
-        <div v-if="!stages" class="mt-2 text-xs text-muted-foreground">
-          实时通道连接中…（阶段数据来自 WS drama:{{ dramaId }} 事件）
+      <!-- 五行横向（横向结构 P5）：每个横向可独立执行、有产物、可展开子项 -->
+      <Card
+        class="mb-4"
+        size="small"
+        title="生产横向（每个横向都可单独执行，产出各自产物）"
+      >
+        <StageRowList
+          ref="stageRowListRef"
+          :drama-id="dramaId"
+          :refresh-key="stageRefreshKey"
+          @run="onStageRun"
+        >
+          <!-- 横向④ 分集：子项 = 一集一行，可单独开始分镜 -->
+          <template #episodes="{ row }">
+            <div class="space-y-2">
+              <Alert
+                v-if="(row.items as StageEpisodeItem[]).length === 0"
+                message="还没有分集。点上方「开始」按剧本拆集（不依赖洗稿）。"
+                show-icon
+                type="info"
+              />
+              <div
+                v-for="ep in row.items as StageEpisodeItem[]"
+                :key="ep.id"
+                class="flex flex-wrap items-center gap-2 rounded border p-2"
+              >
+                <Tag color="blue" class="!mr-0">第 {{ ep.episodeNo }} 集</Tag>
+                <span class="text-sm">{{ ep.title || '（无标题）' }}</span>
+                <Tag class="!mr-0">v{{ ep.displayVersion }}</Tag>
+                <Tag class="!mr-0">{{ ep.shotCount }} 镜</Tag>
+                <Tag v-if="ep.origin !== 'rewrite'" class="!mr-0">
+                  来源:
+                  {{ ep.origin === 'structure' ? '结构产物' : '规则切分' }}
+                </Tag>
+                <span class="flex-1"></span>
+                <!-- 用户要求：「每一集可以进入了 开始分镜」 -->
+                <Button
+                  size="small"
+                  :type="ep.shotCount === 0 ? 'primary' : 'default'"
+                  @click="storyboardEpisode(ep)"
+                >
+                  {{ ep.shotCount === 0 ? '开始分镜' : '重跑分镜' }}
+                </Button>
+              </div>
+              <ArtifactTrace :versions="row.versions" />
+            </div>
+          </template>
+
+          <!-- 横向⑤ 成片：子项 = 集 → 镜，支持单集/单镜预览与溯源 -->
+          <template #produce="{ row }">
+            <div class="space-y-3">
+              <Alert
+                v-if="(row.items as StageEpisodeProduceItem[]).length === 0"
+                message="还没有分镜。请先在「分集」横向里对某一集点「开始分镜」。"
+                show-icon
+                type="info"
+              />
+              <div
+                v-for="epItem in row.items as StageEpisodeProduceItem[]"
+                :key="epItem.episodeNo"
+                class="rounded border p-2"
+              >
+                <div class="mb-2 flex flex-wrap items-center gap-2">
+                  <Tag color="blue" class="!mr-0"
+                    >第 {{ epItem.episodeNo }} 集</Tag
+                  >
+                  <span class="text-sm">{{
+                    epItem.title || '（无标题）'
+                  }}</span>
+                  <Tag class="!mr-0">{{ epItem.shots.length }} 镜</Tag>
+                  <!-- 单集预览（用户要求：单集可预览） -->
+                  <template v-if="epItem.product?.videoPath">
+                    <Button
+                      size="small"
+                      type="link"
+                      @click="previewEpisodeProduct(epItem)"
+                    >
+                      预览成片
+                    </Button>
+                    <Tag color="success" class="!mr-0">
+                      成片 v{{ epItem.product.version }}
+                    </Tag>
+                  </template>
+                </div>
+
+                <!-- 镜级子项：用了哪些素材 + 产出了什么 + 单镜预览 -->
+                <Table
+                  :columns="stageShotColumns"
+                  :data-source="epItem.shots"
+                  :pagination="false"
+                  :row-key="(r: StageShotItem) => r.id"
+                  size="small"
+                >
+                  <template #bodyCell="{ column, record }">
+                    <template v-if="column.key === 'shotNo'">
+                      镜 {{ record.shotNo }}
+                    </template>
+                    <template v-else-if="column.key === 'description'">
+                      <div class="max-w-md text-xs">
+                        {{ record.description || '—' }}
+                      </div>
+                    </template>
+                    <template v-else-if="column.key === 'assets'">
+                      <!-- 用了哪些素材（用户诉求） -->
+                      <div class="flex flex-wrap gap-1">
+                        <Tag
+                          v-for="c in splitRefs(record.characterRefs)"
+                          :key="c"
+                          class="!mr-0"
+                        >
+                          {{ c }}
+                        </Tag>
+                        <Tag v-if="record.sceneRef" class="!mr-0" color="cyan">
+                          {{ record.sceneRef }}
+                        </Tag>
+                        <span
+                          v-if="!record.characterRefs && !record.sceneRef"
+                          class="text-xs text-muted-foreground"
+                        >
+                          未绑定
+                        </span>
+                      </div>
+                    </template>
+                    <template v-else-if="column.key === 'clip'">
+                      <!-- 产出了什么 -->
+                      <template v-if="record.clip?.videoPath">
+                        <Button
+                          size="small"
+                          type="link"
+                          @click="previewShot(record)"
+                        >
+                          预览片段
+                        </Button>
+                      </template>
+                      <Tag
+                        v-else-if="record.clip"
+                        color="processing"
+                        class="!mr-0"
+                      >
+                        {{ record.clip.status }}
+                      </Tag>
+                      <span v-else class="text-xs text-muted-foreground"
+                        >未生成</span
+                      >
+                    </template>
+                  </template>
+                </Table>
+              </div>
+              <ArtifactTrace :versions="row.versions" />
+            </div>
+          </template>
+        </StageRowList>
+
+        <div class="mt-2 text-xs text-muted-foreground">
+          <template v-if="stagesV2">
+            实时通道已连接（WS drama:{{ dramaId }}）；横向状态由后端
+            StageRowCore 计算。
+          </template>
+          <template v-else>
+            实时通道连接中…（阶段数据来自 WS drama:{{ dramaId }} 事件）
+          </template>
+          「已跳过」表示该横向是可选环节且未执行，不影响后续横向。
         </div>
       </Card>
 

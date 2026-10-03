@@ -133,6 +133,16 @@ const [Grid, gridApi] = useVbenVxeGrid({ formOptions, gridOptions });
 const editOpen = ref(false);
 const editing = ref<null | Partial<DramaItem>>(null);
 
+// 建剧同时上传剧本（D1）
+const createScriptFile = ref<File | null>(null);
+const createScriptText = ref('');
+const createScriptInputRef = ref<HTMLInputElement>();
+
+function onCreateScriptPicked(e: Event) {
+  const input = e.target as HTMLInputElement;
+  createScriptFile.value = input.files?.[0] ?? null;
+}
+
 function openCreate() {
   editing.value = { episodeTargetCount: 10 };
   editOpen.value = true;
@@ -162,9 +172,15 @@ async function submitEdit() {
       genre: d.genre,
       synopsis: d.synopsis,
       episodeTargetCount: d.episodeTargetCount ?? 10,
+      // 建剧同时上传剧本（D1）：文件优先，其次粘贴文本
+      scriptFile: createScriptFile.value ?? undefined,
+      scriptText: createScriptText.value.trim() || undefined,
     });
   }
   editOpen.value = false;
+  // 清掉剧本附件状态，避免下次新建时误带上次的文件
+  createScriptFile.value = null;
+  createScriptText.value = '';
   gridApi.query();
 }
 
@@ -277,6 +293,40 @@ function openDetail(row: DramaItem) {
         <div>
           <div class="mb-1 text-sm">简介</div>
           <Input.TextArea v-model:value="editing!.synopsis" :rows="3" />
+        </div>
+
+        <!-- 建剧同时上传剧本（D1）：用户流程「创建剧目的同时上传剧本」。
+             不填也行 —— 之后可在剧目详情的剧本 Tab 里补传。 -->
+        <div v-if="!editing?.id">
+          <div class="mb-1 text-sm">剧本（可选，也可之后在剧目详情里上传）</div>
+          <div class="mb-2 flex flex-wrap items-center gap-2">
+            <input
+              ref="createScriptInputRef"
+              accept=".docx"
+              class="hidden"
+              type="file"
+              @change="onCreateScriptPicked"
+            />
+            <Button size="small" @click="createScriptInputRef?.click()">
+              选择 .docx 剧本
+            </Button>
+            <span v-if="createScriptFile" class="text-xs text-muted-foreground">
+              {{ createScriptFile.name }}
+            </span>
+            <Button
+              v-if="createScriptFile"
+              size="small"
+              type="link"
+              @click="createScriptFile = null"
+            >
+              移除
+            </Button>
+          </div>
+          <Input.TextArea
+            v-model:value="createScriptText"
+            :rows="4"
+            placeholder="或直接粘贴剧本正文（两者都填时以 .docx 文件为准）"
+          />
         </div>
       </div>
     </Modal>

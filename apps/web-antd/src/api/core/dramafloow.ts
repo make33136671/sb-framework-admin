@@ -466,14 +466,52 @@ export async function dramaGet(id: number) {
   return api.get<DramaDetail>('/Drama/Get', { params: { id } });
 }
 
+/**
+ * 创建剧目。支持**建剧同时上传剧本**（横向结构 P5-5 / D1）：
+ *   - `scriptFile` → 解析 .docx 后落 v1（文件优先）
+ *   - `scriptText` → 直接落 v1
+ * 两者都不给 = 只建剧（之后可在剧本 Tab 上传）。
+ * 剧本导入失败**不回滚建剧**（返回 message 里会说明），用户可稍后重试。
+ *
+ * ⚠️ 带文件时必须手工构造 FormData：request.ts 的拦截器只在 `config.data instanceof FormData`
+ * 时删除 Content-Type（让浏览器自动加 multipart boundary）。直接把 File 塞进普通对象
+ * 会被序列化成 form-urlencoded，文件变成一个空字符串字段 —— 静默失败。
+ * 参数名 `scriptFile` 必须与后端 `IFormFile? scriptFile` 完全一致。
+ */
 export async function dramaAdd(data: {
   code?: string;
   name: string;
   genre?: string;
   synopsis?: string;
   episodeTargetCount?: number;
+  scriptFile?: File;
+  scriptText?: string;
 }) {
-  return api.post<{ id: number }>('/Drama/Add', data);
+  if (data.scriptFile) {
+    const formData = new FormData();
+    if (data.code) formData.append('code', data.code);
+    formData.append('name', data.name);
+    if (data.genre) formData.append('genre', data.genre);
+    if (data.synopsis) formData.append('synopsis', data.synopsis);
+    formData.append(
+      'episodeTargetCount',
+      String(data.episodeTargetCount ?? 10),
+    );
+    if (data.scriptText) formData.append('scriptText', data.scriptText);
+    formData.append('scriptFile', data.scriptFile);
+    return api.post<{ id: number; scriptId?: null | number }>(
+      '/Drama/Add',
+      formData,
+    );
+  }
+  return api.post<{ id: number; scriptId?: null | number }>('/Drama/Add', {
+    code: data.code,
+    name: data.name,
+    genre: data.genre,
+    synopsis: data.synopsis,
+    episodeTargetCount: data.episodeTargetCount ?? 10,
+    scriptText: data.scriptText,
+  });
 }
 
 export async function dramaUpdate(data: {
@@ -975,4 +1013,231 @@ export async function productPublish(id: number) {
 
 export async function productUnpublish(id: number) {
   return api.post('/Product/Unpublish', { id });
+}
+
+// ─────────────────────── 横向（Stage Row，横向结构 P5）───────────────────────
+//
+// 后端 GET /admin/Stage/Rows 返回五横向聚合：产物 / 版本 / 子项 / prompt 留档 /
+// 前置门（gateOpen）/ 接续目标（nextRunnable）。
+// 判定逻辑全在后端纯函数 StageRowCore（可离线验证），前端只做展示，不重算状态。
+
+/** 横向状态（与后端 StageStatus 一一对应） */
+export type StageStatus =
+  | 'done'
+  | 'failed'
+  | 'pending'
+  | 'running'
+  | 'skipped'
+  | 'stale';
+
+/** 横向 key（破坏性变更：改名会让前端失配） */
+export type StageKey =
+  | 'analyze'
+  | 'episodes'
+  | 'extract'
+  | 'produce'
+  | 'rewrite';
+
+/** 一次尝试轮（append-only 快照）—— promptSnapshot 即「提交给系统的关键词」 */
+export interface StageAttempt {
+  versionNo: number;
+  status: string;
+  seed?: null | number;
+  failReason?: null | string;
+  submittedAt: string;
+  /** 提交给系统的关键词全记录（用户明确要求） */
+  promptSnapshot?: null | string;
+}
+
+/** 某一横向的一次执行（任务 + 其尝试轮） */
+export interface StageVersion {
+  taskId: number;
+  type: string;
+  version: number;
+  status: string;
+  progress: number;
+  error?: null | string;
+  startedAt?: null | string;
+  finishedAt?: null | string;
+  providerId?: null | number;
+  attempts: StageAttempt[];
+}
+
+/** 抽取横向的子项（素材需求：角色/道具/场景） */
+export interface StageRequirementItem {
+  id: number;
+  kind: string;
+  key: string;
+  description?: null | string;
+  status: string;
+  approvedAssetId?: null | number;
+  version: number;
+}
+
+/** 分集横向的子项（一集，可单独开始分镜） */
+export interface StageEpisodeItem {
+  id: number;
+  episodeNo: number;
+  title?: null | string;
+  majorVersion: number;
+  minorVersion: number;
+  displayVersion: string;
+  origin: string;
+  shotCount: number;
+}
+
+/** 成片横向的镜级子项 */
+export interface StageShotItem {
+  id: number;
+  shotNo: number;
+  description?: null | string;
+  dialogue?: null | string;
+  durationSec: number;
+  status: string;
+  /** 用了哪些素材（用户诉求） */
+  characterRefs?: null | string;
+  sceneRef?: null | string;
+  assetIds?: null | string;
+  /** 产出了什么（片段） */
+  clip?: null | {
+    id: number;
+    scriptVersion: number;
+    status: string;
+    videoPath?: null | string;
+    durationSec?: null | number;
+    error?: null | string;
+  };
+}
+
+/** 成片横向的子项（集 → 镜） */
+export interface StageEpisodeProduceItem {
+  episodeNo: number;
+  title?: null | string;
+  product?: null | {
+    id: number;
+    version: number;
+    status: string;
+    videoPath?: null | string;
+    coverPath?: null | string;
+    durationSec?: null | number;
+  };
+  shots: StageShotItem[];
+}
+
+export interface StageRow {
+  key: StageKey;
+  name: string;
+  status: StageStatus;
+  /** 是否可选横向（仅洗稿为 true） */
+  optional: boolean;
+  /** 前置门是否满足（前端据此决定「开始/重跑」是否可点） */
+  gateOpen: boolean;
+  artifact: {
+    kind: string;
+    exists?: boolean;
+    count?: number;
+    shots?: number;
+    clips?: number;
+    products?: number;
+    summary: string;
+  };
+  versions: StageVersion[];
+  items: unknown[];
+}
+
+export interface StageRowsResult {
+  dramaId: number;
+  scriptVersion: number;
+  /** 下一个应自动执行的横向（null = 全部完成或前置不满足） */
+  nextRunnable: null | StageKey;
+  rows: StageRow[];
+}
+
+/** 五横向聚合（横向结构 P1/P5） */
+export async function stageRows(dramaId: number) {
+  return api.get<StageRowsResult>('/Stage/Rows', { params: { dramaId } });
+}
+
+// ─────────────────────── 横向① 分析 / 横向④ 分集 / 分镜 ───────────────────────
+
+/** 触发结构分析（横向①：只读结构，不改写正文） */
+export async function scriptAnalyze(
+  dramaId: number,
+  providerId?: null | number,
+) {
+  return api.post<{ taskId: number; scriptId: number }>('/Script/Analyze', {
+    dramaId,
+    providerId,
+  });
+}
+
+/** 查询剧本结构产物（含版本列表） */
+export async function scriptStructure(dramaId: number, version?: number) {
+  return api.get<{
+    structure: null | {
+      id: number;
+      version: number;
+      isCurrent: boolean;
+      /** rule=规则切分（零成本）/ llm=LLM 分析 */
+      origin: string;
+      model?: null | string;
+      llmCallId?: null | number;
+      episodeCount: number;
+      sceneCount: number;
+      characterCount: number;
+      locationCount: number;
+      createdAt: string;
+      detail: {
+        episodes: {
+          no: number;
+          title: string;
+          scenes: {
+            text: string;
+            characters: string[];
+            location: string;
+          }[];
+        }[];
+        characters: { name: string; appearances: number[] }[];
+        locations: string[];
+        props: string[];
+      };
+    };
+    versions: {
+      id: number;
+      version: number;
+      isCurrent: boolean;
+      origin: string;
+      episodeCount: number;
+      sceneCount: number;
+      characterCount: number;
+      locationCount: number;
+      createdAt: string;
+    }[];
+  }>('/Script/Structure', { params: { dramaId, version } });
+}
+
+/** 触发分集（横向④：不依赖洗稿） */
+export async function scriptEpisodeSplit(
+  dramaId: number,
+  providerId?: null | number,
+) {
+  return api.post<{ taskId: number }>('/ScriptEpisode/Split', {
+    dramaId,
+    providerId,
+  });
+}
+
+/**
+ * 触发分镜。`episodeNo` 不传 = 全部分集；指定 = 只跑该集。
+ * 用户要求「每一集可以进入了 开始分镜」。
+ */
+export async function shotStoryboard(
+  dramaId: number,
+  episodeNo?: null | number,
+  providerId?: null | number,
+) {
+  return api.post<{ taskId: number; episodeNo?: null | number }>(
+    '/Shot/Storyboard',
+    { dramaId, episodeNo, providerId },
+  );
 }

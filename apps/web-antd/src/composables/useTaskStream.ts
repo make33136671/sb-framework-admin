@@ -65,6 +65,12 @@ export interface DramaEvent {
   name: string;
   status: string;
   stages: Record<string, string>;
+  /**
+   * 五横向（横向结构 P1，灰度双下发）：key ∈ analyze/rewrite/extract/episodes/produce。
+   * 可选 —— 后端在灰度期同时下发；前端**优先读它**，缺失时才回落 `stages`
+   * （旧 5 键语义已错：把洗稿放第一位、缺「分析」「抽取」「分集」三个横向）。
+   */
+  stagesV2?: Record<string, string>;
   ts: string;
 }
 
