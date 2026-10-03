@@ -79,9 +79,7 @@ export const PermissionUtil = {
     // 动态路由匹配(例如 /AdminEdit/:id)
     return allowedMenus.some((pattern) => {
       if (pattern.includes(':')) {
-        const regex = new RegExp(
-          '^' + pattern.replaceAll(/:\w+/g, '[^/]+') + '$',
-        );
+        const regex = new RegExp(`^${pattern.replaceAll(/:\w+/g, '[^/]+')}$`);
         return regex.test(menuPath);
       }
       return false;

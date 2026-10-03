@@ -76,7 +76,7 @@ export interface CloudDecisionsView {
   items: CloudDecisionItem[];
   /** 今日已花费（元）—— 后端直接给出，不再由前端从审计行推算 */
   todaySpent?: null | number;
-  gates?: null | CloudGateState;
+  gates?: CloudGateState | null;
   serverUtcNow?: null | string;
   /** 后端说明文案（如节流规则），有则展示 */
   note?: null | string;
@@ -103,33 +103,33 @@ export interface CloudDecisionSnapshot {
   reasonText?: string;
   model?: { id?: number; name?: string; provider?: string };
   pricing?: {
-    period?: string;
+    currency?: string;
     inputPrice?: number;
     outputPrice?: number;
-    currency?: string;
+    period?: string;
   };
   estimate?: {
-    saveMin?: number;
+    cloudFinishMin?: number;
     costYuan?: number;
-    ratio?: number;
-    threshold?: number;
     /** ⚠️ 只有未上云（CloudHold）行才有这两个字段 */
     localFinishMin?: number;
-    cloudFinishMin?: number;
+    ratio?: number;
+    saveMin?: number;
+    threshold?: number;
   };
   gates?: {
     costAwareEnabled?: boolean;
-    offPeak?: boolean;
-    ratioOk?: boolean;
-    perTaskCap?: number;
     dailyCap?: number;
     dailySpent?: number;
+    offPeak?: boolean;
+    perTaskCap?: number;
+    ratioOk?: boolean;
   };
   task?: {
     id?: number;
-    type?: string;
     priority?: number;
     queuedWaitMin?: number;
+    type?: string;
   };
   /** cloud（已上云）/ local（未上云，留在本地） */
   route?: string;

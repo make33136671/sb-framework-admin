@@ -198,10 +198,10 @@ const realNameLabels: Record<number, { color: string; text: string }> = {
         <div style="font-size: 12px; line-height: 1.6">
           <div>
             <Tag
-              :color="row.status == 0 ? 'success' : 'error'"
+              :color="row.status === 0 ? 'success' : 'error'"
               style="margin: 0"
             >
-              {{ row.status == 0 ? '正常' : '封禁' }}
+              {{ row.status === 0 ? '正常' : '封禁' }}
             </Tag>
           </div>
           <div style="margin-top: 4px">

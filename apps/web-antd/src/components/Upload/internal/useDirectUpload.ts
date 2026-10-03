@@ -44,10 +44,11 @@ export function useDirectUpload() {
         }
       });
 
-      xhr.addEventListener('load', () => {
-        if (xhr!.status >= 200 && xhr!.status < 300) {
+      const req = xhr;
+      req.addEventListener('load', () => {
+        if (req.status >= 200 && req.status < 300) {
           try {
-            const body = JSON.parse(xhr!.responseText);
+            const body = JSON.parse(req.responseText);
             if (body?.code === 0) {
               progress.value = 100;
               status.value = 'done';
@@ -64,16 +65,16 @@ export function useDirectUpload() {
           }
         } else {
           status.value = 'error';
-          errorMsg.value = `HTTP ${xhr!.status}`;
+          errorMsg.value = `HTTP ${req.status}`;
           reject(new Error(errorMsg.value));
         }
       });
 
-      xhr.onerror = () => {
+      xhr.addEventListener('error', () => {
         status.value = 'error';
         errorMsg.value = '网络错误';
         reject(new Error(errorMsg.value));
-      };
+      });
 
       xhr.addEventListener('abort', () => {
         status.value = 'cancelled';

@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { TaskItem, TaskTokenSummary } from '#/api/core/dramafloow';
+
 /**
  * RunningTaskList —— 「正在跑」实时任务卡（仪表盘看板 + AI 任务列表页共用）
  *
@@ -17,8 +19,6 @@ import { useRouter } from 'vue-router';
 
 import { Button, Empty, Progress, Tag, Tooltip } from 'ant-design-vue';
 
-import type { TaskItem, TaskTokenSummary } from '#/api/core/dramafloow';
-
 import {
   elapsedSecondsOf,
   formatElapsed,
@@ -35,10 +35,10 @@ import {
 
 const props = withDefaults(
   defineProps<{
-    /** 任务列表（已含 WS 增量；组件内部自行过滤未终态） */
-    tasks: TaskItem[];
     /** 紧凑模式（仪表盘用）：不显示进度条，摘要压成一行 */
     compact?: boolean;
+    /** 任务列表（已含 WS 增量；组件内部自行过滤未终态） */
+    tasks: TaskItem[];
     /** token 汇总：taskId → 汇总 */
     tokensByTask?: Record<number, TaskTokenSummary>;
   }>(),
@@ -72,7 +72,7 @@ const running = computed(() =>
     .filter((t) => !isFinishedStatus(t.status))
     .toSorted((a, b) => {
       const rank = (s: string) =>
-        ['generating', 'collecting'].includes(s)
+        ['collecting', 'generating'].includes(s)
           ? 0
           : s === 'preparing'
             ? 1
@@ -125,7 +125,7 @@ function openDrama(dramaId?: number) {
   <div>
     <template v-if="running.length > 0">
       <div class="mb-2 flex flex-wrap items-center gap-2 text-xs">
-        <span class="df-live-dot" />
+        <span class="df-live-dot"></span>
         <span class="font-medium">正在跑 {{ running.length }} 个任务</span>
         <span class="text-muted-foreground">
           合计已耗时 {{ formatElapsed(0, totalElapsed) }}
@@ -167,7 +167,7 @@ function openDrama(dramaId?: number) {
               :reason-text="t.routeReasonText"
               :route="t.route"
             />
-            <span class="flex-1" />
+            <span class="flex-1"></span>
             <span class="text-xs text-muted-foreground">#{{ t.id }}</span>
             <Button size="small" @click="emit('detail', t.id)">详情</Button>
           </div>

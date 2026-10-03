@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { DramaItem, ProductEpisodeItem } from '#/api/core/dramafloow';
+
 /**
  * 成片列表（契约 §5.1 Product）
  * 选剧目 → 集列表（最新版本）+ 渲染/发布/下架 + 播放器。
@@ -19,7 +21,6 @@ import {
   Tag,
 } from 'ant-design-vue';
 
-import type { DramaItem, ProductEpisodeItem } from '#/api/core/dramafloow';
 import {
   dramaList,
   productEpisodeList,
@@ -47,7 +48,8 @@ async function loadDramas() {
   const res = await dramaList({ page: 1, pageSize: 200 });
   dramas.value = res.items;
   if (!dramaId.value && dramas.value.length > 0) {
-    dramaId.value = dramas.value[0]!.id;
+    const first = dramas.value[0];
+    if (first) dramaId.value = first.id;
   }
 }
 

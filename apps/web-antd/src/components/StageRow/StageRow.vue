@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { StageRow } from '#/api/core/dramafloow';
+
 /**
  * StageRow —— 单个「横向」（横向结构 P5）
  *
@@ -18,14 +20,12 @@ import { computed } from 'vue';
 
 import { Button, Card, Tag, Tooltip } from 'ant-design-vue';
 
-import type { StageRow } from '#/api/core/dramafloow';
-
 const props = defineProps<{
-  /** 顺序号（① ② …），由父组件按数组下标给 */
-  index: number;
   /** 该横向是否可展开子项 */
   expandable?: boolean;
   expanded?: boolean;
+  /** 顺序号（① ② …），由父组件按数组下标给 */
+  index: number;
   /** 是否为建议的下一步（后端 nextRunnable） */
   isNext?: boolean;
   row: StageRow;

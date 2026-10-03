@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { AiProviderAvailable } from '#/api/core/aiProvider';
+
 /**
  * AiProviderSelect —— 「用哪个服务跑」选择器
  *
@@ -14,17 +16,15 @@ import { computed, onMounted, ref, watch } from 'vue';
 
 import { Select, Tag, Tooltip } from 'ant-design-vue';
 
-import type { AiProviderAvailable } from '#/api/core/aiProvider';
-
 import { AI_CAPABILITY, aiProviderAvailable } from '#/api/core/aiProvider';
 
 const props = withDefaults(
   defineProps<{
+    disabled?: boolean;
     /** 任务类型（决定所需能力：t2i → 图片生成，i2v → 视频生成，rewrite → 文本…） */
     taskType: string;
     /** 当前选中的服务 id；null = 自动（默认服务） */
     value?: null | number;
-    disabled?: boolean;
   }>(),
   { disabled: false, value: null },
 );
@@ -33,7 +33,7 @@ const emit = defineEmits<{
   (e: 'update:value', id: null | number): void;
 }>();
 
-const data = ref<null | AiProviderAvailable>(null);
+const data = ref<AiProviderAvailable | null>(null);
 const loading = ref(false);
 
 async function load() {

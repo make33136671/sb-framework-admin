@@ -115,12 +115,12 @@ watch(
 function emitChange() {
   const dones = items.value.filter((i) => i.status === 'done');
   if (isMulti.value) {
-    const fileNames = dones.map((i) => i.fileName!);
+    const fileNames = dones.map((i) => i.fileName ?? '');
     const details: UploadDetail[] = dones.map((i) => ({
-      fileName: i.fileName!,
-      absfileName: i.absfileName!,
+      fileName: i.fileName ?? '',
+      absfileName: i.absfileName ?? '',
       name: i.name,
-      size: i.size!,
+      size: i.size ?? 0,
     }));
     emit('update:value', fileNames);
     emit('change', details);
@@ -129,10 +129,10 @@ function emitChange() {
     emit('update:value', first?.fileName ?? '');
     if (first) {
       emit('change', {
-        fileName: first.fileName!,
-        absfileName: first.absfileName!,
+        fileName: first.fileName ?? '',
+        absfileName: first.absfileName ?? '',
         name: first.name,
-        size: first.size!,
+        size: first.size ?? 0,
       });
     }
   }

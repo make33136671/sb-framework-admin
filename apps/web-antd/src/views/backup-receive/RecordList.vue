@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { BackupRemoteRecord } from './api';
+
 import { onMounted, ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 
@@ -13,13 +15,7 @@ import {
   Tag,
 } from 'ant-design-vue';
 
-import {
-  type BackupRemoteRecord,
-  getDownloadUrl,
-  getRecordList,
-  postDelete,
-  toServerUrl,
-} from './api';
+import { getDownloadUrl, getRecordList, postDelete, toServerUrl } from './api';
 
 const route = useRoute();
 const router = useRouter();
@@ -79,7 +75,8 @@ function download(id: number) {
 async function downloadAsBlob(id: number) {
   try {
     const url = getDownloadUrl(id);
-    const token = (await import('@vben/stores')).useAccessStore().accessToken;
+    const { useAccessStore } = await import('@vben/stores');
+    const token = useAccessStore().accessToken;
     const resp = await fetch(url, {
       headers: token ? { Authorization: `Bearer ${token}` } : {},
     });

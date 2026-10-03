@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { AiProviderAdminItem } from '#/api/core/aiProviderAdmin';
+
 /**
  * AI 提供商管理（二期新增，前端设计 §2）
  *
@@ -32,13 +34,11 @@ import {
   Space,
   Switch,
   Table,
-  Tabs,
   TabPane,
+  Tabs,
   Tag,
   Tooltip,
 } from 'ant-design-vue';
-
-import type { AiProviderAdminItem } from '#/api/core/aiProviderAdmin';
 
 import { AI_VERIFY_STATUS } from '#/api/core/aiProvider';
 import {
@@ -381,9 +381,9 @@ const enabledCount = computed(
                   <Button size="small" @click="openModels(asRow(record))">
                     管理模型
                   </Button>
-                  <Button size="small" @click="openEdit(asRow(record))"
-                    >编辑</Button
-                  >
+                  <Button size="small" @click="openEdit(asRow(record))">
+                    编辑
+                  </Button>
                   <Popconfirm
                     :description="`将同时删除其下 ${record.modelCount} 个模型，引用这些模型的历史任务不受影响。`"
                     title="确认删除该提供商？"

@@ -7,12 +7,12 @@ import { $t } from '@vben/locales';
 
 import { Button, Popconfirm, Space, Switch } from 'ant-design-vue';
 
-const emit = defineEmits<{ success: [] }>();
-
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 
 import { getMenuTreeList, postDel, updateMenu } from './api';
 import Form from './Form.vue';
+
+const emit = defineEmits<{ success: [] }>();
 
 const [FormDrawer, formDrawerApi] = useVbenDrawer({
   connectedComponent: Form,

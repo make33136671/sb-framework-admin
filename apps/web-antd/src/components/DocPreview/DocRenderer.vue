@@ -40,7 +40,7 @@ const meta = computed(() => {
   for (const line of lines) {
     const m = line.match(/^\|\s*(.+?)\s*\|\s*(.+?)\s*\|$/);
     if (m && m[1] !== '属性' && m[1] !== '---') {
-      result.push({ key: m[1]!.trim(), value: m[2]!.trim() });
+      result.push({ key: (m[1] ?? '').trim(), value: (m[2] ?? '').trim() });
     }
   }
   return result;
@@ -52,7 +52,7 @@ const descContent = computed(() => {
     String.raw`##\s*${props.descLabel}\s*\n([\s\S]*)$`,
   );
   const match = props.content.match(pattern);
-  return match ? match[1]!.trim() : '';
+  return match ? (match[1] ?? '').trim() : '';
 });
 </script>
 

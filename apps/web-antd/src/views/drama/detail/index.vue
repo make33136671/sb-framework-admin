@@ -1,4 +1,20 @@
 <script lang="ts" setup>
+import type {
+  AssetRequirementItem,
+  DramaDetail,
+  ProductEpisodeItem,
+  ScriptDetail,
+  ScriptEpisode,
+  ShotItem,
+  StageEpisodeItem,
+  StageEpisodeProduceItem,
+  StageKey,
+  StageShotItem,
+  WordParseResult,
+} from '#/api/core/dramafloow';
+import type { ScriptEpisodeRow } from '#/api/core/scriptEpisode';
+import type { ResourceDetailType } from '#/components/ResourceDetailModal';
+
 /**
  * 剧目详情（契约 §8）：PhaseStepper + 5 个标签页
  *   剧本（存原始稿 → 洗稿）/ 分镜 / 素材 / 片段 / 成片
@@ -24,19 +40,6 @@ import {
   Tag,
 } from 'ant-design-vue';
 
-import type {
-  AssetRequirementItem,
-  DramaDetail,
-  ProductEpisodeItem,
-  ScriptDetail,
-  ScriptEpisode,
-  ShotItem,
-  StageEpisodeItem,
-  StageEpisodeProduceItem,
-  StageKey,
-  StageShotItem,
-  WordParseResult,
-} from '#/api/core/dramafloow';
 import {
   assetExtractStart,
   assetGenerate,
@@ -54,15 +57,6 @@ import {
   shotStaleReplay,
   shotStoryboard,
 } from '#/api/core/dramafloow';
-import { ArtifactTrace, StageRowList } from '#/components/StageRow';
-import type { ResourceDetailType } from '#/components/ResourceDetailModal';
-import { AiProviderSelect } from '#/components/AiProviderSelect';
-import { RewriteOptionsPanel } from '#/components/RewriteOptionsPanel';
-import { defaultRewriteOptions } from '#/composables/rewriteOptions';
-import { AssetCategoryView } from '#/components/AssetCategoryView';
-import { AssetVersionDrawer } from '#/components/AssetVersionDrawer';
-import { ResourceDetailModal } from '#/components/ResourceDetailModal';
-import { TaskDrawer } from '#/components/TaskDrawer';
 import {
   scriptEpisodeHistory,
   scriptEpisodeList,
@@ -70,9 +64,16 @@ import {
   scriptPartialPlan,
   scriptPartialRewrite,
 } from '#/api/core/scriptEpisode';
-import type { ScriptEpisodeRow } from '#/api/core/scriptEpisode';
+import { AiProviderSelect } from '#/components/AiProviderSelect';
+import { AssetCategoryView } from '#/components/AssetCategoryView';
+import { AssetVersionDrawer } from '#/components/AssetVersionDrawer';
+import { ResourceDetailModal } from '#/components/ResourceDetailModal';
+import { RewriteOptionsPanel } from '#/components/RewriteOptionsPanel';
+import { ArtifactTrace, StageRowList } from '#/components/StageRow';
+import { TaskDrawer } from '#/components/TaskDrawer';
 import { episodeTitle } from '#/components/TaskDrawer/taskDisplay';
 import { TimeTag } from '#/components/TimeTag';
+import { defaultRewriteOptions } from '#/composables/rewriteOptions';
 import { useTaskStream } from '#/composables/useTaskStream';
 
 // 路由由后端菜单动态生成，视图不接收 props：从 query 取 id（沿用 member/Form.vue 约定）
@@ -81,7 +82,7 @@ const dramaId = computed(() => Number(route.query.id ?? 0));
 
 const stream = useTaskStream();
 
-const detail = ref<null | DramaDetail>(null);
+const detail = ref<DramaDetail | null>(null);
 const script = ref<null | ScriptDetail>(null);
 const shots = ref<ShotItem[]>([]);
 const requirements = ref<AssetRequirementItem[]>([]);
@@ -126,28 +127,46 @@ watch(
 /** 各横向的「开始/重跑」分发到对应端点 */
 async function onStageRun(key: StageKey) {
   try {
-    if (key === 'analyze') {
-      await scriptAnalyze(dramaId.value, rewriteProviderId.value ?? undefined);
-    } else if (key === 'rewrite') {
-      await rewrite();
-      return; // rewrite() 自带提示与刷新
-    } else if (key === 'extract') {
-      await assetExtractStart(
-        dramaId.value,
-        rewriteProviderId.value ?? undefined,
-      );
-    } else if (key === 'episodes') {
-      await scriptEpisodeSplit(
-        dramaId.value,
-        rewriteProviderId.value ?? undefined,
-      );
-    } else if (key === 'produce') {
-      // 成片横向：先要求有分集，再对全部分集跑分镜
-      await shotStoryboard(
-        dramaId.value,
-        null,
-        rewriteProviderId.value ?? undefined,
-      );
+    switch (key) {
+      case 'analyze': {
+        await scriptAnalyze(
+          dramaId.value,
+          rewriteProviderId.value ?? undefined,
+        );
+
+        break;
+      }
+      case 'episodes': {
+        await scriptEpisodeSplit(
+          dramaId.value,
+          rewriteProviderId.value ?? undefined,
+        );
+
+        break;
+      }
+      case 'extract': {
+        await assetExtractStart(
+          dramaId.value,
+          rewriteProviderId.value ?? undefined,
+        );
+
+        break;
+      }
+      case 'produce': {
+        // 成片横向：先要求有分集，再对全部分集跑分镜
+        await shotStoryboard(
+          dramaId.value,
+          null,
+          rewriteProviderId.value ?? undefined,
+        );
+
+        break;
+      }
+      case 'rewrite': {
+        await rewrite();
+        return; // rewrite() 自带提示与刷新
+      }
+      // No default
     }
     // 入队后稍等再刷新，避免任务状态还没落库
     setTimeout(() => {
@@ -179,7 +198,7 @@ function splitRefs(raw?: null | string): string[] {
   if (t.startsWith('[')) {
     try {
       const arr = JSON.parse(t);
-      return Array.isArray(arr) ? arr.map((x) => String(x)) : [];
+      return Array.isArray(arr) ? arr.map(String) : [];
     } catch {
       return [];
     }
@@ -448,7 +467,7 @@ async function generateAsset(row: AssetRequirementItem) {
 }
 
 /** 分类视图里只有 id（它是另一套视图模型）：按 id 找到需求再走原逻辑 */
-function requirementById(id: number): null | AssetRequirementItem {
+function requirementById(id: number): AssetRequirementItem | null {
   return requirements.value.find((r) => r.id === id) ?? null;
 }
 
@@ -493,7 +512,7 @@ async function renderProduct() {
 const detailType = ref<null | ResourceDetailType>(null);
 const detailShot = ref<null | ShotItem>(null);
 const detailClipShot = ref<null | ShotItem>(null);
-const detailRequirement = ref<null | AssetRequirementItem>(null);
+const detailRequirement = ref<AssetRequirementItem | null>(null);
 const detailEpisode = ref<null | ProductEpisodeItem>(null);
 const detailScriptEpisode = ref<null | ScriptEpisode>(null);
 
@@ -693,9 +712,9 @@ function reqStatusColor(s: string): string {
                 class="rounded border p-2"
               >
                 <div class="mb-2 flex flex-wrap items-center gap-2">
-                  <Tag color="blue" class="!mr-0"
-                    >第 {{ epItem.episodeNo }} 集</Tag
-                  >
+                  <Tag color="blue" class="!mr-0">
+                    第 {{ epItem.episodeNo }} 集
+                  </Tag>
                   <span class="text-sm">{{
                     epItem.title || '（无标题）'
                   }}</span>
@@ -927,7 +946,7 @@ function reqStatusColor(s: string): string {
                     spellcheck="false"
                     @mouseup="onSourceSelect"
                     @keyup="onSourceSelect"
-                  />
+                  ></textarea>
                   <!-- 选区重洗预览：明确告诉用户"会影响哪几集、各变成什么版本号" -->
                   <div
                     v-if="partialPlan"
@@ -1013,7 +1032,7 @@ function reqStatusColor(s: string): string {
               v-model:value="extractProviderId"
               task-type="asset_extract"
             />
-            <span class="flex-1" />
+            <span class="flex-1"></span>
             <Segmented
               v-model:value="assetView"
               :options="[

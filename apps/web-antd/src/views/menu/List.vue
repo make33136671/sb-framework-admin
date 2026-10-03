@@ -85,12 +85,11 @@ const gridOptions: VxeGridProps<RowType> = {
   proxyConfig: {
     ajax: {
       query: async ({ page }, formValues) => {
-        var menuData = await getList({
+        const menuData = await getList({
           ...formValues,
           page: page?.currentPage,
           pageSize: page?.pageSize,
         });
-        console.log('menuData', menuData);
         return menuData;
       },
     },

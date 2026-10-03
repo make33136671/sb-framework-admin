@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { BackupProductSummary } from './api';
+
 import { computed, onMounted, ref } from 'vue';
 import { useRouter } from 'vue-router';
 
@@ -16,7 +18,7 @@ import {
 import { api } from '#/api/request';
 import { TimeTag } from '#/components/TimeTag';
 
-import { type BackupProductSummary, getProductList, toServerUrl } from './api';
+import { getProductList, toServerUrl } from './api';
 
 // 程序时区：从后端 /Verification/Status 取 appTimeZone（即服务端 appsettings.TimeZone）
 // 这样表格里所有时间都是"按服务端配置时区显示"，跟服务端日志/调度对齐

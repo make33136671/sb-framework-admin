@@ -42,11 +42,9 @@ onMounted(async () => {
   loadingMenus.value = true;
   try {
     const menuResult = await getAllMenuTree();
-    console.log('菜单数据:', menuResult);
     const menuData = menuResult.items;
     if (menuResult.code === 0 && menuData) {
       menuTreeData.value = convertMenuToTreeData(menuData);
-      console.log('转换后的树数据:', menuTreeData.value);
     }
   } catch (error) {
     console.error('加载菜单失败:', error);
@@ -63,7 +61,6 @@ onMounted(async () => {
     // 加载角色的菜单权限
     try {
       const menuIdsResult = await getRoleMenuIds(id.value);
-      console.log('角色菜单权限原始数据:', menuIdsResult);
 
       // 如果返回的是数组，直接使用；如果是对象，从 data 字段中取
       let menuIds = [];
@@ -74,7 +71,6 @@ onMounted(async () => {
       }
 
       checkedMenuKeys.value = menuIds;
-      console.log('选中的菜单ID:', checkedMenuKeys.value);
     } catch (error) {
       console.error('加载角色菜单权限失败:', error);
     }

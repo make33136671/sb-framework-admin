@@ -135,13 +135,13 @@ export interface ShotItem {
   sceneRef?: string;
   assetIds?: string;
   status: string;
-  clip?: {
-    id: number;
-    videoPath?: string;
+  clip?: null | {
     durationSec?: number;
-    status: string;
     error?: string;
-  } | null;
+    id: number;
+    status: string;
+    videoPath?: string;
+  };
   createdAt: string;
   updatedAt: string;
 }
@@ -180,7 +180,7 @@ export interface TaskItem {
   /** 该次上云的预计花费（元）；仅 route=cloud 时非空 */
   costYuan?: null | number;
   /** 该次上云是否处于优惠时段（谷时）；null = 未知 */
-  offPeak?: null | boolean;
+  offPeak?: boolean | null;
   refEntityType?: string;
   refEntityId?: number;
   status: string;
@@ -211,24 +211,24 @@ export interface TaskDetail extends TaskItem {
   /** 该任务的 LLM token 汇总 */
   tokens?: null | TaskTokenSummary;
   versions: {
+    failReason?: string;
     id: number;
-    versionNo: number;
     promptSnapshot?: string;
     seed?: number;
     status: string;
-    failReason?: string;
     submittedAt: string;
+    versionNo: number;
   }[];
   jobs: {
-    id: number;
     comfyuiPromptId?: string;
-    workflowKey: string;
-    variantNo: number;
+    completedAt?: string;
+    error?: string;
+    id: number;
     seed: number;
     status: string;
-    error?: string;
     submittedAt: string;
-    completedAt?: string;
+    variantNo: number;
+    workflowKey: string;
   }[];
 }
 
@@ -241,80 +241,80 @@ export interface TokenBucket {
 }
 
 export interface DashboardMetrics {
-  throughput: { today: number; week: number; trend: number[] };
+  throughput: { today: number; trend: number[]; week: number };
   rejectRate: { image: number; video: number; windowDays: number };
   reviewBacklog: {
-    pending: number;
+    byKind: { drama: number; image: number; video: number };
     oldestHours: number;
-    byKind: { image: number; video: number; drama: number };
+    pending: number;
   };
-  gpu: { inFlight: number; queue: number; windowOpen: boolean; window: string };
-  eta: { remainingTasks: number; estHours: number };
+  gpu: { inFlight: number; queue: number; window: string; windowOpen: boolean };
+  eta: { estHours: number; remainingTasks: number };
   /** 第 6 指标（设计 §B）：AI tokens 消耗 */
   tokens: {
-    today: TokenBucket;
-    week: TokenBucket;
-    trend: {
-      date: string;
-      prompt: number;
-      completion: number;
-      calls: number;
-    }[];
     byPurpose: {
-      purpose: string;
-      calls: number;
-      tokens: number;
       avgLatencyMs: number;
+      calls: number;
+      purpose: string;
+      tokens: number;
     }[];
     /** 估算调用数 / 实测调用数（数据可信性，P0 配套） */
     estimated: number;
     measured: number;
+    today: TokenBucket;
+    trend: {
+      calls: number;
+      completion: number;
+      date: string;
+      prompt: number;
+    }[];
+    week: TokenBucket;
   };
 }
 
 /** D 区：待我决策（轻量预览，设计 §D） */
 export interface PendingDecisions {
   images: {
-    requirementId: number;
-    requirementKey?: string;
-    kind?: string;
+    candidateCount: number;
     dramaId: number;
     dramaName?: string;
-    version: number;
-    candidateCount: number;
+    kind?: string;
     previews: { candidateId: number; filePath?: string }[];
+    requirementId: number;
+    requirementKey?: string;
+    version: number;
   }[];
   videos: {
     clipId: number;
     dramaId: number;
     dramaName?: string;
+    error?: string;
     shotId: number;
     status: string;
-    error?: string;
     videoPath?: string;
   }[];
   products: {
-    episodeId: number;
+    coverPath?: string;
     dramaId: number;
     dramaName?: string;
-    episodeNo: number;
-    coverPath?: string;
-    videoPath?: string;
     durationSec?: number;
+    episodeId: number;
+    episodeNo: number;
+    videoPath?: string;
   }[];
   scripts: {
-    scriptId: number;
     dramaId: number;
     dramaName?: string;
-    version: number;
+    scriptId: number;
     status: string;
+    version: number;
   }[];
   counts: {
     images: number;
-    videos: number;
     products: number;
     scripts: number;
     total: number;
+    videos: number;
   };
 }
 
@@ -324,35 +324,35 @@ export interface TokenUsage {
   today: TokenBucket;
   totals: TokenBucket;
   trend: {
-    date: string;
-    prompt: number;
-    completion: number;
     calls: number;
+    completion: number;
+    date: string;
     failedCalls: number;
+    prompt: number;
   }[];
   byModel: {
-    model: string;
-    provider?: string;
-    prompt: number;
-    completion: number;
-    calls: number;
-    failedCalls: number;
     avgLatencyMs: number;
+    calls: number;
+    completion: number;
+    failedCalls: number;
+    model: string;
+    prompt: number;
+    provider?: string;
   }[];
   byPurpose: {
-    purpose: string;
-    prompt: number;
-    completion: number;
-    calls: number;
-    failedCalls: number;
     avgLatencyMs: number;
+    calls: number;
+    completion: number;
+    failedCalls: number;
+    prompt: number;
+    purpose: string;
   }[];
   recentErrors: {
-    purpose: string;
+    createdAt: string;
+    error?: string;
     model?: string;
     provider?: string;
-    error?: string;
-    createdAt: string;
+    purpose: string;
   }[];
   /** 数据可信性：估算 vs 实测调用数、涉及的 provider */
   quality: {
@@ -363,7 +363,7 @@ export interface TokenUsage {
 }
 
 export interface NightReport {
-  window: { start: string; end: string };
+  window: { end: string; start: string };
   submitted: number;
   completed: number;
   failed: number;
@@ -371,16 +371,16 @@ export interface NightReport {
   taskCount: number;
   durationMinutes: {
     count: number;
-    min: number;
-    median: number;
-    p90: number;
     max: number;
+    median: number;
+    min: number;
+    p90: number;
   };
   topRejectReasons: {
-    reasonId: number;
     code?: string;
-    name?: string;
     count: number;
+    name?: string;
+    reasonId: number;
   }[];
 }
 
@@ -451,11 +451,11 @@ export interface ReviewQueueItem {
 // ─────────────────────────── Drama ───────────────────────────
 
 export async function dramaList(params: {
-  keyword?: string;
-  status?: string;
   archived?: boolean;
+  keyword?: string;
   page?: number;
   pageSize?: number;
+  status?: string;
 }) {
   return api.get<{ items: DramaItem[]; total: number }>('/Drama/List', {
     params,
@@ -480,12 +480,12 @@ export async function dramaGet(id: number) {
  */
 export async function dramaAdd(data: {
   code?: string;
-  name: string;
-  genre?: string;
-  synopsis?: string;
   episodeTargetCount?: number;
+  genre?: string;
+  name: string;
   scriptFile?: File;
   scriptText?: string;
+  synopsis?: string;
 }) {
   if (data.scriptFile) {
     const formData = new FormData();
@@ -515,11 +515,11 @@ export async function dramaAdd(data: {
 }
 
 export async function dramaUpdate(data: {
+  episodeTargetCount?: number;
+  genre?: string;
   id: number;
   name: string;
-  genre?: string;
   synopsis?: string;
-  episodeTargetCount?: number;
 }) {
   return api.post('/Drama/Update', data);
 }
@@ -559,7 +559,7 @@ export interface WordParseResult {
   lineCount: number;
   headings: { level: number; text: string }[];
   tableCount: number;
-  metadata: { title: string; author: string; created: string };
+  metadata: { author: string; created: string; title: string };
 }
 
 /**
@@ -580,7 +580,7 @@ export async function scriptImportWord(dramaId: number, file: File) {
   const formData = new FormData();
   formData.append('dramaId', String(dramaId));
   formData.append('file', file);
-  return api.post<{ id: number; version: number; charCount: number }>(
+  return api.post<{ charCount: number; id: number; version: number }>(
     '/Script/ImportWord',
     formData,
   );
@@ -602,13 +602,13 @@ export async function scriptRewrite(
 export async function scriptVersionList(dramaId: number) {
   return api.get<
     {
-      id: number;
-      version: number;
+      createdAt: string;
       episodeCount: number;
+      hasRewritten: boolean;
+      id: number;
       model?: string;
       status: string;
-      hasRewritten: boolean;
-      createdAt: string;
+      version: number;
     }[]
   >('/Script/VersionList', { params: { dramaId } });
 }
@@ -619,15 +619,15 @@ export async function scriptCompare(
   versionB: number,
 ) {
   return api.get<{
-    a: { version: number; episodeCount: number; sourceLength: number };
-    b: { version: number; episodeCount: number; sourceLength: number };
-    sourceIdentical: boolean;
+    a: { episodeCount: number; sourceLength: number; version: number };
+    b: { episodeCount: number; sourceLength: number; version: number };
     episodes: {
-      episodeNo: number;
       aScenes: number;
       bScenes: number;
       changed: boolean;
+      episodeNo: number;
     }[];
+    sourceIdentical: boolean;
   }>('/Script/Compare', { params: { dramaId, versionA, versionB } });
 }
 
@@ -635,11 +635,11 @@ export async function scriptCompare(
 
 export async function shotList(params: {
   dramaId: number;
-  scriptVersion?: number;
   episodeNo?: number;
-  status?: string;
   page?: number;
   pageSize?: number;
+  scriptVersion?: number;
+  status?: string;
 }) {
   return api.get<{ items: ShotItem[]; total: number }>('/Shot/List', {
     params,
@@ -648,14 +648,14 @@ export async function shotList(params: {
 
 export async function shotGet(id: number) {
   return api.get<{
-    shot: ShotItem;
     assets: {
+      approvedAssetId?: number;
       id: number;
       key: string;
       kind: string;
       status: string;
-      approvedAssetId?: number;
     }[];
+    shot: ShotItem;
     tasks: TaskItem[];
   }>('/Shot/Get', { params: { id } });
 }
@@ -674,13 +674,13 @@ export async function shotStaleReplay(id: number, providerId?: null | number) {
 // ─────────────────────────── Asset ───────────────────────────
 
 export async function assetRequirementList(params: {
-  dramaId: number;
-  kind?: string;
-  status?: string;
-  page?: number;
-  pageSize?: number;
   /** 默认只看当前生效版本；传 false 可列出全部历史版本 */
   currentOnly?: boolean;
+  dramaId: number;
+  kind?: string;
+  page?: number;
+  pageSize?: number;
+  status?: string;
 }) {
   return api.get<{ items: AssetRequirementItem[]; total: number }>(
     '/Asset/RequirementList',
@@ -723,19 +723,19 @@ export async function assetExtractStart(
 
 export async function assetRequirementGet(id: number) {
   return api.get<{
-    requirement: AssetRequirementItem;
     candidates: AssetCandidateItem[];
     reasons: ReasonItem[];
+    requirement: AssetRequirementItem;
     tasks: TaskItem[];
   }>('/Asset/RequirementGet', { params: { id } });
 }
 
 export async function assetRequirementSave(data: {
-  id?: number;
+  description?: string;
   dramaId: number;
+  id?: number;
   kind: string;
   name: string;
-  description?: string;
   spec?: string;
 }) {
   return api.post<{ id: number }>('/Asset/RequirementSave', data);
@@ -774,20 +774,20 @@ export async function assetToLibrary(candidateId: number, tags?: string) {
 }
 
 export async function assetLibraryList(params: {
-  kind?: string;
   keyword?: string;
+  kind?: string;
   page?: number;
   pageSize?: number;
 }) {
   return api.get<{
     items: {
+      createdAt: string;
+      filePath: string;
       id: number;
-      sourceCandidateId: number;
       key: string;
       kind: string;
-      filePath: string;
+      sourceCandidateId: number;
       tags?: string;
-      createdAt: string;
     }[];
     total: number;
   }>('/Asset/LibraryList', { params });
@@ -797,10 +797,10 @@ export async function assetLibraryList(params: {
 
 export async function taskList(params: {
   dramaId?: number;
-  type?: string;
-  status?: string;
   page?: number;
   pageSize?: number;
+  status?: string;
+  type?: string;
 }) {
   return api.get<{ items: TaskItem[]; total: number }>('/Task/List', {
     params,
@@ -834,8 +834,8 @@ export async function taskDelete(id: number, reason?: string) {
 
 /** 手动修改子任务常用字段（备注/进度） */
 export async function taskUpdate(data: {
-  id: number;
   error?: string;
+  id: number;
   progress?: number;
 }) {
   return api.post('/Task/Update', data);
@@ -843,15 +843,15 @@ export async function taskUpdate(data: {
 
 export async function taskStats(dramaId?: number) {
   return api.get<{
-    total: number;
-    queued: number;
-    inFlightT2i: number;
-    inFlightI2v: number;
     byStatus: Record<string, number>;
     byType: Record<string, number>;
+    inFlightI2v: number;
+    inFlightT2i: number;
+    queued: number;
     recentFailures: TaskItem[];
     /** 未终态任务的 token 汇总：taskId → 汇总（看板显示在跑任务烧了多少 token） */
     tokensByTask: Record<number, TaskTokenSummary>;
+    total: number;
   }>('/Task/Stats', { params: dramaId ? { dramaId } : {} });
 }
 
@@ -859,9 +859,9 @@ export async function taskStats(dramaId?: number) {
 
 export async function reviewQueue(params: {
   dramaId?: number;
-  target?: string;
   page?: number;
   pageSize?: number;
+  target?: string;
 }) {
   return api.get<{ items: ReviewQueueItem[]; total: number }>('/Review/Queue', {
     params,
@@ -885,10 +885,10 @@ export async function reviewReject(
 export async function reviewBatch(
   target: string,
   decisions: {
-    id: number;
     decision: string;
-    reasonId?: number;
+    id: number;
     note?: string;
+    reasonId?: number;
   }[],
 ) {
   return api.post<{ count: number }>('/Review/Batch', {
@@ -923,8 +923,8 @@ export async function dashboardPendingDecisions(params: {
 /** E 区：AI 消耗聚合（趋势 / 按模型 / 按用途 / 最近错误） */
 export async function dashboardTokenUsage(params: {
   days?: number;
-  purpose?: string;
   model?: string;
+  purpose?: string;
 }) {
   return api.get<TokenUsage>('/Dashboard/TokenUsage', { params });
 }
@@ -937,10 +937,10 @@ export async function templateWorkflowList() {
 
 export async function templateWorkflowSave(data: {
   id?: number;
+  isActive?: boolean;
   key: string;
   name: string;
   template: string;
-  isActive?: boolean;
 }) {
   return api.post<{ id: number }>('/Template/WorkflowSave', data);
 }
@@ -951,10 +951,10 @@ export async function templateLlmList() {
 
 export async function templateLlmSave(data: {
   id?: number;
-  key: string;
-  template: string;
-  purpose?: string;
   isActive?: boolean;
+  key: string;
+  purpose?: string;
+  template: string;
 }) {
   return api.post<{ id: number }>('/Template/LlmSave', data);
 }
@@ -966,22 +966,22 @@ export async function templateReasonList(scope?: string) {
 }
 
 export async function templateLlmCallLogs(params: {
-  purpose?: string;
   page?: number;
   pageSize?: number;
+  purpose?: string;
 }) {
   return api.get<{
     items: {
-      id: number;
-      purpose: string;
-      provider: string;
-      model?: string;
-      requestHash: string;
-      promptTokens: number;
       completionTokens: number;
-      latencyMs: number;
-      error?: string;
       createdAt: string;
+      error?: string;
+      id: number;
+      latencyMs: number;
+      model?: string;
+      promptTokens: number;
+      provider: string;
+      purpose: string;
+      requestHash: string;
     }[];
     total: number;
   }>('/Template/LlmCallLogs', { params });
@@ -991,17 +991,17 @@ export async function templateLlmCallLogs(params: {
 
 export async function productEpisodeList(dramaId: number) {
   return api.get<{
+    clipDone: number;
     dramaId: number;
     dramaName: string;
+    episodes: ProductEpisodeItem[];
     episodeTargetCount: number;
     scriptVersion: number;
-    clipDone: number;
-    episodes: ProductEpisodeItem[];
   }>('/Product/EpisodeList', { params: { dramaId } });
 }
 
 export async function productRender(dramaId: number) {
-  return api.post<{ taskId: number; version: number; clipDone: number }>(
+  return api.post<{ clipDone: number; taskId: number; version: number }>(
     '/Product/Render',
     { dramaId },
   );
@@ -1100,12 +1100,12 @@ export interface StageShotItem {
   assetIds?: null | string;
   /** 产出了什么（片段） */
   clip?: null | {
+    durationSec?: null | number;
+    error?: null | string;
     id: number;
     scriptVersion: number;
     status: string;
     videoPath?: null | string;
-    durationSec?: null | number;
-    error?: null | string;
   };
 }
 
@@ -1114,12 +1114,12 @@ export interface StageEpisodeProduceItem {
   episodeNo: number;
   title?: null | string;
   product?: null | {
-    id: number;
-    version: number;
-    status: string;
-    videoPath?: null | string;
     coverPath?: null | string;
     durationSec?: null | number;
+    id: number;
+    status: string;
+    version: number;
+    videoPath?: null | string;
   };
   shots: StageShotItem[];
 }
@@ -1133,12 +1133,12 @@ export interface StageRow {
   /** 前置门是否满足（前端据此决定「开始/重跑」是否可点） */
   gateOpen: boolean;
   artifact: {
-    kind: string;
-    exists?: boolean;
-    count?: number;
-    shots?: number;
     clips?: number;
+    count?: number;
+    exists?: boolean;
+    kind: string;
     products?: number;
+    shots?: number;
     summary: string;
   };
   versions: StageVersion[];
@@ -1165,7 +1165,7 @@ export async function scriptAnalyze(
   dramaId: number,
   providerId?: null | number,
 ) {
-  return api.post<{ taskId: number; scriptId: number }>('/Script/Analyze', {
+  return api.post<{ scriptId: number; taskId: number }>('/Script/Analyze', {
     dramaId,
     providerId,
   });
@@ -1174,44 +1174,44 @@ export async function scriptAnalyze(
 /** 查询剧本结构产物（含版本列表） */
 export async function scriptStructure(dramaId: number, version?: number) {
   return api.get<{
-    structure: null | {
-      id: number;
-      version: number;
-      isCurrent: boolean;
-      /** rule=规则切分（零成本）/ llm=LLM 分析 */
-      origin: string;
-      model?: null | string;
-      llmCallId?: null | number;
-      episodeCount: number;
-      sceneCount: number;
+    structure: {
       characterCount: number;
-      locationCount: number;
       createdAt: string;
       detail: {
+        characters: { appearances: number[]; name: string }[];
         episodes: {
           no: number;
-          title: string;
           scenes: {
-            text: string;
             characters: string[];
             location: string;
+            text: string;
           }[];
+          title: string;
         }[];
-        characters: { name: string; appearances: number[] }[];
         locations: string[];
         props: string[];
       };
-    };
-    versions: {
-      id: number;
-      version: number;
-      isCurrent: boolean;
-      origin: string;
       episodeCount: number;
-      sceneCount: number;
-      characterCount: number;
+      id: number;
+      isCurrent: boolean;
+      llmCallId?: null | number;
       locationCount: number;
+      model?: null | string;
+      /** rule=规则切分（零成本）/ llm=LLM 分析 */
+      origin: string;
+      sceneCount: number;
+      version: number;
+    } | null;
+    versions: {
+      characterCount: number;
       createdAt: string;
+      episodeCount: number;
+      id: number;
+      isCurrent: boolean;
+      locationCount: number;
+      origin: string;
+      sceneCount: number;
+      version: number;
     }[];
   }>('/Script/Structure', { params: { dramaId, version } });
 }
@@ -1236,7 +1236,7 @@ export async function shotStoryboard(
   episodeNo?: null | number,
   providerId?: null | number,
 ) {
-  return api.post<{ taskId: number; episodeNo?: null | number }>(
+  return api.post<{ episodeNo?: null | number; taskId: number }>(
     '/Shot/Storyboard',
     { dramaId, episodeNo, providerId },
   );

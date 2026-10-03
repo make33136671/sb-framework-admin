@@ -31,6 +31,9 @@ export async function unicorn(): Promise<Linter.Config[]> {
         'unicorn/filename-case': 'off',
         'unicorn/import-style': 'off',
         'unicorn/no-array-for-each': 'off',
+        // oxfmt 会把带括号的嵌套三元改写回链式写法，与本规则（要求嵌套三元加括号）互斥；
+        // 仓库以 oxfmt 格式为准，故与 oxlint 侧配置保持一致地关闭。
+        'unicorn/no-nested-ternary': 'off',
         'unicorn/no-null': 'off',
         'unicorn/no-useless-undefined': 'off',
         'unicorn/prefer-at': 'off',

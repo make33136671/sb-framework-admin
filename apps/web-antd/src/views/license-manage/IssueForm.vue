@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { IssueLicenseRequest } from './api';
+
 import { computed, onBeforeUnmount, ref, watch } from 'vue';
 
 import {
@@ -19,7 +21,7 @@ import {
 } from 'ant-design-vue';
 import dayjs from 'dayjs';
 
-import { issueLicense, type IssueLicenseRequest } from './api';
+import { issueLicense } from './api';
 
 /**
  * 签发授权共享组件.

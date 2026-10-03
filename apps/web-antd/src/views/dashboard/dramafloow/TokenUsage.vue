@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { TokenUsage } from '#/api/core/dramafloow';
+
 /**
  * E 区：AI 消耗（设计文档 §E）
  *
@@ -26,8 +28,6 @@ import {
   Tag,
   Tooltip,
 } from 'ant-design-vue';
-
-import type { TokenUsage } from '#/api/core/dramafloow';
 
 import { dashboardTokenUsage } from '#/api/core/dramafloow';
 import { TimeTag } from '#/components/TimeTag';
@@ -238,7 +238,7 @@ const errorColumns = [
             :style="{
               height: `${Math.max(4, ((d.prompt + d.completion) / trendMax) * 64)}px`,
             }"
-          />
+          ></div>
         </Tooltip>
       </div>
     </div>

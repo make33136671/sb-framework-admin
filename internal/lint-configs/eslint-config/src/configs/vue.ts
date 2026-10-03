@@ -85,10 +85,13 @@ export async function vue(): Promise<Linter.Config[]> {
         'vue/dot-location': ['error', 'property'],
         'vue/dot-notation': ['error', { allowKeywords: true }],
         'vue/eqeqeq': ['error', 'smart'],
-        'vue/html-closing-bracket-newline': 'error',
+        // oxfmt 与 eslint-plugin-vue 的换行/引号风格互斥：同一文件跑 oxfmt 后 eslint 报错，
+        // 跑 eslint --fix 后 oxfmt --check 又报错（实测死循环）。仓库以 oxfmt 为准
+        // （vsh lint 的 --check 关卡与 pnpm format 均以 oxfmt 定稿），故关闭 eslint 侧冲突规则。
+        'vue/html-closing-bracket-newline': 'off',
         'vue/html-indent': 'off',
         // 'vue/html-indent': ['error', 2],
-        'vue/html-quotes': ['error', 'double'],
+        'vue/html-quotes': 'off',
         'vue/html-self-closing': [
           'error',
           {

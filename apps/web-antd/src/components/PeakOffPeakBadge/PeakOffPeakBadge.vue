@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { AiProviderPricing } from '#/api/core/aiProviderAdmin';
+
 /**
  * PeakOffPeakBadge —— 峰谷状态徽标（成本感知调度界面 §6.1）
  *
@@ -16,8 +18,6 @@
 import { computed, onMounted, ref } from 'vue';
 
 import { Tag, Tooltip } from 'ant-design-vue';
-
-import type { AiProviderPricing } from '#/api/core/aiProviderAdmin';
 
 import { aiProviderPricing } from '#/api/core/aiProviderAdmin';
 

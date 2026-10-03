@@ -46,8 +46,8 @@ describe('useUploadQueue', () => {
     useUploadQueue(items, runUpload);
     await new Promise((r) => setTimeout(r, 80));
 
-    expect(items.value[0]!.status).toBe('done');
-    expect(items.value[1]!.status).toBe('done');
+    expect(items.value[0]?.status).toBe('done');
+    expect(items.value[1]?.status).toBe('done');
   });
 
   it('一个失败不影响后续', async () => {
@@ -66,8 +66,8 @@ describe('useUploadQueue', () => {
     useUploadQueue(items, runUpload);
     await new Promise((r) => setTimeout(r, 80));
 
-    expect(items.value[0]!.status).toBe('error');
-    expect(items.value[1]!.status).toBe('done');
+    expect(items.value[0]?.status).toBe('error');
+    expect(items.value[1]?.status).toBe('done');
   });
 
   it('动态新加入的 queued 项被消费', async () => {
@@ -81,6 +81,6 @@ describe('useUploadQueue', () => {
     useUploadQueue(items, runUpload);
     items.value.push(makeItem('a'));
     await new Promise((r) => setTimeout(r, 40));
-    expect(items.value[0]!.status).toBe('done');
+    expect(items.value[0]?.status).toBe('done');
   });
 });

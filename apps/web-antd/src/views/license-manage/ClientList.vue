@@ -308,14 +308,14 @@ async function handleRevoke(record: any) {
         <div style="padding: 8px 0; line-height: 1.9">
           <div>
             <span style="font-size: 12px; color: var(--ant-color-text-tertiary)"
-              >创建　</span
-            >
+              >创建
+            </span>
             <TimeTag color="cyan" :time="fmtTime(row.createdTime)" />
           </div>
           <div>
             <span style="font-size: 12px; color: var(--ant-color-text-tertiary)"
-              >验证　</span
-            >
+              >验证
+            </span>
             <TimeTag
               v-if="row.lastVerifyTime"
               color="blue"

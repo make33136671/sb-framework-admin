@@ -1,4 +1,11 @@
 <script lang="ts" setup>
+import type {
+  SchedClassStat,
+  SchedDecisionItem,
+  SchedNodeCard,
+  SchedStatusView,
+} from '#/api/core/scheduler';
+
 /**
  * 调度看板（P3 · T3.8）
  *
@@ -27,20 +34,11 @@ import {
   Spin,
   Statistic,
   Table,
-  Tabs,
   TabPane,
+  Tabs,
   Tag,
   Tooltip,
 } from 'ant-design-vue';
-
-import { TimeTag } from '#/components/TimeTag';
-
-import type {
-  SchedClassStat,
-  SchedDecisionItem,
-  SchedNodeCard,
-  SchedStatusView,
-} from '#/api/core/scheduler';
 
 import {
   schedulerClearWindow,
@@ -48,12 +46,14 @@ import {
   schedulerSetWindow,
   schedulerStatus,
 } from '#/api/core/scheduler';
+import { TimeTag } from '#/components/TimeTag';
 
+defineOptions({ name: 'SchedulerBoard' });
 // ─────────────────────────── 状态 ───────────────────────────
 
 const tab = ref('board');
 const loading = ref(false);
-const status = ref<SchedStatusView | null>(null);
+const status = ref<null | SchedStatusView>(null);
 const acting = ref(false);
 
 /** 自动刷新（看板是运行态页面，默认 10s 轮询；切到窗口 Tab 时也保持，便于看倒计时） */
@@ -293,8 +293,6 @@ const mountedColumns = [
 ];
 
 defaultAbsolute();
-
-defineOptions({ name: 'SchedulerBoard' });
 </script>
 
 <template>

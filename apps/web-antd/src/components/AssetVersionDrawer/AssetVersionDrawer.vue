@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { AssetRequirementItem } from '#/api/core/dramafloow';
+
 /**
  * 素材版本抽屉（AssetVersionDrawer）
  *
@@ -18,13 +20,11 @@ import {
   Descriptions,
   Drawer,
   Empty,
+  message,
   Popconfirm,
   Table,
   Tag,
-  message,
 } from 'ant-design-vue';
-
-import type { AssetRequirementItem } from '#/api/core/dramafloow';
 
 import {
   assetExtractStart,
@@ -35,9 +35,9 @@ import {
 import { TimeTag } from '#/components/TimeTag';
 
 const props = defineProps<{
-  dramaId: null | number;
   /** 要查看的素材 key；null 表示关闭 */
   assetKey: null | string;
+  dramaId: null | number;
 }>();
 
 const emit = defineEmits<{
@@ -141,7 +141,7 @@ const columns = [
     <div class="mb-3 flex flex-wrap items-center gap-3">
       <span class="text-sm font-medium">{{ assetKey }}</span>
       <Tag class="!mr-0">共 {{ rows.length }} 版</Tag>
-      <div class="flex-1" />
+      <div class="flex-1"></div>
       <Button size="small" type="primary" :loading="acting" @click="reExtract">
         重新提取（新增一版）
       </Button>

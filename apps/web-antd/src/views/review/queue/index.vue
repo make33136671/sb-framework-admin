@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { ReasonItem, ReviewQueueItem } from '#/api/core/dramafloow';
+
 /**
  * 审核队列（契约 §5.1 Review / §8）
  *
@@ -20,7 +22,6 @@ import {
   Tag,
 } from 'ant-design-vue';
 
-import type { ReasonItem, ReviewQueueItem } from '#/api/core/dramafloow';
 import {
   assetCandidateList,
   assetRequirementGet,
@@ -44,18 +45,18 @@ const reasons = ref<ReasonItem[]>([]);
 /** 当前分组：同一素材需求下的候选（图审核按需求聚合） */
 const currentCandidates = ref<
   {
+    createdAt: string;
+    filePath?: string;
+    height?: number;
     id: number;
+    prompt: string;
+    rejectNote?: string;
+    rejectReasonId?: number;
+    seed: number;
+    status: string;
     taskId: number;
     variantNo: number;
-    seed: number;
-    prompt: string;
-    filePath?: string;
     width?: number;
-    height?: number;
-    status: string;
-    rejectReasonId?: number;
-    rejectNote?: string;
-    createdAt: string;
   }[]
 >([]);
 
@@ -128,12 +129,8 @@ watch(
 async function approveCurrent() {
   const c = current.value;
   if (!c) return;
-  if (c.target === 'candidate') {
-    // 候选审核在 CandidateGallery 内完成（按候选 id），这里兜底转到该候选
-    await reviewApprove(c.target, c.id);
-  } else {
-    await reviewApprove(c.target, c.id);
-  }
+  // 候选审核在 CandidateGallery 内完成（按候选 id），这里兜底转到该候选
+  await reviewApprove(c.target, c.id);
   next();
 }
 
@@ -270,9 +267,9 @@ function next() {
                 {{ current.videoPath }}
               </div>
               <Space class="mt-2">
-                <Button type="primary" @click="approveCurrent"
-                  >通过并发布</Button
-                >
+                <Button type="primary" @click="approveCurrent">
+                  通过并发布
+                </Button>
                 <Button danger @click="rejectCurrent">驳回（重新渲染）</Button>
               </Space>
             </div>

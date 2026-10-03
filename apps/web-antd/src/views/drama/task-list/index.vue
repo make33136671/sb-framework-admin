@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { TaskItem, TaskTokenSummary } from '#/api/core/dramafloow';
+
 /**
  * AI 任务列表（独立页）
  *
@@ -11,7 +13,6 @@
  * 不写配对 toast（拦截器已弹）；失败行可就地重试/取消。
  */
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-
 import { useRouter } from 'vue-router';
 
 import { Page } from '@vben/common-ui';
@@ -33,24 +34,22 @@ import {
   Tooltip,
 } from 'ant-design-vue';
 
-import type { TaskItem, TaskTokenSummary } from '#/api/core/dramafloow';
-
 import {
   taskCancel,
   taskList,
   taskRetry,
   taskStats,
 } from '#/api/core/dramafloow';
-import { requiredCapabilityText } from '#/composables/useAiProviders';
 import { RunningTaskList } from '#/components/RunningTaskList';
-import { TaskRouteBadge } from '#/components/TaskRouteBadge';
+import { TaskDrawer } from '#/components/TaskDrawer';
 import {
   elapsedSecondsOf,
   formatElapsed,
   formatTokens,
 } from '#/components/TaskDrawer/taskDisplay';
-import { TaskDrawer } from '#/components/TaskDrawer';
+import { TaskRouteBadge } from '#/components/TaskRouteBadge';
 import { TimeTag } from '#/components/TimeTag';
+import { requiredCapabilityText } from '#/composables/useAiProviders';
 import {
   TASK_STATUS_TEXT,
   TASK_TYPE_TEXT,
@@ -186,19 +185,19 @@ const filtered = computed(() => {
     list = list.filter((t) => t.type === typeFilter.value);
   }
   switch (statusFilter.value) {
-    case 'running': {
-      list = list.filter((t) =>
-        ['collecting', 'generating', 'preparing'].includes(t.status),
-      );
+    case 'all': {
       break;
     }
     case 'done': {
       list = list.filter((t) =>
-        ['done', 'approved', 'rejected'].includes(t.status),
+        ['approved', 'done', 'rejected'].includes(t.status),
       );
       break;
     }
-    case 'all': {
+    case 'running': {
+      list = list.filter((t) =>
+        ['collecting', 'generating', 'preparing'].includes(t.status),
+      );
       break;
     }
     default: {
@@ -221,18 +220,22 @@ const filtered = computed(() => {
 const oldestQueuedWait = computed(() => {
   const queued = merged.value.filter((t) => t.status === 'queued');
   if (queued.length === 0) return null;
-  const oldest = queued.reduce((min, t) =>
-    (elapsedSecondsOf(t, nowTick.value) ?? 0) >
-    (elapsedSecondsOf(min, nowTick.value) ?? 0)
-      ? t
-      : min,
-  );
+  let oldest = queued[0];
+  if (!oldest) return null;
+  for (const t of queued) {
+    if (
+      (elapsedSecondsOf(t, nowTick.value) ?? 0) >
+      (elapsedSecondsOf(oldest, nowTick.value) ?? 0)
+    ) {
+      oldest = t;
+    }
+  }
   return elapsedSecondsOf(oldest, nowTick.value);
 });
 
 // ─────────────────────────── 展示辅助 ───────────────────────────
 
-function elapsedText(t: TaskItem | Record<string, any>): string {
+function elapsedText(t: Record<string, any> | TaskItem): string {
   const sec = elapsedSecondsOf(t, nowTick.value);
   return sec === null ? '-' : formatElapsed(0, sec);
 }
@@ -242,11 +245,11 @@ function typeText(type?: string): string {
   return TASK_TYPE_TEXT[type] ?? type;
 }
 
-function tokensOf(t: TaskItem | Record<string, any>): null | TaskTokenSummary {
+function tokensOf(t: Record<string, any> | TaskItem): null | TaskTokenSummary {
   return tokensByTask.value[t.id] ?? null;
 }
 
-function tokensTip(t: TaskItem | Record<string, any>): string {
+function tokensTip(t: Record<string, any> | TaskItem): string {
   const s = tokensOf(t);
   if (!s) return '暂无 LLM 调用记录（该线路不消耗 token，或数据未归集）';
   const lines = [
@@ -267,7 +270,7 @@ function openDrama(dramaId?: number) {
   router.push({ name: 'DramaDetail', query: { id: dramaId } });
 }
 
-async function retry(t: TaskItem | Record<string, any>) {
+async function retry(t: Record<string, any> | TaskItem) {
   acting.value = t.id;
   try {
     await taskRetry(t.id);
@@ -277,7 +280,7 @@ async function retry(t: TaskItem | Record<string, any>) {
   }
 }
 
-async function cancel(t: TaskItem | Record<string, any>) {
+async function cancel(t: Record<string, any> | TaskItem) {
   acting.value = t.id;
   try {
     await taskCancel(t.id);
@@ -496,7 +499,7 @@ const columns = [
               <span
                 v-if="isRunning(record.status)"
                 class="df-live-dot mr-1 align-middle"
-              />
+              ></span>
               {{ TASK_STATUS_TEXT[record.status] ?? record.status }}
             </Tag>
           </template>

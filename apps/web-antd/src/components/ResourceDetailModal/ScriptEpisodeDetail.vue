@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { ScriptEpisode } from '#/api/core/dramafloow';
+
 /**
  * 剧本集详情（弹窗内容）：洗稿结果中单集的全部场景
  *
@@ -8,8 +10,6 @@ import { computed } from 'vue';
 
 import { Empty, Modal, Space, Tag } from 'ant-design-vue';
 
-import type { ScriptEpisode } from '#/api/core/dramafloow';
-
 import { episodeTitle } from '#/components/TaskDrawer/taskDisplay';
 
 import { formatDuration } from './utils';
@@ -18,16 +18,16 @@ const props = withDefaults(
   defineProps<{
     /** 要查看的集；null 表示弹窗关闭 */
     episode: null | ScriptEpisode;
-    /** 该集的展示版本号（100 / 100.1） */
-    version?: null | string;
     /** 该集的历史版本（可回退；空数组则隐藏回退区） */
     history?: {
-      id: number;
-      version: string;
-      origin: string;
-      isCurrent: boolean;
       createdAt: string;
+      id: number;
+      isCurrent: boolean;
+      origin: string;
+      version: string;
     }[];
+    /** 该集的展示版本号（100 / 100.1） */
+    version?: null | string;
   }>(),
   { history: () => [], version: null },
 );
@@ -53,10 +53,9 @@ const totalSec = computed(() =>
   <Modal
     :footer="null"
     :open="open"
-    :title="
-      `第 ${episode?.no ?? ''} 集` +
-      (episodeTitle(episode?.title) ? ` · ${episodeTitle(episode?.title)}` : '')
-    "
+    :title="`第 ${episode?.no ?? ''} 集${
+      episodeTitle(episode?.title) ? ` · ${episodeTitle(episode?.title)}` : ''
+    }`"
     :width="820"
     @cancel="emit('close')"
   >

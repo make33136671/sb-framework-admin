@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { ShotItem, TaskItem } from '#/api/core/dramafloow';
+
 /**
  * 分镜详情（弹窗内容）：Shot/Get 补全全部字段 + 片段视频 + 关联素材需求 + 历史子任务
  *
@@ -19,8 +21,6 @@ import {
   Tag,
 } from 'ant-design-vue';
 
-import type { ShotItem, TaskItem } from '#/api/core/dramafloow';
-
 import { shotGet, shotStaleReplay } from '#/api/core/dramafloow';
 import { TimeTag } from '#/components/TimeTag';
 import { toStorageUrl } from '#/utils/media';
@@ -30,11 +30,11 @@ import { EMPTY_TEXT, formatDuration, toStringList } from './utils';
 interface ShotGetResult {
   shot: ShotItem;
   assets: {
+    approvedAssetId?: number;
     id: number;
     key: string;
     kind: string;
     status: string;
-    approvedAssetId?: number;
   }[];
   tasks: TaskItem[];
 }
@@ -49,7 +49,7 @@ const emit = defineEmits<{
   /** 重跑后通知父组件刷新列表 */
   (e: 'changed'): void;
   /** 打开子任务详情抽屉 */
-  (e: 'open-task', taskId: number): void;
+  (e: 'openTask', taskId: number): void;
 }>();
 
 const open = computed(() => props.shot !== null);
@@ -109,7 +109,7 @@ function shotStatusColor(s: string): string {
 function taskStatusColor(s: string): string {
   if (s === 'done' || s === 'approved') return 'success';
   if (s === 'failed' || s === 'rejected') return 'error';
-  if (['preparing', 'generating', 'collecting'].includes(s))
+  if (['collecting', 'generating', 'preparing'].includes(s))
     return 'processing';
   return 'default';
 }
@@ -149,7 +149,7 @@ async function replay() {
           >
             失效：上游素材/剧本已变更，需重跑后重新生成片段
           </span>
-          <div class="flex-1" />
+          <div class="flex-1"></div>
           <Button
             v-if="row.status === 'stale'"
             :loading="replaying"
@@ -246,7 +246,7 @@ async function replay() {
               controls
               preload="metadata"
               :src="clipUrl"
-            />
+            ></video>
             <div class="text-xs break-all text-muted-foreground">
               {{ row.clip.videoPath }}
             </div>
@@ -285,9 +285,9 @@ async function replay() {
           >
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'kind'">
-                <Tag class="!mr-0">{{
-                  kindText[record.kind] ?? record.kind
-                }}</Tag>
+                <Tag class="!mr-0">
+                  {{ kindText[record.kind] ?? record.kind }}
+                </Tag>
               </template>
               <template v-else-if="column.key === 'status'">
                 <Tag class="!mr-0">{{ record.status }}</Tag>
@@ -331,7 +331,7 @@ async function replay() {
                 <TimeTag :time="record.createdAt" />
               </template>
               <template v-else-if="column.key === 'action'">
-                <Button size="small" @click="emit('open-task', record.id)">
+                <Button size="small" @click="emit('openTask', record.id)">
                   详情
                 </Button>
               </template>

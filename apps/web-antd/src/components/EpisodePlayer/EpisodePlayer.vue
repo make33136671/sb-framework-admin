@@ -60,7 +60,7 @@ function fmtDuration(sec?: null | number): string {
         controls
         preload="metadata"
         class="w-full max-w-2xl rounded-md bg-black"
-      />
+      ></video>
       <div class="flex flex-wrap items-center gap-3 text-sm">
         <span>第 {{ episodeNo }} 集</span>
         <span>时长 {{ fmtDuration(durationSec) }}</span>

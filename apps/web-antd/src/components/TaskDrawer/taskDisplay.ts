@@ -25,7 +25,7 @@ export function formatElapsed(startSec: number, endSec: number): string {
 }
 
 /** tokens 紧凑展示：980 → "980"；12345 → "1.23 万"；1350000 → "135.0 万" */
-export function formatTokens(v?: null | number): string {
+export function formatTokens(v: null | number = 0): string {
   const n = v ?? 0;
   if (n < 10_000) return n.toLocaleString('zh-CN');
   const wan = n / 10_000;
@@ -58,7 +58,7 @@ export function elapsedSecondsOf(
 
 /** 终态（不再走字）：与后端 TaskStatuses 的口径一致 */
 export function isFinishedStatus(status?: string): boolean {
-  return ['done', 'failed', 'rejected', 'approved'].includes(status ?? '');
+  return ['approved', 'done', 'failed', 'rejected'].includes(status ?? '');
 }
 
 /**

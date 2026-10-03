@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { AssetCandidateItem, ReasonItem } from '#/api/core/dramafloow';
+
 /**
  * CandidateGallery —— 候选图对比 + 通过/驳回（契约 §5.1 Review/Asset）
  *
@@ -17,8 +19,6 @@ import {
   Space,
   Tag,
 } from 'ant-design-vue';
-
-import type { AssetCandidateItem, ReasonItem } from '#/api/core/dramafloow';
 
 import {
   assetApprove,
@@ -109,11 +109,24 @@ function onKeydown(e: KeyboardEvent) {
   const tag = (e.target as HTMLElement)?.tagName;
   if (tag === 'INPUT' || tag === 'TEXTAREA') return;
 
-  if (e.key === '1') select(0);
-  else if (e.key === '2') select(1);
-  else if (e.key === '3') select(2);
-  else if (e.key.toLowerCase() === 'a') void approve();
-  else if (e.key.toLowerCase() === 'r') openReject();
+  switch (e.key) {
+    case '1': {
+      select(0);
+      break;
+    }
+    case '2': {
+      select(1);
+      break;
+    }
+    case '3': {
+      select(2);
+      break;
+    }
+    default: {
+      if (e.key.toLowerCase() === 'a') void approve();
+      else if (e.key.toLowerCase() === 'r') openReject();
+    }
+  }
 }
 
 onMounted(() => {

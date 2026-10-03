@@ -78,29 +78,29 @@ export interface SchedStatusView {
   nodes: SchedNodeCard[];
   /** 不挂节点的独立服务（独立算力，不占卡） */
   standalone: {
+    capability: string;
     id: number;
+    isEnabled: boolean;
     name: string;
     providerType: string;
-    capability: string;
     runStatus: string;
-    isEnabled: boolean;
   }[];
   queue: {
+    classes: SchedClassStat[];
+    system: number;
     total: number;
     user: number;
-    system: number;
-    classes: SchedClassStat[];
   };
   inFlight: {
+    heartbeatAt: null | string;
     id: number;
-    type: string;
-    status: string;
-    source: string;
     priority: number;
     providerId: null | number;
     providerName: null | string;
+    source: string;
     startedAt: null | string;
-    heartbeatAt: null | string;
+    status: string;
+    type: string;
   }[];
   window: SchedWindowState;
 }
@@ -163,11 +163,11 @@ export async function schedulerPredict() {
  * - 绝对：`{ mode: 'absolute', deadline: '2026-09-30 07:00' }`（本地时间）
  */
 export async function schedulerSetWindow(data: {
-  mode?: string;
   afterDays?: number;
   afterHours?: number;
   afterMinutes?: number;
   deadline?: string;
+  mode?: string;
 }) {
   return api.post<{ deadline: string; isSet: boolean; remainMin: number }>(
     '/Scheduler/SetWindow',
@@ -181,8 +181,8 @@ export async function schedulerClearWindow() {
 
 /** 决策审计回溯（sched_decision / sched_alert / sched_window_set|clear） */
 export async function schedulerDecisions(params?: {
-  limit?: number;
   action?: string;
+  limit?: number;
 }) {
   return api.get<SchedDecisionItem[]>('/Scheduler/Decisions', {
     params: params ?? {},

@@ -40,7 +40,7 @@ async function loadRootMembers() {
   loading.value = true;
   try {
     const res: any = await getChildren();
-    treeData.value = (res || []).map(toTreeNode);
+    treeData.value = (res || []).map((n: any) => toTreeNode(n));
   } finally {
     loading.value = false;
   }
@@ -58,8 +58,9 @@ async function loadMemberSubTree(memberId: number) {
     const childrenMap = new Map<number, any[]>();
     for (const d of descendants) {
       const pid = d.parentId ?? 0;
-      if (!childrenMap.has(pid)) childrenMap.set(pid, []);
-      childrenMap.get(pid)!.push(d);
+      const bucket = childrenMap.get(pid);
+      if (bucket) bucket.push(d);
+      else childrenMap.set(pid, [d]);
     }
 
     function makeNode(item: any): any {
@@ -68,12 +69,12 @@ async function loadMemberSubTree(memberId: number) {
         key: item.id,
         ...item,
         isLeaf: kids.length === 0 && item.directChildCount === 0,
-        children: kids.map(makeNode),
+        children: kids.map((n: any) => makeNode(n)),
       };
     }
 
     const rootKids = childrenMap.get(memberId) || [];
-    treeData.value = rootKids.map(makeNode);
+    treeData.value = rootKids.map((n) => makeNode(n));
     expandedKeys.value = rootKids.map((n: any) => n.id);
   } finally {
     loading.value = false;
@@ -81,17 +82,13 @@ async function loadMemberSubTree(memberId: number) {
 }
 
 // 懒加载子级（仅模式1 使用）
-const onLoadData = (treeNode: any) => {
-  return new Promise<void>(async (resolve) => {
-    if (treeNode.dataRef.children && treeNode.dataRef.children.length > 0) {
-      resolve();
-      return;
-    }
-    const res: any = await getChildren(treeNode.dataRef.id);
-    treeNode.dataRef.children = (res || []).map(toTreeNode);
-    treeData.value = [...treeData.value];
-    resolve();
-  });
+const onLoadData = async (treeNode: any) => {
+  if (treeNode.dataRef.children && treeNode.dataRef.children.length > 0) {
+    return;
+  }
+  const res: any = await getChildren(treeNode.dataRef.id);
+  treeNode.dataRef.children = (res || []).map((n: any) => toTreeNode(n));
+  treeData.value = [...treeData.value];
 };
 
 async function init() {

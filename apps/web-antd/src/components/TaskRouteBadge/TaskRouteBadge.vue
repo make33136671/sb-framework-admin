@@ -19,25 +19,18 @@ import { computed } from 'vue';
 
 import { Tag, Tooltip } from 'ant-design-vue';
 
-/** 上云原因码 → 中文（后端 routeReasonText 缺失时的兜底） */
-const REASON_TEXT: Record<string, string> = {
-  cloud_cost_benefit: '优惠时段内性价比达标，自动上云执行',
-  cloud_manual: '手动指定云端模型',
-  cloud_emergency: '紧急通道云端兜底（系统不卡壳优先）',
-};
-
 const props = withDefaults(
   defineProps<{
-    /** `cloud` = 有上云决策；null/undefined = 无记录（不渲染） */
-    route?: null | string;
+    /** 该次上云花费（元） */
+    costYuan?: null | number;
+    /** 是否谷时上云 */
+    offPeak?: boolean | null;
     /** 上云原因码（cloud_cost_benefit…）；仅作兜底，优先用 reasonText */
     reason?: null | string;
     /** 后端拼好的中文原因说明（routeReasonText）——优先展示 */
     reasonText?: null | string;
-    /** 该次上云花费（元） */
-    costYuan?: null | number;
-    /** 是否谷时上云 */
-    offPeak?: null | boolean;
+    /** `cloud` = 有上云决策；null/undefined = 无记录（不渲染） */
+    route?: null | string;
   }>(),
   {
     route: null,
@@ -47,6 +40,13 @@ const props = withDefaults(
     offPeak: null,
   },
 );
+
+/** 上云原因码 → 中文（后端 routeReasonText 缺失时的兜底） */
+const REASON_TEXT: Record<string, string> = {
+  cloud_cost_benefit: '优惠时段内性价比达标，自动上云执行',
+  cloud_manual: '手动指定云端模型',
+  cloud_emergency: '紧急通道云端兜底（系统不卡壳优先）',
+};
 
 /** 仅 `cloud` 渲染徽标；null / 未知值一律不渲染（不猜） */
 const isCloud = computed(

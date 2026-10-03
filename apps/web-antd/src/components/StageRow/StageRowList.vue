@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { StageKey, StageRowsResult } from '#/api/core/dramafloow';
+
 /**
  * StageRowList —— 剧目详情的「五行横向」（横向结构 P5）
  *
@@ -13,7 +15,6 @@ import { computed, onMounted, ref, watch } from 'vue';
 
 import { Empty, Spin } from 'ant-design-vue';
 
-import type { StageKey, StageRowsResult } from '#/api/core/dramafloow';
 import { stageRows } from '#/api/core/dramafloow';
 import { ArtifactTrace, StageRow } from '#/components/StageRow';
 

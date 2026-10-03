@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { ProductEpisodeItem } from '#/api/core/dramafloow';
+
 /**
  * 成片详情（弹窗内容）：单集成片播放 + 版本/时长/大小/发布状态，并可直接上下架
  *
@@ -7,8 +9,6 @@
 import { computed, ref } from 'vue';
 
 import { Button, Descriptions, Modal, Tag } from 'ant-design-vue';
-
-import type { ProductEpisodeItem } from '#/api/core/dramafloow';
 
 import { productPublish, productUnpublish } from '#/api/core/dramafloow';
 import { EpisodePlayer } from '#/components/EpisodePlayer';
@@ -40,11 +40,7 @@ async function togglePublish() {
   if (!e) return;
   acting.value = true;
   try {
-    if (e.publishedAt) {
-      await productUnpublish(e.id);
-    } else {
-      await productPublish(e.id);
-    }
+    await (e.publishedAt ? productUnpublish(e.id) : productPublish(e.id));
     emit('changed');
     emit('close');
   } finally {
@@ -75,7 +71,7 @@ async function togglePublish() {
             episode.historyVersions.map((v) => `v${v}`).join(' / ')
           }}
         </span>
-        <div class="flex-1" />
+        <div class="flex-1"></div>
         <Button
           :loading="acting"
           size="small"

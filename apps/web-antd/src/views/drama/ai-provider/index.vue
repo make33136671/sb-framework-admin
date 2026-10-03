@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { AiProviderItem } from '#/api/core/aiProvider';
+
 /**
  * AI 模型管理（原「AI 服务」页改造，前端设计 §3）
  *
@@ -13,7 +15,6 @@
  * 不写配对 toast（拦截器已统一处理）。
  */
 import { computed, onMounted, ref } from 'vue';
-
 import { useRouter } from 'vue-router';
 
 import { Page } from '@vben/common-ui';
@@ -34,8 +35,6 @@ import {
   Tag,
   Tooltip,
 } from 'ant-design-vue';
-
-import type { AiProviderItem } from '#/api/core/aiProvider';
 
 import {
   AI_CAPABILITY_OPTIONS,
@@ -59,8 +58,8 @@ const rows = ref<AiProviderItem[]>([]);
 const loading = ref(false);
 const acting = ref<null | number>(null);
 
-const providerFilter = ref<number | 'all'>('all');
-const capabilityFilter = ref<number | 'all'>('all');
+const providerFilter = ref<'all' | number>('all');
+const capabilityFilter = ref<'all' | number>('all');
 const enabledFilter = ref<'all' | 'no' | 'yes'>('all');
 
 async function load() {
@@ -462,9 +461,9 @@ const columns = [
           <!-- 操作 -->
           <template v-else-if="column.key === 'action'">
             <Space>
-              <Button size="small" @click="openEdit(asRow(record))"
-                >编辑</Button
-              >
+              <Button size="small" @click="openEdit(asRow(record))">
+                编辑
+              </Button>
               <Popconfirm
                 description="删除后任务将无法再选它（历史任务记录保留）；其在飞任务会被中断。"
                 title="确认删除该模型？"

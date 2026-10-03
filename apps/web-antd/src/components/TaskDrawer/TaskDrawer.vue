@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { TaskDetail } from '#/api/core/dramafloow';
+
 /**
  * 子任务详情抽屉（TaskDrawer）
  *
@@ -13,6 +15,7 @@
  */
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue';
 import { useRouter } from 'vue-router';
+
 import {
   Button,
   Descriptions,
@@ -20,15 +23,13 @@ import {
   Empty,
   Input,
   InputNumber,
+  message,
   Popconfirm,
   Progress,
   Space,
   Table,
   Tag,
-  message,
 } from 'ant-design-vue';
-
-import type { TaskDetail } from '#/api/core/dramafloow';
 
 import {
   taskCancel,
@@ -37,9 +38,9 @@ import {
   taskRegenerate,
   taskUpdate,
 } from '#/api/core/dramafloow';
-import { requiredCapabilityText } from '#/composables/useAiProviders';
 import { TaskRouteBadge } from '#/components/TaskRouteBadge';
 import { TimeTag } from '#/components/TimeTag';
+import { requiredCapabilityText } from '#/composables/useAiProviders';
 import {
   TASK_STATUS_TEXT,
   TASK_TYPE_TEXT,
@@ -125,14 +126,14 @@ watch(
 /** 任务是否已结束（结束后才允许删除） */
 const isFinished = computed(() => {
   const s = detail.value?.status;
-  return ['done', 'failed', 'rejected', 'approved'].includes(s ?? '');
+  return ['approved', 'done', 'failed', 'rejected'].includes(s ?? '');
 });
 
 /** 心跳超时（>20s）→ 疑似卡住 */
 const stuck = computed(() => {
   const d = detail.value;
   if (!d) return false;
-  if (!['preparing', 'generating', 'collecting'].includes(d.status))
+  if (!['collecting', 'generating', 'preparing'].includes(d.status))
     return false;
   const hb = d.heartbeatAt ?? d.updatedAt;
   if (!hb) return false;
@@ -247,7 +248,7 @@ const jobColumns = [
           {{ TASK_TYPE_TEXT[detail.type] ?? detail.type }}（{{ detail.type }}）·
           v{{ detail.version }}
         </span>
-        <div class="flex-1" />
+        <div class="flex-1"></div>
         <Space>
           <Button
             size="small"

@@ -52,11 +52,15 @@ const formSchema = computed((): VbenFormSchema[] => {
 /**
  * 异步处理登录操作
  * Asynchronously handle the login process
- * @param values 登录表单数据
+ *
+ * 说明：本页是框架自带的「手机验证码登录」演示页，仓库未接入短信服务，
+ * 故此处不发起任何请求；保留空实现是因为 AuthenticationCodeLogin 的
+ * @submit 必须绑定到已存在的处理函数。接入短信登录时在此补真实调用。
+ *
+ * @param _values 登录表单数据
  */
-async function handleLogin(values: Recordable<any>) {
-  console.log(values);
-}
+// oxlint-disable-next-line eslint/no-empty-function -- 见上方说明：演示页占位实现
+async function handleLogin(_values: Recordable<any>) {}
 </script>
 
 <template>

@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { UploadDetail } from '#/components/Upload';
+
 import { computed, onMounted, onUnmounted, reactive, ref } from 'vue';
 
 import { Page } from '@vben/common-ui';
@@ -23,7 +25,7 @@ import { AppVersion } from '#/components/AppVersion';
 import { RestartWaiter } from '#/components/RestartWaiter';
 import { TimeTag } from '#/components/TimeTag';
 import { TimezoneDisplay } from '#/components/TimezoneDisplay';
-import { ChunkUpload, type UploadDetail } from '#/components/Upload';
+import { ChunkUpload } from '#/components/Upload';
 
 import {
   getDeployTargets,
@@ -392,7 +394,7 @@ async function loadUploadRecords() {
     const merged: DeployJob[] = [
       ...((res1?.items ?? []) as DeployJob[]),
       ...((res2?.items ?? []) as DeployJob[]),
-    ].sort((a, b) => b.id - a.id);
+    ].toSorted((a, b) => b.id - a.id);
     uploadRecordsTotal.value = merged.length;
     const from = (uploadRecordsPage.value - 1) * uploadRecordsPageSize.value;
     uploadRecordsData.value = merged.slice(
@@ -454,7 +456,7 @@ async function loadDeployRecords() {
     const merged: DeployJob[] = [
       ...((res1?.items ?? []) as DeployJob[]),
       ...((res2?.items ?? []) as DeployJob[]),
-    ].sort((a, b) => b.id - a.id);
+    ].toSorted((a, b) => b.id - a.id);
     deployRecordsTotal.value = merged.length;
     const from = (deployRecordsPage.value - 1) * deployRecordsPageSize.value;
     deployRecordsData.value = merged.slice(

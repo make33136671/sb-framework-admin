@@ -58,7 +58,7 @@ const EN_UNITS = [
 ];
 
 // 渐进色阶: 从冷色浅调到暖色深调, 视觉重量逐级递增
-const LEVEL_STYLES = [
+const LEVEL_STYLES: { bg: string; border: string; text: string }[] = [
   // 厘 (sub-fen): 中性灰 — 可忽略金额
   { bg: '#f1f5f9', text: '#94a3b8', border: '#e2e8f0' },
   // 分: 淡绿
@@ -112,11 +112,18 @@ const level = computed(() => {
 
 const unitLabel = computed(() => {
   const units = locale.value.startsWith('en') ? EN_UNITS : ZH_UNITS;
-  return units[level.value]!;
+  return units[level.value] ?? units[0] ?? '';
 });
 
 const tagStyle = computed(() => {
-  const s = LEVEL_STYLES[level.value]!;
+  // level 由上方 computed 保证落在 0..LEVEL_STYLES.length-1；用解构取首元素避免非空断言
+  const [fallbackStyle] = LEVEL_STYLES;
+  const s = LEVEL_STYLES[level.value] ??
+    fallbackStyle ?? {
+      bg: 'transparent',
+      text: 'inherit',
+      border: 'transparent',
+    };
   return {
     backgroundColor: s.bg,
     color: s.text,

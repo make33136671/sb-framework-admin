@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { StageVersion } from '#/api/core/dramafloow';
+
 /**
  * ArtifactTrace —— 横向的「溯源面板」（横向结构 P5）
  *
@@ -16,7 +18,6 @@ import { ref } from 'vue';
 
 import { Button, Empty, Table, Tag, Tooltip } from 'ant-design-vue';
 
-import type { StageVersion } from '#/api/core/dramafloow';
 import { TimeTag } from '#/components/TimeTag';
 
 const props = defineProps<{

@@ -128,7 +128,9 @@ const isRedis = computed(() => cacheInfo.value?.provider === 'Redis');
 const isEnabled = computed(
   () => cacheInfo.value && cacheInfo.value.provider !== 'Disabled',
 );
-const hasStats = computed(() => cacheInfo.value?.stats != null);
+const hasStats = computed(
+  () => cacheInfo.value?.stats !== null && cacheInfo.value?.stats !== undefined,
+);
 
 const slowlogColumns = [
   {

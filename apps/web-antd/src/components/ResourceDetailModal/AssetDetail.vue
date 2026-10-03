@@ -1,4 +1,11 @@
 <script lang="ts" setup>
+import type {
+  AssetCandidateItem,
+  AssetRequirementItem,
+  ReasonItem,
+  TaskItem,
+} from '#/api/core/dramafloow';
+
 /**
  * 素材需求详情（弹窗内容）：Asset/RequirementGet 补全 spec/来源/候选/驳回原因/子任务
  *
@@ -21,13 +28,6 @@ import {
   Tag,
 } from 'ant-design-vue';
 
-import type {
-  AssetCandidateItem,
-  AssetRequirementItem,
-  ReasonItem,
-  TaskItem,
-} from '#/api/core/dramafloow';
-
 import { assetGenerate, assetRequirementGet } from '#/api/core/dramafloow';
 import { TimeTag } from '#/components/TimeTag';
 import { toStorageUrl } from '#/utils/media';
@@ -43,14 +43,14 @@ interface RequirementGetResult {
 
 const props = defineProps<{
   /** 要查看的素材需求；null 表示弹窗关闭 */
-  requirement: null | AssetRequirementItem;
+  requirement: AssetRequirementItem | null;
 }>();
 
 const emit = defineEmits<{
   (e: 'close'): void;
   /** 生成/状态变化后通知父组件刷新列表 */
   (e: 'changed'): void;
-  (e: 'open-task', taskId: number): void;
+  (e: 'openTask', taskId: number): void;
 }>();
 
 const open = computed(() => props.requirement !== null);
@@ -78,7 +78,7 @@ watch(
   { immediate: true },
 );
 
-const row = computed<null | AssetRequirementItem>(
+const row = computed<AssetRequirementItem | null>(
   () => detail.value?.requirement ?? props.requirement ?? null,
 );
 
@@ -107,7 +107,7 @@ function candidateStatusColor(s: string): string {
 function taskStatusColor(s: string): string {
   if (s === 'done' || s === 'approved') return 'success';
   if (s === 'failed' || s === 'rejected') return 'error';
-  if (['preparing', 'generating', 'collecting'].includes(s))
+  if (['collecting', 'generating', 'preparing'].includes(s))
     return 'processing';
   return 'default';
 }
@@ -141,7 +141,7 @@ async function generate() {
           <Tag class="!mr-0">v{{ row.version }}</Tag>
           <Tag v-if="row.isCurrent" class="!mr-0" color="success">当前版本</Tag>
           <Tag v-if="row.status" class="!mr-0">{{ row.status }}</Tag>
-          <div class="flex-1" />
+          <div class="flex-1"></div>
           <Button
             :loading="generating"
             size="small"
@@ -283,7 +283,7 @@ async function generate() {
                 <TimeTag :time="record.createdAt" />
               </template>
               <template v-else-if="column.key === 'action'">
-                <Button size="small" @click="emit('open-task', record.id)">
+                <Button size="small" @click="emit('openTask', record.id)">
                   详情
                 </Button>
               </template>

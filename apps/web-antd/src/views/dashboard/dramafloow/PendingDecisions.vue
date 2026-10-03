@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { PendingDecisions } from '#/api/core/dramafloow';
+
 /**
  * D 区：待我决策（设计文档 §D）
  *
@@ -13,12 +15,9 @@
  * 媒体 URL 一律走 utils/media.ts（历史上这里出过 media_root 变更导致静默不显示的缺陷）。
  */
 import { computed, onMounted, ref } from 'vue';
-
 import { useRouter } from 'vue-router';
 
 import { Badge, Button, Card, Empty, Image, Tabs, Tag } from 'ant-design-vue';
-
-import type { PendingDecisions } from '#/api/core/dramafloow';
 
 import { dashboardPendingDecisions } from '#/api/core/dramafloow';
 import { toStorageUrl } from '#/utils/media';

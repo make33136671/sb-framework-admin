@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import type { UploadDetail } from '#/components/Upload';
+
 import { computed, ref } from 'vue';
 
 import { useUserStore } from '@vben/stores';
@@ -6,7 +8,7 @@ import { useUserStore } from '@vben/stores';
 import { Button, Card, message } from 'ant-design-vue';
 
 import { changeAvatarApi } from '#/api/core/admin';
-import { DirectUpload, type UploadDetail } from '#/components/Upload';
+import { DirectUpload } from '#/components/Upload';
 
 const userStore = useUserStore();
 

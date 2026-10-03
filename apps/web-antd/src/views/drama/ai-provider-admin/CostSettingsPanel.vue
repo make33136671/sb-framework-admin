@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { SystemSettingRow } from './api';
+
 /**
  * CostSettingsPanel —— 成本与调度设置（前端设计 §6.2）
  *
@@ -25,8 +27,6 @@ import {
   Tag,
   Tooltip,
 } from 'ant-design-vue';
-
-import type { SystemSettingRow } from './api';
 
 import {
   cloudDecisions,
@@ -223,9 +223,9 @@ const ratio = computed(() => form.value.ratio || 30);
           <div class="flex-1">
             <div class="text-sm">
               {{ form.enabled ? '已开启：会主动花钱' : '已关闭（默认）' }}
-              <Tag v-if="form.enabled" class="ml-2 !mr-0" color="warning"
-                >⚠️ 会产生费用</Tag
-              >
+              <Tag v-if="form.enabled" class="ml-2 !mr-0" color="warning">
+                ⚠️ 会产生费用
+              </Tag>
             </div>
             <div class="mt-1 text-xs text-muted-foreground">
               开启后，系统会在【优惠时段】自动把"本地排队久"的任务送到云端执行（独立算力，不占本地槽位）。

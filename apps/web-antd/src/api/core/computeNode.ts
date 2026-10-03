@@ -81,14 +81,14 @@ export interface ComputeNodeServiceView {
   /** 熔断暂停中 */
   paused: boolean;
   /** 当前占用任务（busy 时非空） */
-  currentTask: {
+  currentTask: null | {
     id: number;
-    type: string;
-    status: string;
     priority: number;
     source: string;
     startedAt: null | string;
-  } | null;
+    status: string;
+    type: string;
+  };
 }
 
 export interface ComputeNodeStatusView {
@@ -114,15 +114,15 @@ export async function computeNodeStatus(id?: number) {
 }
 
 export async function computeNodeSave(data: {
+  canSwitch?: boolean;
   id?: number;
+  isEnabled?: boolean;
   name: string;
   nodeType?: string;
-  slotCount?: number;
-  canSwitch?: boolean;
-  switchCostMin?: number;
-  isEnabled?: boolean;
-  sortNo?: number;
   remark?: string;
+  slotCount?: number;
+  sortNo?: number;
+  switchCostMin?: number;
 }) {
   return api.post<{ id: number }>('/ComputeNode/Save', data);
 }

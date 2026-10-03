@@ -6,6 +6,7 @@
  */
 import type { VbenFormProps } from '#/adapter/form';
 import type { VxeGridProps } from '#/adapter/vxe-table';
+import type { DramaItem } from '#/api/core/dramafloow';
 
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
@@ -15,7 +16,6 @@ import { Page } from '@vben/common-ui';
 import { Button, Input, Modal, Space, Tag } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
-import type { DramaItem } from '#/api/core/dramafloow';
 import {
   dramaAdd,
   dramaArchive,
@@ -238,13 +238,13 @@ function openDetail(row: DramaItem) {
 
       <template #action="{ row }">
         <Space>
-          <Button size="small" type="link" @click="openDetail(row)"
-            >详情</Button
-          >
+          <Button size="small" type="link" @click="openDetail(row)">
+            详情
+          </Button>
           <template v-if="!archivedView">
-            <Button size="small" type="link" @click="openEdit(row)"
-              >编辑</Button
-            >
+            <Button size="small" type="link" @click="openEdit(row)">
+              编辑
+            </Button>
             <Button
               v-if="row.status !== 'producing'"
               size="small"

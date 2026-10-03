@@ -30,7 +30,7 @@ export function toStorageUrl(
   if (!absPath) return '';
 
   const normalizedRoot = mediaRoot.replace(/\/+$/, '');
-  let relative = absPath;
+  let relative: string;
 
   if (normalizedRoot && absPath.startsWith(`${normalizedRoot}/`)) {
     relative = absPath.slice(normalizedRoot.length + 1);

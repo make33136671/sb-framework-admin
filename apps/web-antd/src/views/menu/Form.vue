@@ -190,7 +190,6 @@ async function onSubmit() {
     drawerApi.lock();
     try {
       const formValues = await formApi.getValues();
-      console.log('onSubmitValue', formValues);
 
       // 转换为 FormData 格式
       const formData = new FormData();
@@ -204,7 +203,6 @@ async function onSubmit() {
         }
       });
 
-      console.log('formData id:', formData.get('id')); // 调试日志
       await postEdit(formData);
       drawerApi.close();
       emit('success');

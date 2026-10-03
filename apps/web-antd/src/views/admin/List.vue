@@ -176,8 +176,8 @@ const delAdmin = (id: number) => {
       </template>
 
       <template #status="{ row }">
-        <Tag color="success" v-if="row.status == 0"> 正常 </Tag>
-        <Tag color="error" v-if="row.status == 1"> 停用 </Tag>
+        <Tag v-if="row.status === 0" color="success"> 正常 </Tag>
+        <Tag v-if="row.status === 1" color="error"> 停用 </Tag>
       </template>
 
       <template #userInfo="{ row }">
@@ -249,7 +249,7 @@ const delAdmin = (id: number) => {
           </Button>
 
           <Button
-            v-if="canDelete && row.id != 1"
+            v-if="canDelete && row.id !== 1"
             type="primary"
             danger
             @click="delAdmin(row.id)"

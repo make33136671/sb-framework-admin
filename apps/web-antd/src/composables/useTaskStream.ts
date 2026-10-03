@@ -13,9 +13,10 @@
  *   // store.queue / store.taskMap / store.health / store.dramaMap 响应式
  */
 import { computed, onScopeDispose, ref } from 'vue';
-import { defineStore } from 'pinia';
 
 import { useAccessStore } from '@vben/stores';
+
+import { defineStore } from 'pinia';
 
 // ─────────────────────────── 消息类型（与后端一致） ───────────────────────────
 
@@ -89,7 +90,7 @@ export const useTaskStreamStore = defineStore('dramafloow-task-stream', () => {
   const taskMap = ref<Record<number, TaskEvent>>({});
   const dramaMap = ref<Record<number, DramaEvent>>({});
   const queue = ref<null | QueueEvent>(null);
-  const health = ref<null | HealthEvent>(null);
+  const health = ref<HealthEvent | null>(null);
 
   function applyTask(e: TaskEvent) {
     taskMap.value = { ...taskMap.value, [e.id]: e };
@@ -300,16 +301,16 @@ export function taskStatusColor(status: string): string {
     case 'done': {
       return 'success';
     }
+    case 'collecting':
+    case 'generating': {
+      return 'processing';
+    }
     case 'failed':
     case 'rejected': {
       return 'error';
     }
     case 'pending_review': {
       return 'warning';
-    }
-    case 'generating':
-    case 'collecting': {
-      return 'processing';
     }
     case 'preparing':
     case 'queued': {

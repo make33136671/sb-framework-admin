@@ -20,6 +20,7 @@ interface Props {
 
 const props = withDefaults(defineProps<Props>(), {
   open: false,
+  baselineStartTime: undefined,
   maxWaitMs: 60_000,
   intervalMs: 2000,
   silent: false,

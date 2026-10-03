@@ -338,7 +338,7 @@ const [BaseForm, baseFormApi] = useVbenForm({
 async function onSubmit(values: Record<string, any>) {
   // 上传类型：把 uploadMode 合并到 dataContentConfig JSON 的 mode 字段
   if (UPLOAD_DISPLAY_TYPES.has(Number(values.displayType))) {
-    let cfg: Record<string, any> = {};
+    let cfg: Record<string, any>;
     try {
       cfg = values.dataContentConfig
         ? JSON.parse(values.dataContentConfig)

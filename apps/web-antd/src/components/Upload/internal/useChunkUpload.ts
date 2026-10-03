@@ -98,16 +98,16 @@ export function useChunkUpload(options?: { maxConcurrent?: number }) {
         progress.value = 100;
         status.value = 'done';
         return {
-          fileName: init.fileName!,
-          absfileName: init.absfileName!,
+          fileName: init.fileName ?? file.name,
+          absfileName: init.absfileName ?? '',
           name: init.name ?? file.name,
           size: init.size ?? file.size,
         };
       }
 
-      const uploadId = init.uploadId!;
-      const chunkSize = init.chunkSize!;
-      const totalChunks = init.totalChunks!;
+      const uploadId = init.uploadId ?? '';
+      const chunkSize = init.chunkSize ?? 0;
+      const totalChunks = init.totalChunks ?? 0;
       const uploaded = new Set(init.uploadedChunks);
 
       // 构建待上传队列

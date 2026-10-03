@@ -30,8 +30,8 @@ export interface PartialRewritePlan {
   majorVersion: number;
   selectionLength: number;
   episodes: {
-    episodeNo: number;
     current: string;
+    episodeNo: number;
     next: string;
     sourceLength: number;
   }[];
@@ -76,11 +76,11 @@ export async function scriptPartialPlan(
 /** 提交选区重洗（入队） */
 export async function scriptPartialRewrite(data: {
   dramaId: number;
-  start: number;
   end: number;
   providerId?: null | number;
   /** 洗稿细化选项 JSON */
   rewriteOptions?: null | string;
+  start: number;
 }) {
   return api.post<{
     episodes: { episodeNo: number; next: string }[];

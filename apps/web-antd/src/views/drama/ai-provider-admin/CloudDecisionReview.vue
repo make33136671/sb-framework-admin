@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { CloudDecisionItem, CloudDecisionSnapshot } from './api';
+
 /**
  * CloudDecisionReview —— 上云决策回看表（前端设计 §6.3）
  *
@@ -36,8 +38,6 @@ import {
 } from 'ant-design-vue';
 
 import { TimeTag } from '#/components/TimeTag';
-
-import type { CloudDecisionItem, CloudDecisionSnapshot } from './api';
 
 import {
   cloudDecisions,

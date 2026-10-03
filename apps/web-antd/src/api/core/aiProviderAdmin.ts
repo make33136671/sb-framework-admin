@@ -126,12 +126,12 @@ export interface TestConnectionResult {
  * 入参二选一：已保存的 `providerId`，或未保存的临时配置（providerKey/baseUrl/apiKey/adapterConfig）。
  */
 export async function aiProviderTestConnection(data: {
+  adapterConfig?: string;
+  apiKey?: string;
+  baseUrl?: string;
+  name?: string;
   providerId?: number;
   providerKey?: string;
-  baseUrl?: string;
-  apiKey?: string;
-  adapterConfig?: string;
-  name?: string;
 }) {
   return api.post<TestConnectionResult>(
     '/AiProviderAdmin/TestConnection',
@@ -142,8 +142,8 @@ export async function aiProviderTestConnection(data: {
 
 /** 能力探测（不落库）：predefined=null → 「模型未能自述能力，请手工勾选」 */
 export async function aiProviderProbeCapabilities(data: {
-  providerId: number;
   modelId: string;
+  providerId: number;
 }) {
   return api.post<{ predefined: null | number; raw?: number }>(
     '/AiProviderAdmin/ProbeCapabilities',
@@ -185,15 +185,15 @@ export async function aiProviderSaveModels(
 
 /** 手工添加模型（私有部署 / ComfyUI 虚拟模型；ComfyUI 应传 bindWorkflowId） */
 export async function aiProviderAddModelManually(data: {
-  providerId: number;
-  modelId: string;
-  displayName?: string;
-  capabilities: number;
   bindWorkflowId?: null | number;
-  nodeId?: null | number;
-  sortNo?: number;
-  remark?: string;
+  capabilities: number;
+  displayName?: string;
   isEnabled?: boolean;
+  modelId: string;
+  nodeId?: null | number;
+  providerId: number;
+  remark?: string;
+  sortNo?: number;
 }) {
   return api.post<{ id: number }>('/AiProviderAdmin/AddModelManually', data);
 }

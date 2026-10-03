@@ -45,11 +45,11 @@ export async function assetCategoryTree() {
 }
 
 export async function assetCategorySave(data: {
+  icon?: string;
   id?: number;
+  kind?: string;
   name: string;
   parentId?: number;
-  kind?: string;
-  icon?: string;
   sortNo?: number;
 }) {
   return api.post<{ id: number }>('/AssetCategory/Save', data);

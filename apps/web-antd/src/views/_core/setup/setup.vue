@@ -559,24 +559,20 @@ function importConfig() {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = '.json';
-  input.addEventListener('change', (e: Event) => {
+  input.addEventListener('change', async (e: Event) => {
     const file = (e.target as HTMLInputElement).files?.[0];
     if (!file) return;
-    const reader = new FileReader();
-    reader.addEventListener('load', (ev) => {
-      try {
-        const config = JSON.parse(ev.target?.result as string);
-        if (!config.version || !config.database) {
-          message.error('无效的配置文件格式');
-          return;
-        }
-        fillFormFromConfig(config);
-        message.success('配置已导入');
-      } catch (error: any) {
-        message.error(`解析失败: ${error.message}`);
+    try {
+      const config = JSON.parse(await file.text());
+      if (!config.version || !config.database) {
+        message.error('无效的配置文件格式');
+        return;
       }
-    });
-    reader.readAsText(file);
+      fillFormFromConfig(config);
+      message.success('配置已导入');
+    } catch (error: any) {
+      message.error(`解析失败: ${error.message}`);
+    }
   });
   input.click();
 }

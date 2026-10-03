@@ -21,8 +21,10 @@ const props = withDefaults(
   }>(),
   {
     color: 'blue',
-    tabular: true,
     placeholder: '--',
+    tabular: true,
+    time: null,
+    timezone: null,
   },
 );
 

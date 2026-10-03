@@ -47,7 +47,7 @@ async function load() {
         });
       }
     }
-    rows.value = all.sort(
+    rows.value = all.toSorted(
       (a, b) => b.dramaId - a.dramaId || b.version - a.version,
     );
   } catch {

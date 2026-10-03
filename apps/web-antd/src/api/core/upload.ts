@@ -130,8 +130,8 @@ export function chunkUploadApi(
       }
     });
 
-    xhr.onerror = () => reject(new Error('网络错误'));
-    xhr.ontimeout = () => reject(new Error('请求超时'));
+    xhr.addEventListener('error', () => reject(new Error('网络错误')));
+    xhr.addEventListener('timeout', () => reject(new Error('请求超时')));
 
     const accessStore = useAccessStore();
     const token = accessStore.accessToken;

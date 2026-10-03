@@ -69,6 +69,16 @@ const emit = defineEmits<{
   toggleSidebar: [];
   'update:sidebar-width': [value: number];
 }>();
+/**
+ * 侧栏宽度变更：`update:sidebar-width` 是 kebab-case 的 v-model 事件名，属对外
+ * 公开 API（layout.vue 与 preferences-drawer.vue 以 v-model:sidebar-width 消费），
+ * 改为 camelCase 会波及框架多处调用点，故在此保留并单点关闭该 lint 规则。
+ */
+function onUpdateSidebarWidth(val: number) {
+  // eslint-disable-next-line vue/custom-event-name-casing -- 见上方注释：对外 v-model API，勿改
+  emit('update:sidebar-width', val);
+}
+
 const sidebarDraggable = defineModel<boolean>('sidebarDraggable', {
   default: true,
 });
@@ -520,7 +530,7 @@ const idMainContent = ELEMENT_ID_MAIN_CONTENT;
       :width="getSidebarWidth"
       :z-index="sidebarZIndex"
       @leave="() => emit('sideMouseLeave')"
-      @update:width="(val) => emit('update:sidebar-width', val)"
+      @update:width="onUpdateSidebarWidth"
     >
       <template v-if="isSideMode && !isMixedNav" #logo>
         <slot name="logo"></slot>

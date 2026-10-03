@@ -56,12 +56,10 @@ catalog:
   '@jspm/generator': ^2.15.0
   '@manypkg/get-packages': ^3.1.0
   '@nolebase/vitepress-plugin-git-changelog': ^2.18.2
-  '@playwright/test': ^1.60.0
   '@pnpm/workspace.read-manifest': ^1000.3.1
   '@stylistic/stylelint-plugin': ^5.1.0
   '@tailwindcss/typography': ^0.5.19
   '@tailwindcss/vite': ^4.3.0
-  '@tanstack/vue-query': ^5.100.11
   '@tanstack/vue-store': ^0.11.0
   '@tiptap/core': ^3.23.5
   '@tiptap/extension-document': ^3.23.5

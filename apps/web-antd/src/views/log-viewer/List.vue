@@ -138,7 +138,7 @@ function fmtSize(bytes: number) {
   if (bytes === 0) return '0 B';
   const units = ['B', 'KB', 'MB', 'GB'];
   const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return `${(bytes / 1024 ** i).toFixed(2)} ${units[i]!}`;
+  return `${(bytes / 1024 ** i).toFixed(2)} ${units[i] ?? 'B'}`;
 }
 
 function fmtTime(v: string) {

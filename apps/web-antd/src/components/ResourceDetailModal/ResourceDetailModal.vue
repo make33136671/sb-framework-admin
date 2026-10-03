@@ -31,8 +31,9 @@ export type ResourceDetailType =
   | 'script-ep'
   | 'shot';
 
-const props = defineProps<{
-  requirement?: null | AssetRequirementItem;
+defineProps<{
+  productEpisode?: null | ProductEpisodeItem;
+  requirement?: AssetRequirementItem | null;
   scriptEpisode?: null | ScriptEpisode;
   /** 剧本集：该集展示版本号与历史版本（可回退） */
   scriptEpisodeHistory?: {
@@ -44,7 +45,6 @@ const props = defineProps<{
   }[];
   scriptEpisodeVersion?: null | string;
   shot?: null | ShotItem;
-  productEpisode?: null | ProductEpisodeItem;
   /** 当前打开的详情类型；null 表示全部关闭 */
   type: null | ResourceDetailType;
 }>();
@@ -52,9 +52,9 @@ const props = defineProps<{
 const emit = defineEmits<{
   (e: 'changed'): void;
   (e: 'close'): void;
-  (e: 'open-task', taskId: number): void;
+  (e: 'openTask', taskId: number): void;
   /** 剧本集单集回退 */
-  (e: 'revert-episode', id: number): void;
+  (e: 'revertEpisode', id: number): void;
 }>();
 </script>
 
@@ -65,7 +65,7 @@ const emit = defineEmits<{
     :shot="shot ?? null"
     @changed="emit('changed')"
     @close="emit('close')"
-    @open-task="(id) => emit('open-task', id)"
+    @open-task="(id) => emit('openTask', id)"
   />
   <ClipDetail
     v-else-if="type === 'clip'"
@@ -78,7 +78,7 @@ const emit = defineEmits<{
     :requirement="requirement ?? null"
     @changed="emit('changed')"
     @close="emit('close')"
-    @open-task="(id) => emit('open-task', id)"
+    @open-task="(id) => emit('openTask', id)"
   />
   <ProductDetail
     v-else-if="type === 'product'"
@@ -92,6 +92,6 @@ const emit = defineEmits<{
     :history="scriptEpisodeHistory ?? []"
     :version="scriptEpisodeVersion ?? null"
     @close="emit('close')"
-    @revert="(id) => emit('revert-episode', id)"
+    @revert="(id) => emit('revertEpisode', id)"
   />
 </template>

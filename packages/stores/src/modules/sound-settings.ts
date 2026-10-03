@@ -154,13 +154,11 @@ export const useSoundSettingsStore = defineStore('sound-settings', () => {
       const stored = loadFromStorage();
       if (stored) {
         settings.value = { ...settings.value, ...stored };
-        console.log('[SoundSettings] 从 localStorage 降级加载', settings.value);
       }
     }
 
     isInitialized.value = true;
     isLoading.value = false;
-    console.log('[SoundSettings] 初始化完成', settings.value);
   }
 
   /**
@@ -178,13 +176,9 @@ export const useSoundSettingsStore = defineStore('sound-settings', () => {
     }
 
     try {
-      const result = await _saveSettingsCallback(settings.value);
-      if (result) {
-        console.log('[SoundSettings] API 保存成功');
-      }
-      return result;
+      return await _saveSettingsCallback(settings.value);
     } catch {
-      console.log('[SoundSettings] API 保存失败，已降级到 localStorage');
+      console.warn('[SoundSettings] API 保存失败，已降级到 localStorage');
       return true; // localStorage 已保存，视为成功
     } finally {
       isSaving.value = false;

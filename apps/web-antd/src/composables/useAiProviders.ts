@@ -33,19 +33,19 @@ export function singleCapabilityText(bit?: null | number): string {
 /** 任务类型 → 所需能力中文名（与后端 TaskCapabilityMap 一一对应） */
 export function requiredCapabilityText(taskType: string): string {
   switch (taskType) {
+    case 'asset_extract':
     case 'rewrite':
-    case 'storyboard':
-    case 'asset_extract': {
+    case 'storyboard': {
       return capabilityText(AI_CAPABILITY.text);
     }
-    case 't2i': {
-      return capabilityText(AI_CAPABILITY.imageGen);
+    case 'concat': {
+      return '本地合并（无需模型）';
     }
     case 'i2v': {
       return capabilityText(AI_CAPABILITY.videoGen);
     }
-    case 'concat': {
-      return '本地合并（无需模型）';
+    case 't2i': {
+      return capabilityText(AI_CAPABILITY.imageGen);
     }
     default: {
       return '未知';
@@ -56,16 +56,16 @@ export function requiredCapabilityText(taskType: string): string {
 /** 任务类型 → 所需能力位掩码（与后端 TaskCapabilityMap.RequiredFor 一致） */
 export function requiredCapabilityBits(taskType: string): number {
   switch (taskType) {
+    case 'asset_extract':
     case 'rewrite':
-    case 'storyboard':
-    case 'asset_extract': {
+    case 'storyboard': {
       return AI_CAPABILITY.text;
-    }
-    case 't2i': {
-      return AI_CAPABILITY.imageGen;
     }
     case 'i2v': {
       return AI_CAPABILITY.videoGen;
+    }
+    case 't2i': {
+      return AI_CAPABILITY.imageGen;
     }
     default: {
       return 0;

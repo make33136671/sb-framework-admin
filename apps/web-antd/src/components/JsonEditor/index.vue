@@ -7,9 +7,12 @@ import { usePreferences } from '@vben/preferences';
 
 import { loader, VueMonacoEditor } from '@guolao/vue-monaco-editor';
 import * as monaco from 'monaco-editor';
-import editorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
-import jsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
-import tsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
+// oxlint-disable-next-line import/default -- Vite '?worker' 虚拟模块由打包器提供默认导出，TS 无法解析
+import EditorWorker from 'monaco-editor/esm/vs/editor/editor.worker?worker';
+// oxlint-disable-next-line import/default -- 同上
+import JsonWorker from 'monaco-editor/esm/vs/language/json/json.worker?worker';
+// oxlint-disable-next-line import/default -- 同上
+import TsWorker from 'monaco-editor/esm/vs/language/typescript/ts.worker?worker';
 
 /**
  * 通用 JSON 编辑器(Monaco 包装)。
@@ -49,12 +52,12 @@ const emit = defineEmits<{
 let __monacoConfigured = false;
 function ensureMonacoConfigured() {
   if (__monacoConfigured) return;
-  self.MonacoEnvironment = {
+  globalThis.MonacoEnvironment = {
     getWorker(_: any, label: string) {
-      if (label === 'json') return new jsonWorker();
+      if (label === 'json') return new JsonWorker();
       if (label === 'typescript' || label === 'javascript')
-        return new tsWorker();
-      return new editorWorker();
+        return new TsWorker();
+      return new EditorWorker();
     },
   };
   loader.config({ monaco });
@@ -95,8 +98,8 @@ function handleMount(editor: MonacoEditorNS.IStandaloneCodeEditor) {
   editorRef.value = editor;
 }
 
-function handleChange(value: string | undefined) {
-  const v = value ?? '';
+function handleChange(value: string = '') {
+  const v = value;
   emit('update:modelValue', v);
   emit('change', v);
 }

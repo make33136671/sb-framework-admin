@@ -30,7 +30,7 @@ export async function getMemberTree(memberId: number) {
 
 export async function getChildren(parentId?: number) {
   return api.get('/Member/Children', {
-    params: parentId == null ? {} : { parentId },
+    params: parentId === null || parentId === undefined ? {} : { parentId },
   });
 }
 

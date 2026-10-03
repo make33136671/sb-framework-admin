@@ -41,11 +41,11 @@ export const AI_CAPABILITY = {
  * 「暂无任务使用」的能力位（二期新增的 3 位目前没有任务消费者）。
  * 勾了也暂时没地方用 —— 界面必须**诚实标注**，不让用户以为勾了就生效。
  */
-const AI_CAPABILITY_UNUSED: readonly number[] = [
+const AI_CAPABILITY_UNUSED = new Set<number>([
+  AI_CAPABILITY.asr,
   AI_CAPABILITY.embedding,
   AI_CAPABILITY.tts,
-  AI_CAPABILITY.asr,
-];
+]);
 
 /**
  * 能力勾选项（前后端必须一致，共 **7** 项）。
@@ -62,7 +62,7 @@ export const AI_CAPABILITY_OPTIONS = [
   { label: '语音识别', value: AI_CAPABILITY.asr },
 ].map((o) => ({
   ...o,
-  note: AI_CAPABILITY_UNUSED.includes(o.value) ? '暂无任务使用' : '',
+  note: AI_CAPABILITY_UNUSED.has(o.value) ? '暂无任务使用' : '',
 }));
 
 /** 能力中文名（单个位值 → 文案；未命中返回空串） */
@@ -133,8 +133,8 @@ export interface AiProviderItem {
   /** 归属算力节点（null = 独立外部 API，不占卡） */
   nodeId: null | number;
   nodeName: null | string;
-  nodeOnline: null | boolean;
-  nodeSwitching: null | boolean;
+  nodeOnline: boolean | null;
+  nodeSwitching: boolean | null;
   /** 运行态：idle / busy / offline（ServiceRunStatus） */
   runStatus: string;
   /** 当前占用的任务（busy 时非空） */
@@ -155,27 +155,27 @@ export interface AiProviderAvailable {
   autoProviderId?: null | number;
   autoProviderName?: null | string;
   items: {
-    id: number;
-    /** 「提供商 / 模型名」 */
-    name: string;
-    /** 提供商的 provider_key */
-    providerType: string;
-    providerId: number;
-    providerName: string;
-    model?: null | string;
-    displayName?: null | string;
     capabilities: number;
     defaultFor: number;
+    displayName?: null | string;
+    id: number;
+    isDefaultForTask: boolean;
     isEnabled: boolean;
+    model?: null | string;
+    /** 「提供商 / 模型名」 */
+    name: string;
     nodeId: null | number;
     nodeName: null | string;
-    nodeOnline: null | boolean;
-    nodeSwitching: null | boolean;
-    runStatus: string;
+    nodeOnline: boolean | null;
+    nodeSwitching: boolean | null;
     paused: boolean;
+    providerId: number;
+    providerName: string;
+    /** 提供商的 provider_key */
+    providerType: string;
+    runStatus: string;
     /** false → 前端置灰不可选（不具备该任务所需能力） */
     selectable: boolean;
-    isDefaultForTask: boolean;
     /** 「暂不可用」原因（节点离线/切换中/熔断）；null = 可正常选 */
     unavailableReason: null | string;
   }[];

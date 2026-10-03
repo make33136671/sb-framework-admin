@@ -1,4 +1,10 @@
 <script lang="ts" setup>
+import type {
+  DiscoveryModelItem,
+  SaveModelItem,
+  TestConnectionResult,
+} from '#/api/core/aiProviderAdmin';
+
 /**
  * ModelDiscoveryPanel —— 测试连通性 + 模型/能力勾选（**核心组件**，前端设计 §2.3）
  *
@@ -42,12 +48,6 @@ import {
   Tag,
 } from 'ant-design-vue';
 
-import type {
-  DiscoveryModelItem,
-  SaveModelItem,
-  TestConnectionResult,
-} from '#/api/core/aiProviderAdmin';
-
 import { AI_CAPABILITY_OPTIONS } from '#/api/core/aiProvider';
 import {
   aiProviderAddModelManually,
@@ -60,13 +60,13 @@ import { templateWorkflowList } from '#/api/core/dramafloow';
 import { ProviderModelCapabilities } from '#/components/ProviderModelCapabilities';
 
 const props = defineProps<{
+  adapterConfig?: string;
+  apiKey?: string;
+  /** 未保存场景的临时配置 */
+  baseUrl?: string;
   /** 已保存提供商的 id；未保存时传 null（走临时配置测试） */
   providerId: null | number;
   providerKey: string;
-  /** 未保存场景的临时配置 */
-  baseUrl?: string;
-  apiKey?: string;
-  adapterConfig?: string;
   providerName?: string;
   /** 该适配器支持的能力位掩码（限制能力勾选范围） */
   supportedCapabilities?: number;

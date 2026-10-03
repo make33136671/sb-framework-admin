@@ -1,4 +1,9 @@
 <script lang="ts" setup>
+import type {
+  AssetCategoryNode,
+  AssetViewItem,
+} from '#/api/core/assetCategory';
+
 /**
  * 素材分类视图（剧目详情 → 素材标签页的默认视图）
  *
@@ -11,10 +16,10 @@
 import { computed, onMounted, ref } from 'vue';
 
 import {
+  Image as AImage,
   Button,
   Checkbox,
   Empty,
-  Image as AImage,
   Input,
   message,
   Modal,
@@ -26,11 +31,6 @@ import {
   Tag,
   Tooltip,
 } from 'ant-design-vue';
-
-import type {
-  AssetCategoryNode,
-  AssetViewItem,
-} from '#/api/core/assetCategory';
 
 import {
   assetCategoryAssign,
@@ -106,7 +106,7 @@ const subCategories = computed<AssetCategoryNode[]>(
 
 /** 收集某分类自己 + 所有后代的 id（点父分类要带上后代素材） */
 function selfAndDescendants(node: AssetCategoryNode): number[] {
-  return [node.id, ...node.children.flatMap(selfAndDescendants)];
+  return [node.id, ...node.children.flatMap((c) => selfAndDescendants(c))];
 }
 
 /** 当前筛选命中哪些分类 id；null = 不筛（全部） */
@@ -137,9 +137,9 @@ const editOpen = ref(false);
 const saving = ref(false);
 const editing = ref<{
   id?: number;
+  kind: string;
   name: string;
   parentId: number;
-  kind: string;
   sortNo: number;
 }>({ name: '', parentId: 0, kind: '', sortNo: 0 });
 
@@ -220,7 +220,7 @@ async function removeCategory(node: AssetCategoryNode, cascade = false) {
 // ─────────────────────────── 素材改分类 ───────────────────────────
 
 /** 素材 → 分类的多选（Popover 里勾选，覆盖式保存） */
-const assignTarget = ref<null | AssetViewItem>(null);
+const assignTarget = ref<AssetViewItem | null>(null);
 const assignDraft = ref<number[]>([]);
 
 function openAssign(item: AssetViewItem) {
@@ -328,9 +328,9 @@ function episodesText(eps: number[]): string {
       <div class="mt-2 flex flex-wrap items-center gap-2">
         <Button size="small" @click="openCreateTop">+ 顶层分类</Button>
         <template v-if="currentTop">
-          <Button size="small" @click="openEdit(currentTop)"
-            >编辑当前顶层</Button
-          >
+          <Button size="small" @click="openEdit(currentTop)">
+            编辑当前顶层
+          </Button>
           <Popconfirm
             title="删除该顶层分类？（其下子分类需一并确认）"
             @confirm="removeCategory(currentTop)"
@@ -467,7 +467,7 @@ function episodesText(eps: number[]): string {
             :open="assignTarget?.id === it.id"
             placement="bottom"
             trigger="click"
-            @openChange="
+            @open-change="
               (v: boolean) => (v ? openAssign(it) : (assignTarget = null))
             "
           >
@@ -482,9 +482,9 @@ function episodesText(eps: number[]): string {
                   class="flex flex-col gap-1"
                 />
                 <div class="mt-2 flex justify-end gap-2">
-                  <Button size="small" @click="assignTarget = null"
-                    >取消</Button
-                  >
+                  <Button size="small" @click="assignTarget = null">
+                    取消
+                  </Button>
                   <Button size="small" type="primary" @click="submitAssign">
                     保存
                   </Button>

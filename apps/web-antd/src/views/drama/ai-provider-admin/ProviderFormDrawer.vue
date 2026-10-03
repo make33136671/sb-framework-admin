@@ -1,4 +1,9 @@
 <script lang="ts" setup>
+import type {
+  AiAdapterType,
+  AiProviderAdminItem,
+} from '#/api/core/aiProviderAdmin';
+
 /**
  * ProviderFormDrawer —— 添加/编辑 AI 提供商（前端设计 §2.2）
  *
@@ -28,11 +33,6 @@ import {
   Tag,
 } from 'ant-design-vue';
 
-import type {
-  AiAdapterType,
-  AiProviderAdminItem,
-} from '#/api/core/aiProviderAdmin';
-
 import { AI_CAPABILITY_OPTIONS } from '#/api/core/aiProvider';
 import {
   aiProviderAdapterTypes,
@@ -40,9 +40,9 @@ import {
 } from '#/api/core/aiProviderAdmin';
 
 const props = defineProps<{
-  open: boolean;
   /** null = 新建 */
   editing: AiProviderAdminItem | null;
+  open: boolean;
 }>();
 
 const emit = defineEmits<{

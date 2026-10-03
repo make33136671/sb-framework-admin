@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { DashboardMetrics, NightReport } from '#/api/core/dramafloow';
+
 /**
  * DramaFlow 生产仪表盘（契约 §9 六指标 + NightReport + 生产线看板 + 待我决策 + AI 消耗）
  *
@@ -23,8 +25,6 @@ import {
   Tooltip,
 } from 'ant-design-vue';
 
-import type { DashboardMetrics, NightReport } from '#/api/core/dramafloow';
-
 import { dashboardMetrics, dashboardNightReport } from '#/api/core/dramafloow';
 import { TimeTag } from '#/components/TimeTag';
 import { useTaskStream } from '#/composables/useTaskStream';
@@ -35,8 +35,8 @@ import TokenUsage from './TokenUsage.vue';
 
 const stream = useTaskStream();
 
-const metrics = ref<null | DashboardMetrics>(null);
-const report = ref<null | NightReport>(null);
+const metrics = ref<DashboardMetrics | null>(null);
+const report = ref<NightReport | null>(null);
 const loading = ref(false);
 let timer: null | ReturnType<typeof setInterval> = null;
 
@@ -285,7 +285,7 @@ const reportColumns = [
                 :style="{
                   height: `${Math.max(4, (v / Math.max(1, Math.max(...(metrics?.throughput.trend ?? [1])))) * 48)}px`,
                 }"
-              />
+              ></div>
             </Tooltip>
           </div>
         </div>
@@ -317,19 +317,19 @@ const reportColumns = [
           <TimeTag :time="report.window.end" />
         </div>
         <Row :gutter="16" class="mb-4">
-          <Col :span="4"
-            ><Statistic title="提交" :value="report.submitted"
-          /></Col>
-          <Col :span="4"
-            ><Statistic title="完成" :value="report.completed"
-          /></Col>
+          <Col :span="4">
+            <Statistic title="提交" :value="report.submitted" />
+          </Col>
+          <Col :span="4">
+            <Statistic title="完成" :value="report.completed" />
+          </Col>
           <Col :span="4"><Statistic title="失败" :value="report.failed" /></Col>
-          <Col :span="4"
-            ><Statistic title="驳回" :value="report.rejected"
-          /></Col>
-          <Col :span="4"
-            ><Statistic title="任务数" :value="report.taskCount"
-          /></Col>
+          <Col :span="4">
+            <Statistic title="驳回" :value="report.rejected" />
+          </Col>
+          <Col :span="4">
+            <Statistic title="任务数" :value="report.taskCount" />
+          </Col>
           <Col :span="4">
             <div class="text-sm text-muted-foreground">耗时（分钟）</div>
             <div class="text-xs">

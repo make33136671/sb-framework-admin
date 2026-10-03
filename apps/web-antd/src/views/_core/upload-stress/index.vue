@@ -13,13 +13,6 @@ const single = ref<string>('');
 const multi = ref<string[]>([]);
 /** SmartUpload 多文件（按阈值自动选） */
 const smart = ref<string[]>([]);
-
-/**
- * 把 change 事件结果打到 console，便于观察 v-model 同步
- */
-function logChange(label: string, d: any) {
-  console.log(`[${label}] change`, d);
-}
 </script>
 
 <template>
@@ -50,29 +43,17 @@ function logChange(label: string, d: any) {
           gap: '12px',
         }"
       >
-        <DirectUpload
-          type="image"
-          v-model:value="single"
-          @change="(d: any) => logChange('direct-img', d)"
-        />
+        <DirectUpload type="image" v-model:value="single" />
         <pre style="margin: 0; font-size: 11px">v-model: {{ single }}</pre>
       </Card>
       <Card title="ChunkUpload 多文件" size="small">
-        <ChunkUpload
-          type="files"
-          v-model:value="multi"
-          @change="(d: any) => logChange('chunk-files', d)"
-        />
+        <ChunkUpload type="files" v-model:value="multi" />
         <pre style="margin-top: 12px; font-size: 11px">
 v-model: {{ multi }}</pre
         >
       </Card>
       <Card title="SmartUpload 自动" size="small">
-        <SmartUpload
-          type="files"
-          v-model:value="smart"
-          @change="(d: any) => logChange('smart-files', d)"
-        />
+        <SmartUpload type="files" v-model:value="smart" />
         <pre style="margin-top: 12px; font-size: 11px">
 v-model: {{ smart }}</pre
         >

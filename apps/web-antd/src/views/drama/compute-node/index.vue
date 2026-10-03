@@ -1,4 +1,9 @@
 <script lang="ts" setup>
+import type {
+  ComputeNodeItem,
+  ComputeNodeStatusView,
+} from '#/api/core/computeNode';
+
 /**
  * 算力节点管理（P2）
  *
@@ -36,13 +41,6 @@ import {
   Tooltip,
 } from 'ant-design-vue';
 
-import { TimeTag } from '#/components/TimeTag';
-
-import type {
-  ComputeNodeItem,
-  ComputeNodeStatusView,
-} from '#/api/core/computeNode';
-
 import {
   computeNodeDelete,
   computeNodeList,
@@ -50,9 +48,10 @@ import {
   computeNodeSetEnabled,
   computeNodeStatus,
   isPhase2NodeType,
-  NODE_TYPES,
   NODE_TYPE_TEXT,
+  NODE_TYPES,
 } from '#/api/core/computeNode';
+import { TimeTag } from '#/components/TimeTag';
 
 // ─────────────────────────── 列表 ───────────────────────────
 

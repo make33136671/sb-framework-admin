@@ -23,7 +23,7 @@ export const permissionDirective: Directive = {
 
     if (!hasPermission) {
       // 移除元素
-      el.parentNode?.removeChild(el);
+      el.remove();
     }
   },
 };

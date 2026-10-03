@@ -49,6 +49,7 @@ const props = withDefaults(defineProps<Props>(), {
   centerText: 'none',
   size: 'middle',
   color: 'hsl(var(--primary))',
+  trackColor: '',
   expiredColor: 'hsl(var(--destructive))',
   notStartedText: '未开始',
   infiniteText: '运行中',
@@ -68,7 +69,7 @@ const emit = defineEmits<{
 function parseTime(
   v: Date | null | number | string | undefined,
 ): null | number {
-  if (v == null) return null;
+  if (v === null || v === undefined) return null;
   if (v instanceof Date) return v.getTime();
   if (typeof v === 'number') return v;
   if (typeof v === 'string') {
@@ -116,7 +117,8 @@ type Status = 'expired' | 'infinite' | 'not-started' | 'running';
 const status = computed<Status>(() => {
   if (isInfinite.value) return 'infinite';
   if (now.value < start.value) return 'not-started';
-  if (now.value >= end.value!) return 'expired';
+  const endAt = end.value;
+  if (endAt !== null && now.value >= endAt) return 'expired';
   return 'running';
 });
 
@@ -125,7 +127,9 @@ const elapsedPercent = computed<number>(() => {
   if (status.value === 'not-started') return 0;
   if (status.value === 'expired') return 100;
   if (status.value === 'infinite') return 0; // 不参与百分比计算
-  const total = end.value! - start.value;
+  const endAt = end.value;
+  if (endAt === null) return 0;
+  const total = endAt - start.value;
   if (total <= 0) return 100;
   return Math.min(100, Math.max(0, ((now.value - start.value) / total) * 100));
 });
@@ -167,12 +171,14 @@ const remainingText = computed(() => {
   if (status.value === 'not-started') return props.notStartedText;
   if (status.value === 'expired') return props.expiredText;
   if (status.value === 'infinite') return props.infiniteText;
-  return fmtRemaining(end.value! - now.value);
+  const endAt = end.value;
+  if (endAt === null) return props.infiniteText;
+  return fmtRemaining(endAt - now.value);
 });
 
 // === 到期时间格式化 (按本地时区显示) ===
 function fmtExpires(ts: null | number): string {
-  if (ts == null) return '—';
+  if (ts === null || ts === undefined) return '—';
   const d = new Date(ts);
   if (Number.isNaN(d.getTime())) return '—';
   const pad = (n: number) => String(n).padStart(2, '0');
@@ -190,7 +196,9 @@ const centerContent = computed(() => {
   if (props.centerText === 'percent') {
     return `${Math.round(elapsedPercent.value)}%`;
   }
-  return fmtRemaining(end.value! - now.value);
+  const endAt = end.value;
+  if (endAt === null) return props.infiniteText;
+  return fmtRemaining(endAt - now.value);
 });
 
 // === 尺寸 ===

@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { ShotItem } from '#/api/core/dramafloow';
+
 /**
  * 片段详情（弹窗内容）：分镜 i2v 产物 —— 视频播放 + 时长 + 失效错误
  *
@@ -8,8 +10,6 @@
 import { computed, ref } from 'vue';
 
 import { Button, Descriptions, Modal, Tag } from 'ant-design-vue';
-
-import type { ShotItem } from '#/api/core/dramafloow';
 
 import { shotStaleReplay } from '#/api/core/dramafloow';
 import { TimeTag } from '#/components/TimeTag';
@@ -79,7 +79,7 @@ async function replay() {
         <span class="text-xs text-muted-foreground">
           分镜状态 {{ shot.status }}
         </span>
-        <div class="flex-1" />
+        <div class="flex-1"></div>
         <Button
           v-if="shot.status === 'stale'"
           :loading="replaying"
@@ -97,7 +97,7 @@ async function replay() {
           controls
           preload="metadata"
           :src="clipUrl"
-        />
+        ></video>
       </div>
       <div
         v-else

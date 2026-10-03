@@ -32,9 +32,12 @@ export async function editClient(data: {
 }) {
   const query = new URLSearchParams();
   query.set('id', String(data.id));
-  if (data.name != null) query.set('name', data.name);
-  if (data.remark != null) query.set('remark', data.remark);
-  if (data.status != null) query.set('status', String(data.status));
+  if (data.name !== null && data.name !== undefined)
+    query.set('name', data.name);
+  if (data.remark !== null && data.remark !== undefined)
+    query.set('remark', data.remark);
+  if (data.status !== null && data.status !== undefined)
+    query.set('status', String(data.status));
   return api.post(`/Entitlement/ClientEdit?${query.toString()}`, {});
 }
 
@@ -138,7 +141,8 @@ export async function quickGenerate(data: {
 }) {
   // QuickGenerate 用 [FromBody] JSON 接收, 绕开默认 api 客户端的 form-urlencoded Content-Type
   const baseURL = import.meta.env.VITE_GLOB_API_URL || '/admin';
-  const token = (await import('@vben/stores')).useAccessStore().accessToken;
+  const { useAccessStore } = await import('@vben/stores');
+  const token = useAccessStore().accessToken;
   const res = await fetch(`${baseURL}/Entitlement/QuickGenerate`, {
     method: 'POST',
     headers: {

@@ -1,6 +1,8 @@
 <script lang="ts" setup>
 import type { UploadProps } from 'ant-design-vue';
 
+import type { AppSettingsHistoryItem } from './api';
+
 import {
   computed,
   nextTick,
@@ -37,7 +39,6 @@ import { JsonFieldEditor } from '#/components/JsonFieldEditor';
 import { RestartWaiter } from '#/components/RestartWaiter';
 
 import {
-  type AppSettingsHistoryItem,
   diffAppSettings,
   downloadAppSettingsUrl,
   getAppInfo,

@@ -1,4 +1,6 @@
 <script lang="ts" setup>
+import type { TaskItem, TaskTokenSummary } from '#/api/core/dramafloow';
+
 /**
  * C 区：生产线看板（设计文档 §C）
  *
@@ -10,7 +12,6 @@
  * 失败行可直接 Retry / Cancel，不必跳页（设计原则 §1「一行一动作」）。
  */
 import { computed, onMounted, onUnmounted, ref } from 'vue';
-
 import { useRouter } from 'vue-router';
 
 import {
@@ -25,8 +26,6 @@ import {
   Tooltip,
 } from 'ant-design-vue';
 
-import type { TaskItem, TaskTokenSummary } from '#/api/core/dramafloow';
-
 import {
   taskCancel,
   taskList,
@@ -34,12 +33,12 @@ import {
   taskStats,
 } from '#/api/core/dramafloow';
 import { RunningTaskList } from '#/components/RunningTaskList';
+import { TaskDrawer } from '#/components/TaskDrawer';
 import {
   elapsedSecondsOf,
   formatElapsed,
   formatTokens,
 } from '#/components/TaskDrawer/taskDisplay';
-import { TaskDrawer } from '#/components/TaskDrawer';
 import {
   TASK_STATUS_TEXT,
   TASK_TYPE_TEXT,
@@ -63,7 +62,7 @@ const tasks = ref<TaskItem[]>([]);
 const loading = ref(false);
 const lineFilter = ref<string>('all');
 const viewFilter = ref<string>('active');
-const acting = ref<number | null>(null);
+const acting = ref<null | number>(null);
 /** 子任务详情抽屉：null = 关闭 */
 const taskId = ref<null | number>(null);
 
@@ -132,8 +131,8 @@ const merged = computed<TaskItem[]>(() => {
 });
 
 /** 心跳超时：heartbeat_at 落后 > 2× 间隔（10s）→ 疑似卡住（崩溃恢复的早期信号） */
-function isStuck(t: TaskItem | Record<string, any>): boolean {
-  if (!['preparing', 'generating', 'collecting'].includes(t.status)) {
+function isStuck(t: Record<string, any> | TaskItem): boolean {
+  if (!['collecting', 'generating', 'preparing'].includes(t.status)) {
     return false;
   }
   const hb = t.heartbeatAt ?? t.updatedAt;
@@ -149,7 +148,7 @@ const filtered = computed(() => {
   switch (viewFilter.value) {
     case 'active': {
       list = list.filter(
-        (t) => !['done', 'approved', 'rejected', 'failed'].includes(t.status),
+        (t) => !['approved', 'done', 'failed', 'rejected'].includes(t.status),
       );
       break;
     }
@@ -176,7 +175,7 @@ const lineStats = computed(() =>
       ...l,
       total: ofLine.length,
       inFlight: ofLine.filter((t) =>
-        ['preparing', 'generating', 'collecting'].includes(t.status),
+        ['collecting', 'generating', 'preparing'].includes(t.status),
       ).length,
       queued: ofLine.filter((t) => t.status === 'queued').length,
       pendingReview: ofLine.filter((t) => t.status === 'pending_review').length,
@@ -188,7 +187,7 @@ const lineStats = computed(() =>
 const lineLabel = (type: string): string =>
   LINES.find((l) => l.type === type)?.label ?? type;
 
-async function retry(t: TaskItem | Record<string, any>) {
+async function retry(t: Record<string, any> | TaskItem) {
   acting.value = t.id;
   try {
     await taskRetry(t.id);
@@ -200,7 +199,7 @@ async function retry(t: TaskItem | Record<string, any>) {
   }
 }
 
-async function cancel(t: TaskItem | Record<string, any>) {
+async function cancel(t: Record<string, any> | TaskItem) {
   acting.value = t.id;
   try {
     await taskCancel(t.id);
@@ -218,7 +217,7 @@ function openDrama(dramaId: number) {
 }
 
 /** 该任务已耗时：在飞走字，结束固定（后端不返回 total，前端按 started_at/finished_at 算） */
-function elapsedText(t: TaskItem | Record<string, any>): string {
+function elapsedText(t: Record<string, any> | TaskItem): string {
   const sec = elapsedSecondsOf(t, nowTick.value);
   return sec === null ? '-' : formatElapsed(0, sec);
 }
@@ -231,11 +230,11 @@ function typeText(type?: string): string {
 }
 
 /** 该任务的 token 汇总（看板只统计未终态任务，见 Task/Stats） */
-function tokensOf(t: TaskItem | Record<string, any>): null | TaskTokenSummary {
+function tokensOf(t: Record<string, any> | TaskItem): null | TaskTokenSummary {
   return tokensByTask.value[t.id] ?? null;
 }
 
-function tokensTip(t: TaskItem | Record<string, any>): string {
+function tokensTip(t: Record<string, any> | TaskItem): string {
   const s = tokensOf(t);
   if (!s) return '暂无 LLM 调用记录（该线路不消耗 token，或数据未归集）';
   const lines = [
