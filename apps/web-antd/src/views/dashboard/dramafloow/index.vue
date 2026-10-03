@@ -2,7 +2,8 @@
 import type { DashboardMetrics, NightReport } from '#/api/core/dramafloow';
 
 /**
- * DramaFlow 生产仪表盘（契约 §9 六指标 + NightReport + 生产线看板 + 待我决策 + AI 消耗）
+ * DramaFlow 生产台（原「生产仪表盘」，2026-10-03 并入框架「仪表盘」成为其第一个子页；
+ * 契约 §9 六指标 + NightReport + 生产线看板 + 待我决策 + AI 消耗）
  *
  * 设计文档 §2 六区：
  *   A 实时健康与背压条（WS）/ B 六指标卡 / C 生产线看板 / D 待我决策 / E AI 消耗 / F 昨夜批产报告
