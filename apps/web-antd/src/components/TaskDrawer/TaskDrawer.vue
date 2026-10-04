@@ -252,6 +252,7 @@ const pProviderId = ref<number | undefined>(undefined);
  *  只提供常用档位，具体出多大受**模型与提示词**影响 —— 换模型后哪些档位效果好会变，
  *  故不在此写死"推荐值"，由使用者按当前模型自行选择。 */
 const SIZE_PRESETS = [
+  { label: '320×320 小图（快速试参）', value: '320x320' },
   { label: '1024×1024 方形', value: '1024x1024' },
   { label: '768×1344 竖屏 9:16', value: '768x1344' },
   { label: '832×1216 竖屏 2:3', value: '832x1216' },

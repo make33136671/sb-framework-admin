@@ -70,8 +70,8 @@ const form = reactive({
   /** 显式覆盖反向 */
   negativePrompt: '',
   candidateCount: 3,
-  width: 1024,
-  height: 1024,
+  width: 320,
+  height: 320,
   seed: undefined as string | undefined,
   providerId: undefined as number | undefined,
 });
@@ -106,13 +106,16 @@ const dramaStyle = ref<{ negative: null | string; positive: null | string }>({
 });
 
 const sceneOptions = [
+  // 320×320 放在最前并设为默认（用户 2026-10-04 要求）：
+  // 小尺寸出图快、省显存，适合调提示词/试种子的迭代阶段
+  { label: '小图 320×320（默认）', value: '320x320' },
   { label: '正方形 1024×1024', value: '1024x1024' },
   { label: '竖版 768×1344（全身立姿）', value: '768x1344' },
   { label: '横版 1344×768（场景）', value: '1344x768' },
   { label: '自定义', value: 'custom' },
 ];
 
-const sceneKey = ref('1024x1024');
+const sceneKey = ref('320x320');
 
 watch(sceneKey, (k) => {
   if (k === 'custom') return;
