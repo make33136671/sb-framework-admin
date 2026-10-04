@@ -26,7 +26,9 @@ import {
   message,
   Popconfirm,
   Progress,
+  Select,
   Space,
+  Switch,
   Table,
   Tag,
 } from 'ant-design-vue';
@@ -38,11 +40,12 @@ import {
   taskRegenerate,
   taskUpdate,
 } from '#/api/core/dramafloow';
+import { AiProviderSelect } from '#/components/AiProviderSelect';
 import { TaskRouteBadge } from '#/components/TaskRouteBadge';
 import { TimeTag } from '#/components/TimeTag';
 import { requiredCapabilityText } from '#/composables/useAiProviders';
 import { enumText } from '#/composables/useEnumText';
-import { taskStatusColor } from '#/composables/useTaskStream';
+import { taskStatusColor, useTaskStream } from '#/composables/useTaskStream';
 import { wallNow } from '#/utils/wallTime';
 
 import {
@@ -120,14 +123,93 @@ async function load(id: number) {
   }
 }
 
+// ─────────────────────── 执行中实时刷新（用户诉求）───────────────────────
+// 用户原话：「如果任务执行中 虽然显示等待图 但实际上这个页面是需要刷新的
+//          即使图片生成完了也不会立即显示」。
+//
+// 根因：抽屉只在 taskId 变化时 load() 一次，**不订阅自己这个任务的 WS topic** ——
+// 而 WS（useTaskStream）其实一直在推 task:<id> 事件（编排器每次落状态都会推）。
+// 修法两条腿（缺一不可）：
+//   ① WS 订阅 task:<id>：事件到达即重拉详情 → 图出来**立刻**可见（主路径）；
+//   ② 兜底轮询：WS 断线/未连上时，任务在跑期间每 5s 拉一次（保证"最终会显示"）。
+// 只在「仍在推进」时轮询；任务定型后立即停止，不会空转打接口。
+
+/** 静默重拉：不置 loading，避免每次刷新都把内容区闪成骨架 */
+async function refreshQuietly(id: number) {
+  try {
+    detail.value = await taskGet(id);
+  } catch {
+    // 静默失败：下一轮再试（不打扰用户）
+  }
+}
+
+const stream = useTaskStream();
+let pollTimer: null | ReturnType<typeof setInterval> = null;
+
+/** 任务定型（不再推进）→ 停止轮询 */
+function stopPolling() {
+  if (pollTimer) {
+    clearInterval(pollTimer);
+    pollTimer = null;
+  }
+}
+
+function ensurePolling(id: number) {
+  stopPolling();
+  // WS 已连上时仍保留轮询：WS 只推「状态/进度」变化，产物的 file_path 落库
+  // 与状态更新之间存在极短窗口，轮询能兜住这个窗口（成本可忽略：每 5s 一次）。
+  pollTimer = setInterval(() => {
+    if (!open.value || !isLive.value) {
+      stopPolling();
+      return;
+    }
+    void refreshQuietly(id);
+  }, 5000);
+}
+
 watch(
   () => props.taskId,
   (id) => {
     open.value = id !== null;
-    if (id !== null) void load(id);
+    stopPolling();
+    if (id === null) {
+      // 关闭时退订，避免无谓的事件与内存占用
+      if (subscribedId !== null) {
+        stream.unsubscribeTask(subscribedId);
+        subscribedId = null;
+      }
+      return;
+    }
+    void load(id);
+    // 订阅本任务的实时事件（重开时先退订上一个）
+    if (subscribedId !== null) stream.unsubscribeTask(subscribedId);
+    stream.subscribeTask(id);
+    subscribedId = id;
+    ensurePolling(id);
   },
   { immediate: true },
 );
+
+/** 当前已订阅的 task topic（避免重复订阅/漏退订） */
+let subscribedId: null | number = null;
+
+// WS 事件到达 → 静默重拉。**监听整个 taskMap**：只要本任务有任意事件就刷新，
+// 不做细粒度 diff —— 详情是一个整体，局部更新容易漏字段（进度/产物/日志）。
+watch(
+  () => (props.taskId === null ? null : stream.taskMap.value[props.taskId]),
+  (e) => {
+    if (!e || !open.value) return;
+    void refreshQuietly(e.id);
+  },
+);
+
+onUnmounted(() => {
+  stopPolling();
+  if (subscribedId !== null) {
+    stream.unsubscribeTask(subscribedId);
+    subscribedId = null;
+  }
+});
 
 /** 任务是否已结束（结束后才允许删除） */
 const isFinished = computed(() => {
@@ -148,11 +230,94 @@ const stuck = computed(() => {
   return Date.now() - new Date(hb).getTime() > 20_000;
 });
 
+// ─────────────────── 提交式重新生成（用户诉求）───────────────────
+// 用户原话：「这里只有 一个重新生成 但我想要的是**任务提交形式**的：改完关键词
+//          和生成几张图 这些参数 提交任务再去生成。我还想加入 一些更详细的参数
+//          例如分辨率 高宽这些」。
+//
+// 形态：把这些参数收进一个可折叠表单，填完点「提交生成」→ 开**新版本任务**
+// （历史版本与产物保留），参数随任务落库（OptionsJson）由编排器读取。
+
+/** 参数面板展开态（默认收起，不干扰"只想重跑一次"的常用路径） */
+const showParams = ref(false);
+const pCandidateCount = ref<number | undefined>(undefined);
+const pWidth = ref<number | undefined>(1024);
+const pHeight = ref<number | undefined>(1024);
+const pUsePrompt = ref(false);
+const pPrompt = ref('');
+const pNegative = ref('');
+const pProviderId = ref<number | undefined>(undefined);
+
+/** 分辨率预设（对齐 64 的倍数；覆盖常见竖屏短剧比例） */
+const SIZE_PRESETS = [
+  { label: '1024×1024 方形', value: '1024x1024' },
+  { label: '768×1344 竖屏 9:16', value: '768x1344' },
+  { label: '832×1216 竖屏 2:3', value: '832x1216' },
+  { label: '1216×832 横屏 3:2', value: '1216x832' },
+  { label: '1344×768 横屏 16:9', value: '1344x768' },
+  { label: '512×512 快速预览', value: '512x512' },
+];
+
+const sizePreset = computed({
+  get: () => {
+    const hit = SIZE_PRESETS.find(
+      (p) => p.value === `${pWidth.value}x${pHeight.value}`,
+    );
+    return hit ? hit.value : 'custom';
+  },
+  set: (v: string) => {
+    const [w, h] = v.split('x').map(Number);
+    if (w && h) {
+      pWidth.value = w;
+      pHeight.value = h;
+    }
+  },
+});
+
+/** 参数是否有改动（决定按钮文案与是否提示"将按新参数生成"） */
+const paramsDirty = computed(
+  () =>
+    pCandidateCount.value !== undefined ||
+    pProviderId.value !== undefined ||
+    (pUsePrompt.value && pPrompt.value.trim() !== '') ||
+    pNegative.value.trim() !== '',
+);
+
+/** 把表单归一成请求参数：**未填的一律不传**，让后端走"回落旧行为" */
+function buildParams() {
+  if (!paramsDirty.value) return undefined;
+  return {
+    candidateCount: pCandidateCount.value,
+    width: pWidth.value,
+    height: pHeight.value,
+    promptOverride: pUsePrompt.value ? pPrompt.value.trim() : undefined,
+    negativePrompt: pNegative.value.trim() || undefined,
+    providerId: pProviderId.value,
+  };
+}
+
 async function doRegenerate() {
-  if (!detail.value) return;
+  const d = detail.value;
+  if (!d) return;
+  // 参数面板开着但用户勾了"自定义提示词"却没写内容 → 提前拦下，
+  // 否则会静默回到 LLM 生成，与用户预期不符（他以为用的是自己写的）
+  if (pUsePrompt.value && !pPrompt.value.trim()) {
+    message.warning('已勾选「自定义提示词」，但内容为空（留空将改用 AI 生成）');
+    return;
+  }
   acting.value = true;
   try {
-    await taskRegenerate(detail.value.id);
+    const r = await taskRegenerate(d.id, undefined, buildParams());
+    // 回显**后端钳制/对齐后的真实值**：用户设 700 实际生效 704，
+    // 不说清楚他会以为"设置了没生效"（这是本项目常见的困惑来源）
+    const a = r?.applied;
+    if (a && (a.width || a.candidateCount)) {
+      const bits: string[] = [];
+      if (a.candidateCount) bits.push(`${a.candidateCount} 张`);
+      if (a.width && a.height) bits.push(`${a.width}×${a.height}`);
+      if (a.hasPromptOverride) bits.push('自定义提示词');
+      message.success(`已提交：${bits.join(' · ')}（任务 #${r.taskId}）`);
+    }
     emit('changed');
     emit('close');
   } finally {
@@ -258,13 +423,21 @@ const jobColumns = [
         </span>
         <div class="flex-1"></div>
         <Space>
+          <!-- 提交式生成：展开可改提示词/张数/分辨率/模型（默认收起） -->
+          <Button
+            v-if="detail.type === 't2i'"
+            size="small"
+            @click="showParams = !showParams"
+          >
+            {{ showParams ? '收起参数' : '参数…' }}
+          </Button>
           <Button
             size="small"
             type="primary"
             :loading="acting"
             @click="doRegenerate"
           >
-            重新生成
+            {{ paramsDirty ? '提交生成' : '重新生成' }}
           </Button>
           <Button
             v-if="!isFinished"
@@ -284,6 +457,102 @@ const jobColumns = [
             <Button size="small" danger :loading="acting">删除</Button>
           </Popconfirm>
         </Space>
+      </div>
+
+      <!-- 提交式参数表单（用户诉求：改关键词/张数/分辨率后「提交任务再去生成」） -->
+      <div
+        v-if="showParams && detail.type === 't2i'"
+        class="mb-4 rounded-md border border-border p-3"
+      >
+        <div class="mb-2 text-sm font-medium">
+          提交生成参数
+          <span class="ml-1 text-xs font-normal text-muted-foreground">
+            留空 = 沿用原参数（AI 生成提示词 / 系统默认张数与尺寸）
+          </span>
+        </div>
+
+        <div class="mb-3 flex flex-wrap items-center gap-3">
+          <span class="text-xs text-muted-foreground">生成张数</span>
+          <InputNumber
+            v-model:value="pCandidateCount"
+            :max="8"
+            :min="1"
+            placeholder="默认 3"
+            size="small"
+            style="width: 110px"
+          />
+          <span class="text-xs text-muted-foreground">1–8 张</span>
+
+          <span class="ml-2 text-xs text-muted-foreground">分辨率</span>
+          <Select
+            v-model:value="sizePreset"
+            :options="[...SIZE_PRESETS, { label: '自定义…', value: 'custom' }]"
+            size="small"
+            style="width: 200px"
+          />
+          <InputNumber
+            v-model:value="pWidth"
+            :max="2048"
+            :min="256"
+            :step="64"
+            size="small"
+            style="width: 100px"
+          />
+          <span class="text-xs">×</span>
+          <InputNumber
+            v-model:value="pHeight"
+            :max="2048"
+            :min="256"
+            :step="64"
+            size="small"
+            style="width: 100px"
+          />
+          <span class="text-xs text-muted-foreground">
+            256–2048，自动对齐 64 的倍数
+          </span>
+        </div>
+
+        <div class="mb-3 flex flex-wrap items-center gap-3">
+          <span class="text-xs text-muted-foreground">执行模型</span>
+          <!-- 复用既有选择器（按 taskType 过滤出具备该能力的模型，避免选到不能出图的线路） -->
+          <AiProviderSelect
+            v-model:value="pProviderId"
+            :disabled="acting"
+            task-type="t2i"
+          />
+        </div>
+
+        <div class="mb-3">
+          <div class="mb-1 flex items-center gap-2">
+            <Switch v-model:checked="pUsePrompt" size="small" />
+            <span class="text-xs text-muted-foreground">
+              自定义提示词（开启后**不再调用 AI 生成**，直接用你写的；多张仅
+              seed 不同）
+            </span>
+          </div>
+          <Input.TextArea
+            v-model:value="pPrompt"
+            :disabled="!pUsePrompt"
+            :rows="3"
+            placeholder="例如：an adult woman in a Regency gown, standing in a garden, soft natural light, painterly illustration"
+          />
+        </div>
+
+        <div>
+          <div class="mb-1 text-xs text-muted-foreground">
+            负面提示词（可选；工作流有 negative 占位符时生效）
+          </div>
+          <Input
+            v-model:value="pNegative"
+            placeholder="例如：blurry, extra fingers, watermark"
+            size="small"
+          />
+        </div>
+
+        <div v-if="paramsDirty" class="mt-2 text-xs text-muted-foreground">
+          提交后将**新开一个版本**（v{{ (detail.version ?? 0) + 1 }}），
+          历史版本与产物保留。
+        </div>
       </div>
 
       <Progress

@@ -893,10 +893,45 @@ export async function taskCancel(id: number) {
 }
 
 /** 重新生成：任意状态都可再跑一版（开新版本、保留历史），用于"结果不满意，重做" */
-export async function taskRegenerate(id: number, note?: string) {
-  return api.post<{ taskId: number; version: number }>('/Task/Regenerate', {
+/**
+ * 提交式重新生成（用户诉求：「任务提交形式的 —— 改完关键词和生成几张图这些参数，
+ * 提交任务再去生成」，并要「分辨率、高宽」等更细参数）。
+ *
+ * 所有参数都是**可选**的：不传即完全等价于旧的「重新生成」
+ * （回落全局 candidate_count 与默认 1024×1024）。
+ *
+ * 后端会 **钳制** 参数（张数 1–8、宽高 256–2048）并 **对齐到 64 的倍数**，
+ * 返回的 `applied` 是**真实生效值** —— 界面必须回显它，而不是用户填的原值，
+ * 否则「设了 700 实际 704」会让用户以为设置没生效。
+ */
+export async function taskRegenerate(
+  id: number,
+  note?: string,
+  params?: {
+    candidateCount?: null | number;
+    height?: null | number;
+    negativePrompt?: null | string;
+    priority?: number;
+    promptOverride?: null | string;
+    providerId?: null | number;
+    seed?: null | number;
+    width?: null | number;
+  },
+) {
+  return api.post<{
+    /** 后端钳制/对齐后的**真实生效值** */
+    applied?: {
+      candidateCount?: null | number;
+      hasPromptOverride?: boolean;
+      height?: null | number;
+      width?: null | number;
+    };
+    taskId: number;
+    version: number;
+  }>('/Task/Regenerate', {
     id,
     note,
+    ...params,
   });
 }
 
