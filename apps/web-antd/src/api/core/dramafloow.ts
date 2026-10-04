@@ -814,6 +814,21 @@ export async function assetRequirementSave(data: {
   return api.post<{ id: number }>('/Asset/RequirementSave', data);
 }
 
+/**
+ * 为已有角色补齐「视图/机位」需求（存量数据迁移）。
+ *
+ * 背景：视图拆分在**素材提取**时生效，所以已提取过的角色不会自动获得视图结构。
+ * 不补齐的话，现网角色依旧是"只有特写、没有全身" —— 而下游全景镜头需要全身参考。
+ * 只建档、不触发出图（由用户决定给哪些角色生成，避免一次性占满 GPU）。
+ * 幂等：重复调用只补缺，不产生重复行。
+ */
+export async function assetBackfillCharacterViews(dramaId: number) {
+  return api.post<{ characters: number; created: number; skipped: number }>(
+    '/Asset/BackfillCharacterViews',
+    { dramaId },
+  );
+}
+
 export async function assetCandidateList(requirementId: number) {
   return api.get<AssetCandidateItem[]>('/Asset/CandidateList', {
     params: { requirementId },

@@ -41,6 +41,7 @@ import {
 } from 'ant-design-vue';
 
 import {
+  assetBackfillCharacterViews,
   assetExtractStart,
   assetGenerate,
   assetRequirementList,
@@ -74,6 +75,7 @@ import { TaskDrawer } from '#/components/TaskDrawer';
 import { episodeTitle } from '#/components/TaskDrawer/taskDisplay';
 import { TimeTag } from '#/components/TimeTag';
 import { defaultRewriteOptions } from '#/composables/rewriteOptions';
+import { enumText } from '#/composables/useEnumText';
 import { useTaskStream } from '#/composables/useTaskStream';
 
 // 路由由后端菜单动态生成，视图不接收 props：从 query 取 id（沿用 member/Form.vue 约定）
@@ -496,6 +498,27 @@ async function extractAssets() {
   await loadAll();
 }
 
+/** 补齐角色视图（存量数据迁移）：
+ *  视图拆分只在「素材提取」时生效，故已提取过的角色需要这个入口补上
+ *  全身/侧脸/背面/A-pose 等视图需求。只建档、不触发出图（用户自己决定给谁生成）。 */
+const backfillingViews = ref(false);
+async function backfillViews() {
+  backfillingViews.value = true;
+  try {
+    const res = await assetBackfillCharacterViews(dramaId.value);
+    if (res.created > 0) {
+      message.success(
+        `已为 ${res.characters} 个角色补齐 ${res.created} 个视图需求（未自动出图，可在素材里逐个生成）`,
+      );
+    } else {
+      message.info('所有角色的视图需求都已齐全');
+    }
+    await loadAll();
+  } finally {
+    backfillingViews.value = false;
+  }
+}
+
 async function replayShot(row: ShotItem) {
   await shotStaleReplay(row.id, i2vProviderId.value);
   await loadAll();
@@ -618,10 +641,7 @@ const productColumns = [
 
 /** 素材种类中文名（角色 / 场景 / 道具） */
 function kindText(kind: string): string {
-  if (kind === 'character') return '角色';
-  if (kind === 'scene') return '场景';
-  if (kind === 'prop') return '道具';
-  return kind;
+  return enumText.assetKind(kind);
 }
 
 function shotStatusColor(s: string): string {
@@ -644,7 +664,9 @@ function reqStatusColor(s: string): string {
     <template #extra>
       <Space>
         <Tag>{{ detail?.drama.code }}</Tag>
-        <Tag color="processing">{{ detail?.drama.status }}</Tag>
+        <Tag color="processing">
+          {{ enumText.dramaStatus(detail?.drama.status) }}
+        </Tag>
       </Space>
     </template>
 
@@ -788,7 +810,7 @@ function reqStatusColor(s: string): string {
                         color="processing"
                         class="!mr-0"
                       >
-                        {{ record.clip.status }}
+                        {{ enumText.clipStatus(record.clip.status) }}
                       </Tag>
                       <span v-else class="text-xs text-muted-foreground"
                         >未生成</span
@@ -1028,6 +1050,16 @@ function reqStatusColor(s: string): string {
             <Button size="small" type="primary" @click="extractAssets">
               素材提取（角色 / 道具 / 场景）
             </Button>
+            <!-- 存量角色补齐视图：视图拆分只在「素材提取」时生效，
+                 已提取过的角色需用这个入口补上（全身/侧脸/A-pose 等）。幂等。 -->
+            <Button
+              :loading="backfillingViews"
+              size="small"
+              title="为已有角色补齐 正脸/侧脸/全身/背面/手臂张开 等视图需求（只建档，不自动出图）"
+              @click="backfillViews"
+            >
+              补齐角色视图
+            </Button>
             <AiProviderSelect
               v-model:value="extractProviderId"
               task-type="asset_extract"
@@ -1093,7 +1125,7 @@ function reqStatusColor(s: string): string {
                 </template>
                 <template v-else-if="column.key === 'status'">
                   <Tag :color="reqStatusColor(record.status)" class="!mr-0">
-                    {{ record.status }}
+                    {{ enumText.requirementStatus(record.status) }}
                   </Tag>
                 </template>
                 <template v-else-if="column.key === 'action'">
@@ -1144,7 +1176,7 @@ function reqStatusColor(s: string): string {
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'status'">
                 <Tag :color="shotStatusColor(record.status)" class="!mr-0">
-                  {{ record.status }}
+                  {{ enumText.shotStatus(record.status) }}
                 </Tag>
               </template>
               <template v-else-if="column.key === 'action'">
@@ -1186,7 +1218,7 @@ function reqStatusColor(s: string): string {
               <template #bodyCell="{ column, record }">
                 <template v-if="column.key === 'status'">
                   <Tag :color="shotStatusColor(record.status)" class="!mr-0">
-                    {{ record.status }}
+                    {{ enumText.shotStatus(record.status) }}
                   </Tag>
                 </template>
                 <template v-else-if="column.key === 'clip'">
@@ -1194,7 +1226,7 @@ function reqStatusColor(s: string): string {
                     :color="record.clip.status === 'done' ? 'success' : 'error'"
                     class="!mr-0"
                   >
-                    {{ record.clip.status }}
+                    {{ enumText.clipStatus(record.clip.status) }}
                   </Tag>
                 </template>
                 <template v-else-if="column.key === 'video'">
@@ -1243,7 +1275,7 @@ function reqStatusColor(s: string): string {
                     :color="record.status === 'done' ? 'success' : 'processing'"
                     class="!mr-0"
                   >
-                    {{ record.status }}
+                    {{ enumText.productStatus(record.status) }}
                   </Tag>
                 </template>
                 <template v-else-if="column.key === 'published'">

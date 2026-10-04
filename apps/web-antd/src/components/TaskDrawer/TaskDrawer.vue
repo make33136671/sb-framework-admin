@@ -248,14 +248,16 @@ const pPrompt = ref('');
 const pNegative = ref('');
 const pProviderId = ref<number | undefined>(undefined);
 
-/** 分辨率预设（对齐 64 的倍数；覆盖常见竖屏短剧比例） */
+/** 分辨率预设（全部对齐 64 的倍数；覆盖短剧常见比例）。
+ *  只提供常用档位，具体出多大受**模型与提示词**影响 —— 换模型后哪些档位效果好会变，
+ *  故不在此写死"推荐值"，由使用者按当前模型自行选择。 */
 const SIZE_PRESETS = [
   { label: '1024×1024 方形', value: '1024x1024' },
   { label: '768×1344 竖屏 9:16', value: '768x1344' },
   { label: '832×1216 竖屏 2:3', value: '832x1216' },
   { label: '1216×832 横屏 3:2', value: '1216x832' },
   { label: '1344×768 横屏 16:9', value: '1344x768' },
-  { label: '512×512 快速预览', value: '512x512' },
+  { label: '512×512 小图', value: '512x512' },
 ];
 
 const sizePreset = computed({
