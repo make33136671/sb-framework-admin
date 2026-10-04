@@ -144,10 +144,14 @@ function openPicker(row: CharacterMatrixRow, cell: CharacterViewCell) {
     );
     return;
   }
-  if (row.candidates.length === 0) {
-    message.info(`「${row.name}」还没有任何图 —— 请先在素材里生成候选`);
-    return;
-  }
+  // ⚠️ 这里**不再因为"该角色没有图"而挡回**。
+  //
+  // 旧实现是 `if (row.candidates.length === 0) { 提示"还没有任何图"; return; }` ——
+  // 那会造成一个**死循环**：新角色一张图都没有 → 点格子被挡回 → 没有任何入口去出图。
+  // （用户报：「如果角色没有一张图 那么他只会提示 没有图片 我都不能进入他的生成页面」）
+  //
+  // 正确做法：照常打开选图弹窗；弹窗在"没有图"时展示空态并给出**「去生成」**入口 ——
+  // 那正是没有图时唯一该做的事。
   sourceFilter.value = null;
   picker.value = { cell, characterName: row.name, row };
 }
@@ -459,7 +463,28 @@ const totalCells = computed(() =>
           </div>
         </div>
 
-        <Empty v-else description="这个来源下没有图，换个来源或选「全部」" />
+        <!--
+          空态分两种，给的话必须不同：
+          · 该角色**一张图都没有**（新角色）→ 唯一该做的事是「去生成」，故直接把它做成主按钮；
+          · 只是当前**来源筛选**下没有 → 提示换来源。
+          旧实现把前者也挡在弹窗外（连弹窗都打不开），用户完全无从下手。
+        -->
+        <Empty
+          v-else
+          :description="
+            pickerTotal === 0
+              ? `「${picker?.characterName ?? ''}」还没有任何图 —— 点下方「去生成」出第一张`
+              : '这个来源下没有图，换个来源或选「全部」'
+          "
+        >
+          <Button
+            v-if="pickerTotal === 0"
+            type="primary"
+            @click="picker && goGenerate(picker.row, picker.cell)"
+          >
+            去生成第一张
+          </Button>
+        </Empty>
       </Spin>
 
       <div class="mt-3 flex items-center justify-between">

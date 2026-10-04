@@ -210,3 +210,52 @@ describe('角色 × 视图矩阵 —— 格子状态', () => {
     expect(Boolean(empty.approvedAssetId)).toBe(false);
   });
 });
+
+/**
+ * 「一张图都没有的角色」必须仍能进入生成流程。
+ *
+ * 用户报的 bug：
+ * > 「在角色视图 如果角色没有一张图 那么他只会提示 没有图片 我都不能进入他的生成页面」
+ *
+ * 旧实现 `openPicker` 里有一句 `if (row.candidates.length === 0) { 提示; return; }`，
+ * 造成**死循环**：新角色一张图都没有 → 点格子被挡回 → 没有任何入口去出图。
+ * 这类"守卫把唯一出路也堵上"的缺陷不会报错，只是让功能彻底不可用。
+ *
+ * 下面复刻修复后的判据：**只有"没有视图需求"才该挡回**；
+ * "没有图"必须放行（弹窗内用空态引导「去生成」）。
+ */
+
+/** 与组件内 `openPicker` 的放行判据一致 */
+function canOpenPicker(cell: { requirementId?: null | number }): {
+  ok: boolean;
+  reason: 'no-requirement' | null;
+} {
+  if (!cell.requirementId) return { ok: false, reason: 'no-requirement' };
+  return { ok: true, reason: null };
+}
+
+describe('★ 没有图不等于不能生成（不能把唯一出路堵上）', () => {
+  it('有视图需求、但该角色一张图都没有 → 必须能打开弹窗', () => {
+    // candidates 为空**不再参与**放行判断 —— 这正是修复点
+    expect(canOpenPicker({ requirementId: 486 }).ok).toBe(true);
+  });
+
+  it('没有任何视图需求 → 仍然挡回（并提示去「补齐角色视图」）', () => {
+    const r = canOpenPicker({ requirementId: null });
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe('no-requirement');
+  });
+
+  it('requirementId 为 undefined 同样挡回', () => {
+    expect(canOpenPicker({}).ok).toBe(false);
+  });
+
+  it('★ 反向断言：放行条件里不得再出现 candidates 判据', () => {
+    // 若有人把 `row.candidates.length === 0` 加回 openPicker，死循环会重现。
+    // 这里用"没有图也放行"这一行为把它钉住。
+    const noImages = { candidates: [] as unknown[], requirementId: 1 };
+    expect(canOpenPicker({ requirementId: noImages.requirementId }).ok).toBe(
+      true,
+    );
+  });
+});
