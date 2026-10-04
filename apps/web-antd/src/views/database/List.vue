@@ -237,14 +237,13 @@ async function loadAppTimeZone() {
 
 function fmtTime(v: string) {
   if (!v) return '-';
-  // 后端 UTC 时间无 Z 时补 Z 让浏览器按 UTC 解析
-  const hasTz = /[Zz]|[+-]\d\d:?\d\d$/.test(v);
-  const d = new Date(hasTz ? v : `${v}Z`);
-  if (Number.isNaN(d.getTime())) return '-';
-  return d.toLocaleString('zh-CN', {
-    hour12: false,
-    timeZone: appTimeZone.value || 'UTC',
-  });
+  // ⚠️ 后端输出的时间**已是项目时区（Asia/Shanghai）的墙上时间**，不带时区语义
+  // （契约见后端 ApiTime：DB 用 AppTime.Now 写入，即北京时间）。
+  // 旧实现「补 Z 当 UTC 解析 + 再用 Asia/Shanghai 格式化」= 多加 8 小时（用户实测反馈）。
+  // 正确做法：直接按字符串展示（裁掉 T 与微秒），就是北京时间。
+  const m = String(v).match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})/);
+  if (m) return `${m[1]} ${m[2]}`;
+  return v;
 }
 
 // ============ 表格 ============

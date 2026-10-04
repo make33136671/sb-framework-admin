@@ -23,6 +23,7 @@ import {
 
 import { shotGet, shotStaleReplay } from '#/api/core/dramafloow';
 import { TimeTag } from '#/components/TimeTag';
+import { enumText } from '#/composables/useEnumText';
 import { toStorageUrl } from '#/utils/media';
 
 import { EMPTY_TEXT, formatDuration, toStringList } from './utils';
@@ -93,12 +94,6 @@ const assetRefs = computed(() => toStringList(row.value?.assetIds));
 
 const clipUrl = computed(() => toStorageUrl(row.value?.clip?.videoPath));
 
-const kindText: Record<string, string> = {
-  character: '角色',
-  scene: '场景',
-  prop: '道具',
-};
-
 function shotStatusColor(s: string): string {
   if (s === 'done') return 'success';
   if (s === 'stale') return 'error';
@@ -140,7 +135,7 @@ async function replay() {
       <template v-if="row">
         <div class="mb-3 flex flex-wrap items-center gap-3">
           <Tag :color="shotStatusColor(row.status)" class="!mr-0">
-            {{ row.status }}
+            {{ enumText.shotStatus(row.status) }}
           </Tag>
           <Tag class="!mr-0">{{ formatDuration(row.durationSec) }}</Tag>
           <span
@@ -172,7 +167,7 @@ async function replay() {
           </Descriptions.Item>
           <Descriptions.Item label="状态">
             <Tag :color="shotStatusColor(row.status)" class="!mr-0">
-              {{ row.status }}
+              {{ enumText.shotStatus(row.status) }}
             </Tag>
           </Descriptions.Item>
           <Descriptions.Item label="片段">
@@ -181,7 +176,7 @@ async function replay() {
               :color="row.clip.status === 'done' ? 'success' : 'error'"
               class="!mr-0"
             >
-              {{ row.clip.status }}
+              {{ enumText.clipStatus(row.clip.status) }}
             </Tag>
             <span v-else class="text-muted-foreground">未生成</span>
           </Descriptions.Item>
@@ -286,11 +281,13 @@ async function replay() {
             <template #bodyCell="{ column, record }">
               <template v-if="column.key === 'kind'">
                 <Tag class="!mr-0">
-                  {{ kindText[record.kind] ?? record.kind }}
+                  {{ enumText.assetKind(record.kind) }}
                 </Tag>
               </template>
               <template v-else-if="column.key === 'status'">
-                <Tag class="!mr-0">{{ record.status }}</Tag>
+                <Tag class="!mr-0">
+                  {{ enumText.requirementStatus(record.status) }}
+                </Tag>
               </template>
               <template v-else-if="column.key === 'approved'">
                 {{ record.approvedAssetId ? '已选定' : '未选定' }}
@@ -310,7 +307,7 @@ async function replay() {
           <Table
             v-if="detail && detail.tasks.length > 0"
             :columns="[
-              { title: '类型', dataIndex: 'type', width: 140 },
+              { title: '类型', key: 'type', width: 140 },
               { title: '状态', key: 'status', width: 110 },
               { title: '进度', dataIndex: 'progress', width: 80 },
               { title: '创建', key: 'createdAt', width: 170 },
@@ -322,9 +319,12 @@ async function replay() {
             size="small"
           >
             <template #bodyCell="{ column, record }">
-              <template v-if="column.key === 'status'">
+              <template v-if="column.key === 'type'">
+                {{ enumText.taskType(record.type) }}
+              </template>
+              <template v-else-if="column.key === 'status'">
                 <Tag :color="taskStatusColor(record.status)" class="!mr-0">
-                  {{ record.status }}
+                  {{ enumText.taskStatus(record.status) }}
                 </Tag>
               </template>
               <template v-else-if="column.key === 'createdAt'">

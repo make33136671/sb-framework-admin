@@ -322,24 +322,7 @@ export function taskStatusColor(status: string): string {
   }
 }
 
-export const TASK_STATUS_TEXT: Record<string, string> = {
-  queued: '排队中',
-  preparing: '准备中',
-  generating: '生成中',
-  collecting: '收集中',
-  pending_review: '待审核',
-  approved: '已通过',
-  rejected: '已驳回',
-  failed: '失败',
-  done: '已完成',
-};
-
-/** 任务类型中文名（与后端 TaskTypes 一一对应；看板/抽屉展示，不再让用户看英文 type） */
-export const TASK_TYPE_TEXT: Record<string, string> = {
-  rewrite: '洗稿',
-  storyboard: '分镜',
-  asset_extract: '素材提取',
-  t2i: '素材出图',
-  i2v: '片段生成',
-  concat: '成片合并',
-};
+// 任务状态/类型的中文名已迁到 **useEnumText.ts**（全站唯一事实源，含全部业务枚举）。
+// 此处保留再导出，兼容既有 `import { TASK_STATUS_TEXT } from '#/composables/useTaskStream'` 的写法。
+// 新增类型时只改 useEnumText.ts 一处。
+export { TASK_STATUS_TEXT, TASK_TYPE_TEXT } from './useEnumText';

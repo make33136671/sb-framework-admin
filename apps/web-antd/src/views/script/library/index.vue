@@ -14,6 +14,7 @@ import { Button, Card, Empty, Spin, Table, Tag } from 'ant-design-vue';
 
 import { dramaList, scriptVersionList } from '#/api/core/dramafloow';
 import { TimeTag } from '#/components/TimeTag';
+import { enumText } from '#/composables/useEnumText';
 
 const router = useRouter();
 
@@ -110,7 +111,7 @@ const columns = [
                 "
                 class="!mr-0"
               >
-                {{ record.status }}
+                {{ enumText.scriptStatus(record.status) }}
               </Tag>
             </template>
             <template v-else-if="column.key === 'rewritten'">

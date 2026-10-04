@@ -47,6 +47,7 @@ import {
   schedulerStatus,
 } from '#/api/core/scheduler';
 import { TimeTag } from '#/components/TimeTag';
+import { enumText } from '#/composables/useEnumText';
 
 defineOptions({ name: 'SchedulerBoard' });
 // ─────────────────────────── 状态 ───────────────────────────
@@ -97,12 +98,6 @@ const CLASS_COLOR: Record<string, string> = {
   text: 'green',
 };
 
-const RUN_STATUS_TEXT: Record<string, string> = {
-  idle: '空闲',
-  busy: '占用中',
-  offline: '离线',
-};
-
 const RUN_STATUS_COLOR: Record<string, string> = {
   idle: 'success',
   busy: 'processing',
@@ -127,7 +122,14 @@ function typeText(t: string): string {
 }
 
 function classText(c: null | string): string {
-  return c ? (CLASS_TEXT[c] ?? c) : '—';
+  return c ? enumText.pick(CLASS_TEXT, c) : '—';
+}
+
+/** 在飞任务状态色（仅着色，文案走 enumText.taskStatus） */
+function taskStatusColor(s?: string): string {
+  if (s === 'done' || s === 'approved') return 'success';
+  if (s === 'failed' || s === 'rejected') return 'error';
+  return 'processing';
 }
 
 /** 切换倒计时 mm:ss */
@@ -249,9 +251,11 @@ function auditSummary(raw: null | string): string {
   try {
     const o = JSON.parse(raw);
     const parts: string[] = [];
-    if (o.decision) parts.push(String(o.decision));
+    if (o.decision) parts.push(enumText.cloudDecision(String(o.decision)));
     if (o.reason) parts.push(String(o.reason));
     if (o.kind) parts.push(String(o.kind));
+    // from/to 是状态机的状态名（offline/online/switching/ready…），
+    // 不是「本地/云端」路由值，故保持原样展示，不能走 enumText.route。
     if (o.from) parts.push(`from=${o.from}`);
     if (o.to) parts.push(`to=${o.to}`);
     if (o.deadline !== undefined)
@@ -272,11 +276,11 @@ const decisionColumns = [
 
 const inFlightColumns = [
   { title: '任务', dataIndex: 'id', key: 'id', width: 90 },
-  { title: '类型', dataIndex: 'type', key: 'type', width: 120 },
-  { title: '状态', dataIndex: 'status', key: 'status', width: 110 },
-  { title: '来源', dataIndex: 'source', key: 'source', width: 100 },
+  { title: '类型', key: 'type', width: 120 },
+  { title: '状态', key: 'status', width: 110 },
+  { title: '来源', key: 'source', width: 100 },
   { title: '服务', dataIndex: 'providerName', key: 'providerName', width: 160 },
-  { title: '开始', dataIndex: 'startedAt', key: 'startedAt', width: 180 },
+  { title: '开始', key: 'startedAt', width: 180 },
 ];
 
 const mountedColumns = [
@@ -400,10 +404,7 @@ defaultAbsolute();
                           'default'
                         "
                       >
-                        {{
-                          RUN_STATUS_TEXT[String(record.runStatus)] ??
-                          record.runStatus
-                        }}
+                        {{ enumText.runStatus(String(record.runStatus)) }}
                       </Tag>
                       <Tag
                         v-if="(record as Record<string, any>).paused"
@@ -493,7 +494,15 @@ defaultAbsolute();
               size="small"
             >
               <template #bodyCell="{ column, record }">
-                <template v-if="column.key === 'source'">
+                <template v-if="column.key === 'type'">
+                  {{ enumText.taskType(record.type) }}
+                </template>
+                <template v-else-if="column.key === 'status'">
+                  <Tag :color="taskStatusColor(String(record.status))">
+                    {{ enumText.taskStatus(record.status) }}
+                  </Tag>
+                </template>
+                <template v-else-if="column.key === 'source'">
                   <Tag
                     :color="record.source === 'system' ? 'warning' : 'default'"
                   >
@@ -642,7 +651,7 @@ defaultAbsolute();
               </template>
               <template v-else-if="column.key === 'action'">
                 <Tag :color="ACTION_COLOR[String(record.action)] ?? 'default'">
-                  {{ ACTION_TEXT[String(record.action)] ?? record.action }}
+                  {{ enumText.pick(ACTION_TEXT, String(record.action)) }}
                 </Tag>
               </template>
               <template v-else-if="column.key === 'entityType'">

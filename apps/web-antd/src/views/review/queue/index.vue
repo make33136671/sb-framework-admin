@@ -32,6 +32,7 @@ import {
 } from '#/api/core/dramafloow';
 import { CandidateGallery } from '#/components/CandidateGallery';
 import { TimeTag } from '#/components/TimeTag';
+import { enumText } from '#/composables/useEnumText';
 import { useTaskStream } from '#/composables/useTaskStream';
 
 const stream = useTaskStream();
@@ -280,7 +281,7 @@ function next() {
             <div class="flex flex-col gap-2 text-sm">
               <div>
                 片段 #{{ current.id }} · 分镜 {{ current.shotId }} · 状态
-                {{ current.status }}
+                {{ enumText.clipStatus(current.status) }}
               </div>
               <div class="break-all text-xs text-muted-foreground">
                 {{ current.videoPath }}

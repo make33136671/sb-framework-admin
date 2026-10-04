@@ -13,6 +13,7 @@ import { Button, Descriptions, Modal, Tag } from 'ant-design-vue';
 import { productPublish, productUnpublish } from '#/api/core/dramafloow';
 import { EpisodePlayer } from '#/components/EpisodePlayer';
 import { TimeTag } from '#/components/TimeTag';
+import { enumText } from '#/composables/useEnumText';
 
 import { formatDuration, formatSize } from './utils';
 
@@ -60,7 +61,7 @@ async function togglePublish() {
     <template v-if="episode">
       <div class="mb-3 flex flex-wrap items-center gap-3">
         <Tag :color="statusColor(episode.status)" class="!mr-0">
-          {{ episode.status }}
+          {{ enumText.productStatus(episode.status) }}
         </Tag>
         <Tag class="!mr-0">v{{ episode.version }}</Tag>
         <span
@@ -102,7 +103,7 @@ async function togglePublish() {
         </Descriptions.Item>
         <Descriptions.Item label="状态">
           <Tag :color="statusColor(episode.status)" class="!mr-0">
-            {{ episode.status }}
+            {{ enumText.productStatus(episode.status) }}
           </Tag>
         </Descriptions.Item>
         <Descriptions.Item label="时长">

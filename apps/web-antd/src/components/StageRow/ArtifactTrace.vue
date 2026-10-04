@@ -19,6 +19,7 @@ import { ref } from 'vue';
 import { Button, Empty, Table, Tag, Tooltip } from 'ant-design-vue';
 
 import { TimeTag } from '#/components/TimeTag';
+import { enumText } from '#/composables/useEnumText';
 
 const props = defineProps<{
   /** 该横向的执行历史（每次 = 一个 task；每 task 含若干尝试轮） */
@@ -94,10 +95,12 @@ const props_ = props;
             v{{ record.version }}
           </template>
           <template v-else-if="column.key === 'type'">
-            <Tag class="!mr-0">{{ record.type }}</Tag>
+            <Tag class="!mr-0">{{ enumText.taskType(record.type) }}</Tag>
           </template>
           <template v-else-if="column.key === 'status'">
-            <Tag :color="statusColor(record.status)">{{ record.status }}</Tag>
+            <Tag :color="statusColor(record.status)">
+              {{ enumText.taskStatus(record.status) }}
+            </Tag>
           </template>
           <template v-else-if="column.key === 'progress'">
             {{ record.progress }}%
@@ -132,7 +135,9 @@ const props_ = props;
             >
               <div class="mb-1 flex flex-wrap items-center gap-2 text-xs">
                 <Tag class="!mr-0">第 {{ a.versionNo }} 次尝试</Tag>
-                <Tag :color="statusColor(a.status)">{{ a.status }}</Tag>
+                <Tag :color="statusColor(a.status)">
+                  {{ enumText.taskStatus(a.status) }}
+                </Tag>
                 <span v-if="a.seed !== null && a.seed !== undefined">
                   seed: {{ a.seed }}
                 </span>

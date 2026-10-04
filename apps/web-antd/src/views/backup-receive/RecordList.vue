@@ -59,10 +59,11 @@ function fmtSize(bytes: number) {
 
 function fmtTime(t?: string) {
   if (!t) return '-';
-  const hasTz = /[Zz]|[+-]\d\d:?\d\d$/.test(t);
-  const d = new Date(hasTz ? t : `${t}Z`);
-  if (Number.isNaN(d.getTime())) return '-';
-  return d.toLocaleString('zh-CN', { hour12: false });
+  // ⚠️ 后端时间已是项目时区（北京时间）的墙上时间，不带时区语义。
+  // 旧实现「补 Z 当 UTC + 转浏览器本地时区」在 +8 环境下会多加 8 小时。
+  const m = String(t).match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2}:\d{2})/);
+  if (m) return `${m[1]} ${m[2]}`;
+  return t;
 }
 
 function download(id: number) {

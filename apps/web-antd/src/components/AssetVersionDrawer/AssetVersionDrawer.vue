@@ -33,6 +33,7 @@ import {
   assetVersionList,
 } from '#/api/core/dramafloow';
 import { TimeTag } from '#/components/TimeTag';
+import { enumText } from '#/composables/useEnumText';
 
 const props = defineProps<{
   /** 要查看的素材 key；null 表示关闭 */
@@ -175,7 +176,7 @@ const columns = [
         </template>
 
         <template v-else-if="column.key === 'status'">
-          <Tag class="!mr-0">{{ record.status }}</Tag>
+          <Tag class="!mr-0">{{ enumText.candidateStatus(record.status) }}</Tag>
         </template>
 
         <template v-else-if="column.key === 'cand'">

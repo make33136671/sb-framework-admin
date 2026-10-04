@@ -13,6 +13,7 @@ import { Button, Descriptions, Modal, Tag } from 'ant-design-vue';
 
 import { shotStaleReplay } from '#/api/core/dramafloow';
 import { TimeTag } from '#/components/TimeTag';
+import { enumText } from '#/composables/useEnumText';
 import { toStorageUrl } from '#/utils/media';
 
 import { formatDuration } from './utils';
@@ -74,10 +75,10 @@ async function replay() {
           :color="clip.status === 'done' ? 'success' : 'error'"
           class="!mr-0"
         >
-          {{ clip.status }}
+          {{ enumText.clipStatus(clip.status) }}
         </Tag>
         <span class="text-xs text-muted-foreground">
-          分镜状态 {{ shot.status }}
+          分镜状态 {{ enumText.shotStatus(shot.status) }}
         </span>
         <div class="flex-1"></div>
         <Button
@@ -110,14 +111,14 @@ async function replay() {
         <Descriptions.Item label="集">{{ shot.episodeNo }}</Descriptions.Item>
         <Descriptions.Item label="镜">{{ shot.shotNo }}</Descriptions.Item>
         <Descriptions.Item label="片段状态">
-          {{ clip.status }}
+          {{ enumText.clipStatus(clip.status) }}
         </Descriptions.Item>
         <Descriptions.Item label="片段时长">
           {{ formatDuration(clip.durationSec) }}
         </Descriptions.Item>
         <Descriptions.Item label="分镜状态">
           <Tag :color="shotStatusColor(shot.status)" class="!mr-0">
-            {{ shot.status }}
+            {{ enumText.shotStatus(shot.status) }}
           </Tag>
         </Descriptions.Item>
         <Descriptions.Item label="分镜时长">

@@ -48,10 +48,10 @@ import {
   computeNodeSetEnabled,
   computeNodeStatus,
   isPhase2NodeType,
-  NODE_TYPE_TEXT,
   NODE_TYPES,
 } from '#/api/core/computeNode';
 import { TimeTag } from '#/components/TimeTag';
+import { enumText } from '#/composables/useEnumText';
 
 // ─────────────────────────── 列表 ───────────────────────────
 
@@ -297,7 +297,7 @@ const nodeTypeOptions = computed(() =>
 
           <template v-else-if="column.key === 'type'">
             <span class="text-xs">
-              {{ NODE_TYPE_TEXT[record.nodeType] ?? record.nodeType }}
+              {{ enumText.nodeType(record.nodeType) }}
             </span>
             <div class="text-xs text-muted-foreground">
               {{ record.canSwitch ? '可换服务' : '固定绑定' }} · 切换
@@ -424,7 +424,8 @@ const nodeTypeOptions = computed(() =>
                   : '空闲'
             }}{{ s.paused ? '·熔断暂停' : '' }}
             <template v-if="s.currentTask">
-              · 任务 #{{ s.currentTask.id }} {{ s.currentTask.type }}
+              · 任务 #{{ s.currentTask.id }}
+              {{ enumText.taskType(s.currentTask.type) }}
             </template>
             ）
           </span>

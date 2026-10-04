@@ -113,9 +113,16 @@
 - **禁用** `DateTime.Now` → 用 `AppTime.Now`（程序时区）
 - **禁用** `DateTime.Today` → 用 `AppTime.Today`
 - **禁用** `DateTime.UtcNow` → 用 `AppTime.UtcNow`
-- 数据库存 UTC：`AppTime.UtcNow`
-- 业务"现在"：`AppTime.Now`（按 appsettings.TimeZone）
-- UTC → 显示：`AppTime.ToLocal(utc)`
+- **数据库存「项目时区墙上时间」：一律 `AppTime.Now`**（`appsettings.TimeZone`，默认 `Asia/Shanghai`）
+  - 设计意图：**插入的时间必须可控、不受服务器系统时区影响**。`AppTime.Now` = `ConvertTimeFromUtc(UtcNow, 配置时区)`，读的是**配置**而非机器 `TZ` —— 同一份代码部署到 UTC / 纽约 / 东京的机器，写入的时间**完全一致**（已实测）。
+  - 因此业务表（task / drama / audit_log / llm_call_log / 种子数据…）的时间戳**全部** `AppTime.Now`，展示时原样输出即为项目时区时间。
+  - ⚠️ **本条约 2026-10-04 订正**：原写「数据库存 UTC：`AppTime.UtcNow`」，与代码实际（197 处 `Now` : 13 处 `UtcNow`）不符，是时区错乱的根源（文档说 UTC、代码存北京、中间层再"按文档"转一道 → 错 8 小时）。
+- **例外（必须用 `AppTime.UtcNow`，不得改）**：
+  - **峰谷/计价判定**：DeepSeek 等厂商的分时计价窗口按 **UTC** 定义（工作日 01–04、06–10 UTC），喂项目时区会整体错 8 小时（缺陷 #7）。涉及 `PricingCalendar` / `PeakAt` / `CloudBenefit` 的时钟源一律 UTC。
+  - **对外输出「此刻的 UTC」**：如 `serverUtcNow`（字段名即语义；前端 `new Date(t)` 依赖 `Z` 后缀）。
+  - **纯时长轮询**：如 ComfyUI 的 `deadline = UtcNow.AddSeconds(...)`，两端同基即可。
+- 展示：后端**原样输出**项目时区墙上时间（`ApiTime` 不做换算、**不带 `Z`**）；前端 `TimeTag` 原样呈现。
+  - **红线**：前端**不要**「补 `Z` 当 UTC 再转时区」——会再加一次偏移。`toLocaleString({timeZone})` 只对**带 `Z` 的真 UTC** 使用。
 - 前端倒计时：`AppTime.ToTimestamp(utcTarget)`，客户端做 `target - now`
 
 ### 服务

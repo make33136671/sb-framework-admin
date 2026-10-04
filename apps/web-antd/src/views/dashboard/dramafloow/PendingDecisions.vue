@@ -20,6 +20,7 @@ import { useRouter } from 'vue-router';
 import { Badge, Button, Card, Empty, Image, Tabs, Tag } from 'ant-design-vue';
 
 import { dashboardPendingDecisions } from '#/api/core/dramafloow';
+import { enumText } from '#/composables/useEnumText';
 import { toStorageUrl } from '#/utils/media';
 
 const router = useRouter();
@@ -112,7 +113,7 @@ const tabItems = computed(() => [
             >
               <div class="mb-1 flex items-center gap-2 text-xs">
                 <span class="font-medium">{{ g.requirementKey }}</span>
-                <Tag class="!mr-0">{{ g.kind }}</Tag>
+                <Tag class="!mr-0">{{ enumText.assetKind(g.kind) }}</Tag>
                 <span class="text-muted-foreground">
                   v{{ g.version }} · 候选 {{ g.candidateCount }}
                 </span>
