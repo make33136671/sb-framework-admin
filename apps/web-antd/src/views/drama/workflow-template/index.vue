@@ -301,7 +301,7 @@ const testPanel = reactive({
   negativePrompt: 'blurry, low quality, watermark',
   width: 512,
   height: 512,
-  seed: 42,
+  seed: '42',
   /** 等待上限（秒）：视频模型（LTX 22B 等）首次要加载 20B+ 权重，180s 远远不够。 */
   timeoutSec: 180,
   running: false,
@@ -822,7 +822,12 @@ function applyImport() {
             />
           </FormItem>
           <FormItem label="Seed">
-            <InputNumber v-model:value="testPanel.seed" class="w-full" />
+            <!-- 文本输入：种子可能是超出 int32 / 2^53 的大整数，InputNumber 会静默丢精度 -->
+            <Input
+              v-model:value="testPanel.seed"
+              class="w-full"
+              placeholder="十进制整数"
+            />
           </FormItem>
           <FormItem>
             <template #label>

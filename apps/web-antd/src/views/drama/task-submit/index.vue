@@ -72,7 +72,7 @@ const form = reactive({
   candidateCount: 3,
   width: 1024,
   height: 1024,
-  seed: undefined as number | undefined,
+  seed: undefined as string | undefined,
   providerId: undefined as number | undefined,
 });
 
@@ -203,7 +203,7 @@ async function applyRouteParams() {
   if (q.height) form.height = Number(q.height);
   if (q.candidateCount) form.candidateCount = Number(q.candidateCount);
   // 「沿用此种子再生成」带过来的种子 —— 传了后端就**真的**用它（历史缺陷已修）
-  if (q.seed) form.seed = Number(q.seed);
+  if (q.seed) form.seed = String(q.seed); // 字符串原样带过来，不转 Number（避免超 2^53 丢精度）
 
   fromView.active = true;
   fromView.viewLabel = q.viewLabel ? String(q.viewLabel) : '';
@@ -467,10 +467,15 @@ function resetForAnother() {
           </div>
           <div>
             <div class="mb-1 text-sm">种子（留空自动）</div>
-            <InputNumber
-              v-model:value="form.seed"
-              :min="0"
-              placeholder="沿用旧种子可复现同一张图"
+            <!--
+              用文本输入而非 InputNumber：用户实测可用的 seed（如 593103825222986）
+              超出 int32；且 antd InputNumber 内部按 JS number 处理，**超过 2^53 会静默丢精度** ——
+              表现为"我填的种子"与"实际用的种子"不一致，且没有任何提示。
+              字符串输入逐字传后端（后端 Seeds 只接受十进制非负整数，超范围明确报错）。
+            -->
+            <Input
+              v-model:value="form.seed as any"
+              placeholder="十进制整数，如 593103825222986"
               style="width: 100%"
             />
           </div>

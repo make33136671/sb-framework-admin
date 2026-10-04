@@ -107,7 +107,8 @@ export interface AssetCandidateItem {
   id: number;
   taskId: number;
   variantNo: number;
-  seed: number;
+  /** 种子（字符串形态：用户实测可用的 seed 超出 int32，且 JS number 超 2^53 会丢精度）*/
+  seed?: null | string;
   prompt: string;
   filePath?: string;
   width?: number;
@@ -242,7 +243,7 @@ export interface TaskPreviewSlot {
   filePath?: null | string;
   width?: null | number;
   height?: null | number;
-  seed?: null | number;
+  seed?: null | string;
   /** 候选状态：pending / approved / rejected / failed */
   status?: null | string;
   /** 该格在等什么（人话：排队第 N / 正在生成 / 已失败…） */
@@ -291,7 +292,7 @@ export interface TaskDetail extends TaskItem {
     failReason?: string;
     id: number;
     promptSnapshot?: string;
-    seed?: number;
+    seed?: null | string;
     status: string;
     submittedAt: string;
     versionNo: number;
@@ -301,7 +302,7 @@ export interface TaskDetail extends TaskItem {
     completedAt?: string;
     error?: string;
     id: number;
-    seed: number;
+    seed?: null | string;
     status: string;
     submittedAt: string;
     variantNo: number;
@@ -513,7 +514,7 @@ export interface ReviewQueueItem {
   variantNo?: number;
   filePath?: string;
   prompt?: string;
-  seed?: number;
+  seed?: null | string;
   version?: number;
   // 剧
   episodeNo?: number;
@@ -1045,7 +1046,7 @@ export interface TaskSubmitParams {
   /** 归属类型；角色视图传 `asset_requirement` 即可把产物挂回该视图 */
   refEntityType?: null | string;
   /** 种子；传了就用它（可复现同一张图），不传则确定性推导 */
-  seed?: null | number;
+  seed?: null | string;
   /** 第 3 层：角色/视图特有的正向约束（由调用方传，如视图 spec） */
   subjectNegative?: null | string;
   /** 第 3 层：角色/视图特有的反向约束 */
@@ -1108,7 +1109,7 @@ export async function taskRegenerate(
     priority?: number;
     promptOverride?: null | string;
     providerId?: null | number;
-    seed?: null | number;
+    seed?: null | string;
     width?: null | number;
   },
 ) {
@@ -1322,7 +1323,7 @@ export async function templateWorkflowTest(data: {
   negativePrompt?: string;
   prompt: string;
   providerId?: number;
-  seed?: number;
+  seed?: null | string;
   template: string;
   /** 等待上限（秒）。视频工作流（LTX 22B 等）需要远超默认的 180s。 */
   timeoutSec?: number;
@@ -1484,7 +1485,7 @@ export type StageKey =
 export interface StageAttempt {
   versionNo: number;
   status: string;
-  seed?: null | number;
+  seed?: null | string;
   failReason?: null | string;
   submittedAt: string;
   /** 提交给系统的关键词全记录（用户明确要求） */

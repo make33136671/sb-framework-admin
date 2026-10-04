@@ -53,7 +53,8 @@ const currentCandidates = ref<
     prompt: string;
     rejectNote?: string;
     rejectReasonId?: number;
-    seed: number;
+    /** 种子（字符串形态，见 api/core/dramafloow.ts 的 AssetCandidateItem） */
+    seed?: null | string;
     status: string;
     taskId: number;
     variantNo: number;
