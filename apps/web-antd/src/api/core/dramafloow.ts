@@ -849,6 +849,86 @@ export async function assetApprove(candidateId: number) {
   return api.post<{ staled: number }>('/Asset/Approve', { candidateId });
 }
 
+// ── 角色 × 视图矩阵（格子选图）─────────────────────────────────────
+//
+// 用户诉求：「7 个标准视图做到一个页面上，这个标准视图是空的，点击就从现有角色的图像里选择」。
+//
+// 语义：格子里选一张图 = **定稿该视图**（该图成为这个视图的最终选择）。
+// 与 `assetApprove` 的区别：`assetApprove` 只能"从本需求的候选里挑一张"，
+// 而矩阵页要的是**跨视图选图**（该角色任意已有的图都能填进任意格子），
+// 所以后端另开了 `SetViewImage`。
+
+/** 矩阵里的一个视图格子。 */
+export interface CharacterViewCell {
+  /** 该视图的已定稿候选 id；null = 格子还是空的 */
+  approvedAssetId?: null | number;
+  /** 视图中文名（如「全身正面」）—— 来自后端，前端不写死 */
+  label: string;
+  /** 对应的素材需求 id；null = 该视图需求还没建档（需先「补齐角色视图」） */
+  requirementId?: null | number;
+  status: string;
+  /** 视图后缀（face_front / full_body_front / …） */
+  suffix: string;
+}
+
+/** 选图池里的一张候选图。 */
+export interface CharacterImageOption {
+  createdAt?: string;
+  filePath: string;
+  height?: null | number;
+  id: number;
+  requirementId: number;
+  requirementKey: string;
+  status: string;
+  variantNo: number;
+  /** 该图来自哪个视图的已定稿图；null = 未分类（旧的无后缀需求） */
+  viewLabel: string;
+  viewSuffix?: null | string;
+  width?: null | number;
+}
+
+export interface CharacterMatrixRow {
+  /** 该角色的全部已有候选图（跨视图、含旧数据）—— 选图池 */
+  candidates: CharacterImageOption[];
+  name: string;
+  /** 固定 7 个格子，顺序由后端（CharacterViews.Standard）决定 */
+  views: CharacterViewCell[];
+}
+
+export interface CharacterMatrix {
+  characters: CharacterMatrixRow[];
+  /** 列定义（顺序 + 中文名），与 views 一一对应 */
+  viewColumns: { label: string; suffix: string }[];
+}
+
+/**
+ * 角色 × 视图矩阵数据（一次拉全，供整页选图）。
+ *
+ * 刻意一次返回：逐格子请求会打出 N×7 个请求。
+ */
+export async function assetCharacterMatrix(dramaId: number) {
+  return api.get<CharacterMatrix>('/Asset/CharacterCandidates', {
+    params: { dramaId },
+  });
+}
+
+/**
+ * 把一张已有候选图指定为某个视图的定稿图（矩阵格子选图）。
+ *
+ * 只能选**同一角色**的图（后端按角色名校验并拒绝跨角色 —— 否则会把别人的脸
+ * 安静地填进这个角色的视图）。若该视图原本已有定稿图，改选会把引用它的
+ * 分镜/片段标记为 stale（返回 staled 数量）。
+ */
+export async function assetSetViewImage(
+  requirementId: number,
+  candidateId: number,
+) {
+  return api.post<{ approvedAssetId: number; staled: number }>(
+    '/Asset/SetViewImage',
+    { candidateId, requirementId },
+  );
+}
+
 /**
  * 丢弃候选（后端 Action 仍叫 Reject，语义 = 移出候选池）。
  *

@@ -68,6 +68,7 @@ import {
 import { AiProviderSelect } from '#/components/AiProviderSelect';
 import { AssetCategoryView } from '#/components/AssetCategoryView';
 import { AssetVersionDrawer } from '#/components/AssetVersionDrawer';
+import { CharacterViewMatrix } from '#/components/CharacterViewMatrix';
 import { ResourceDetailModal } from '#/components/ResourceDetailModal';
 import { RewriteOptionsPanel } from '#/components/RewriteOptionsPanel';
 import { ArtifactTrace, StageRowList } from '#/components/StageRow';
@@ -91,9 +92,15 @@ const requirements = ref<AssetRequirementItem[]>([]);
 const episodes = ref<ProductEpisodeItem[]>([]);
 const loading = ref(true);
 const activeTab = ref('script');
-/** 素材页视图：分类视图（默认）/ 列表视图（原始清单） */
-const assetView = ref<'category' | 'list'>('category');
+/**
+ * 素材页视图：
+ * - `category` 分类视图（默认）：分类树 + 素材网格，服务角色/场景/道具的归类
+ * - `matrix`   角色视图：角色 × 7 标准视图矩阵，格子点选已有图定稿
+ * - `list`     列表视图：原始清单（key/版本/候选/状态），便于处理没有图的行
+ */
+const assetView = ref<'category' | 'list' | 'matrix'>('category');
 const assetCategoryRef = ref<null | { reload: () => void }>(null);
+const characterMatrixRef = ref<null | { reload: () => void }>(null);
 const sourceDraft = ref('');
 const saving = ref(false);
 const parsing = ref(false);
@@ -232,8 +239,10 @@ const stageShotColumns = [
 
 async function loadAll() {
   loading.value = true;
-  // 分类视图是独立数据源（含预览图/出场集数），一起刷新
+  // 分类视图 / 角色矩阵都是独立数据源（前者含预览图与出场集数，后者含全部候选图），
+  // 一起刷新 —— 否则在矩阵页定稿后切回分类视图会看到过期状态
   const refreshCategoryView = () => assetCategoryRef.value?.reload();
+  const refreshMatrixView = () => characterMatrixRef.value?.reload();
   try {
     detail.value = await dramaGet(dramaId.value);
     // 剧本可能尚未创建（后端返回错误），静默处理
@@ -258,6 +267,7 @@ async function loadAll() {
   } finally {
     loading.value = false;
     refreshCategoryView();
+    refreshMatrixView();
     void loadEpisodeVersions();
   }
 }
@@ -483,6 +493,7 @@ async function generateAssetById(id: number) {
   if (!row) return;
   await generateAsset(row);
   assetCategoryRef.value?.reload();
+  characterMatrixRef.value?.reload();
 }
 
 /** 素材提取抽屉 / 子任务详情抽屉 */
@@ -1069,6 +1080,7 @@ function reqStatusColor(s: string): string {
               v-model:value="assetView"
               :options="[
                 { label: '分类视图', value: 'category' },
+                { label: '角色视图', value: 'matrix' },
                 { label: '列表视图', value: 'list' },
               ]"
             />
@@ -1083,6 +1095,14 @@ function reqStatusColor(s: string): string {
             @generate="(it) => generateAssetById(it.id)"
             @open="(it) => openAssetDetailById(it.id)"
             @versions="(it) => (assetKey = it.key)"
+          />
+
+          <!-- 角色视图：角色 × 7 标准视图矩阵，格子点选**已有图**定稿（不重新出图） -->
+          <CharacterViewMatrix
+            v-else-if="assetView === 'matrix'"
+            ref="characterMatrixRef"
+            :drama-id="dramaId"
+            @changed="loadAll"
           />
 
           <!-- 列表视图：原始清单（key/版本/候选/状态），便于处理没有图的行 -->
