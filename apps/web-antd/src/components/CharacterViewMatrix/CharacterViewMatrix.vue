@@ -29,21 +29,25 @@ import type {
  * 本组件**不硬编码** 7 个视图，避免两边各写一套后漂移。
  */
 import { computed, onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
 
 import {
   Image as AImage,
   Alert,
   Button,
+  Checkbox,
   Empty,
   message,
   Modal,
   Spin,
   Tag,
+  Tooltip,
 } from 'ant-design-vue';
 
 import { assetCharacterMatrix, assetSetViewImage } from '#/api/core/dramafloow';
+import { GenerateTaskModal } from '#/components/GenerateTaskModal';
 import { toStorageUrl } from '#/utils/media';
+
+import BatchGenerateViewsModal from './BatchGenerateViewsModal.vue';
 
 const props = defineProps<{
   dramaId: number;
@@ -53,8 +57,6 @@ const emit = defineEmits<{
   /** 数据变化（定稿后）—— 父组件据此刷新其它视图 */
   (e: 'changed'): void;
 }>();
-
-const router = useRouter();
 
 const loading = ref(false);
 const matrix = ref<CharacterMatrix>({ characters: [], viewColumns: [] });
@@ -179,17 +181,28 @@ async function choose(cand: CharacterImageOption) {
 }
 
 /**
- * 「去生成」：带参数跳到统一生成下发页（用户 2026-10-04 要求）。
+ * 「去生成」（用户 2026-10-04 二次要求）：
  *
- * ## 关键语义：**只跳转 + 预填，绝不建任务**
+ * > 「手动操作的时候 点击去生成 **直接在当前窗口 弹出 AI任务的执行窗口**」
  *
- * 用户明确要求「用户在页面点提交才建任务；中途关掉 = 什么都没发生」。
- * 所以这里**不能**调任何生成接口，只把第 3 层参数（视图提示词/反向/尺寸）
- * 通过 query 传给下发页；前两层（工作流默认 / 剧目风格）由后端在提交时补齐 ——
- * 这正是"统一入口"的价值：调用方只传自己特有的那层。
+ * 旧实现是 `router.push` 跳到 `/dramafloow/tasks/submit` 整页 —— 用户点一次
+ * 就离开了角色视图，回来还得重新找角色、重新点格子。现在改为**就地弹窗**。
  *
- * 尺寸取该视图的宽高比默认（全身竖图 / 头部方图），与模型无关。
+ * 语义不变（仍然成立）：**弹窗只预填，不建任务**；用户点弹窗里的「提交生成」
+ * 才真正下发；关掉弹窗 = 什么都没发生。
  */
+const generateCtx = ref<null | {
+  characterName: string;
+  dramaId: number;
+  height?: null | number;
+  requirementId: null | number;
+  requirementKey: string;
+  subjectNegative: string;
+  subjectPrompt: string;
+  viewLabel: string;
+  width?: null | number;
+}>(null);
+
 function goGenerate(row: CharacterMatrixRow, cell: CharacterViewCell) {
   if (!cell.requirementId) {
     message.warning(
@@ -199,27 +212,49 @@ function goGenerate(row: CharacterMatrixRow, cell: CharacterViewCell) {
   }
 
   const view = viewBySuffix(cell.suffix);
-  const query: Record<string, string> = {
-    dramaId: String(props.dramaId),
-    refEntityId: String(cell.requirementId),
-    viewLabel: cell.label,
+
+  picker.value = null;
+  generateCtx.value = {
+    dramaId: props.dramaId,
     characterName: row.name,
+    viewLabel: cell.label,
+    requirementId: cell.requirementId,
     requirementKey:
       row.candidates.find((c) => c.requirementId === cell.requirementId)
         ?.requirementKey ?? '',
+    // 第 3 层正向：视图的 spec（构图 + 纯灰底 + 跨视图一致性）
+    subjectPrompt: view?.spec ?? '',
+    // 第 3 层反向：通用底线 + 视图专有叠加
+    subjectNegative: view?.negativeSpec ?? '',
+    width: view?.width ?? null,
+    height: view?.height ?? null,
   };
+}
 
-  // 第 3 层正向：视图的 spec（构图 + 纯灰底 + 跨视图一致性）
-  if (view?.spec) query.subjectPrompt = view.spec;
-  // 第 3 层反向：视图专有叠加（如全身图排除"裁掉脚"）
-  if (view?.negativeSpec) query.subjectNegative = view.negativeSpec;
-  if (view) {
-    query.width = String(view.width);
-    query.height = String(view.height);
+// ───────────────── 一键生成 7 图（用户 2026-10-04 要求）─────────────────
+
+/**
+ * > 「一个角色名旁边 右侧 加一个 一键生成 7图（旁边加一个 checked 自动定稿）
+ * >  自动按照全默认参数 但是每个视图生成 1 张就好 把 7 张图 补齐」
+ *
+ * 「自动定稿」的勾选态放在这里（而不是弹窗内）：
+ * 它是一个**用户偏好**，勾一次之后对下一个角色仍然生效，不该每个角色重勾。
+ */
+const autoFinalize = ref(false);
+
+/** 当前正在批量生成的角色行；null = 弹窗关闭 */
+const batchRow = ref<CharacterMatrixRow | null>(null);
+
+function openBatch(row: CharacterMatrixRow) {
+  // 一个视图需求都没有 → 批量生成无从下手，先引导去建档
+  const hasAny = row.views.some((v) => v.requirementId);
+  if (!hasAny) {
+    message.warning(
+      `「${row.name}」还没有任何视图需求 —— 请先点上方的「补齐角色视图」`,
+    );
+    return;
   }
-
-  picker.value = null;
-  router.push({ name: 'DramaTaskSubmit', query });
+  batchRow.value = row;
 }
 
 // ─────────────────────────── 展示辅助 ───────────────────────────
@@ -315,16 +350,28 @@ const totalCells = computed(() =>
         :key="row.name"
         class="mb-4 rounded-md border border-border p-2"
       >
-        <!-- 角色名 + 该角色可选图总数 -->
-        <div class="mb-2 flex items-center gap-2">
+        <!-- 角色名 + 该角色可选图总数 + 一键生成 7 图（用户要求：名字右侧） -->
+        <div class="mb-2 flex flex-wrap items-center gap-2">
           <span class="font-medium">{{ row.name }}</span>
           <Tag class="!mr-0">{{ row.candidates.length }} 张已有图</Tag>
           <span
             v-if="row.candidates.length === 0"
             class="text-xs text-muted-foreground"
           >
-            还没有图 —— 先在素材列表里生成候选
+            还没有图 —— 用右侧「一键生成 7 图」补齐
           </span>
+          <span class="flex-1"></span>
+          <!-- 自动定稿：勾选后每视图出图即取第 1 张定为最终选择 -->
+          <Checkbox v-model:checked="autoFinalize">
+            <span class="text-xs">自动定稿</span>
+          </Checkbox>
+          <Tooltip
+            title="按全默认参数，为这个角色**还缺**的视图各生成 1 张（已有定稿的视图会跳过，不会覆盖）"
+          >
+            <Button size="small" type="primary" @click="openBatch(row)">
+              一键生成 7 图
+            </Button>
+          </Tooltip>
         </div>
 
         <!-- 7 个视图格子 -->
@@ -502,5 +549,22 @@ const totalCells = computed(() =>
         </Space>
       </div>
     </Modal>
+
+    <!-- 一键生成 7 图（按全默认参数补齐空格子；可选自动定稿） -->
+    <BatchGenerateViewsModal
+      :auto-finalize="autoFinalize"
+      :drama-id="props.dramaId"
+      :row="batchRow"
+      :view-columns="matrix.viewColumns"
+      @close="batchRow = null"
+      @finished="load"
+    />
+
+    <!-- 「去生成」= 当前窗口弹出 AI 任务执行窗口（不再跳页） -->
+    <GenerateTaskModal
+      :context="generateCtx"
+      @close="generateCtx = null"
+      @submitted="load"
+    />
   </Spin>
 </template>
