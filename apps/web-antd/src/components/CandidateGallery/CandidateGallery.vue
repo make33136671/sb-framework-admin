@@ -2,9 +2,9 @@
 import type { AssetCandidateItem, ReasonItem } from '#/api/core/dramafloow';
 
 /**
- * CandidateGallery —— 候选图对比 + 通过/驳回（契约 §5.1 Review/Asset）
+ * CandidateGallery —— 候选图对比 + 通过/丢弃（契约 §5.1 Review/Asset）
  *
- * 键盘流（契约 §8）：1/2/3 选中第 N 个候选、A 通过、R 驳回。
+ * 键盘流（契约 §8）：1/2/3 选中第 N 个候选、A 通过、R 丢弃。
  * 图片走 /storage 反代（vite dev 已代理到后端 media_root）。
  */
 import { computed, onMounted, onUnmounted, ref } from 'vue';
@@ -30,7 +30,7 @@ import { toStorageUrl } from '#/utils/media';
 interface Props {
   candidates: AssetCandidateItem[];
   reasons: ReasonItem[];
-  /** 是否允许通过/驳回（需求已通过时可只读查看） */
+  /** 是否允许通过/丢弃（需求已通过时可只读查看） */
   readonly?: boolean;
   /** 是否显示键盘提示 */
   showKeyboardHint?: boolean;
@@ -82,12 +82,14 @@ function openReject() {
 
 async function confirmReject() {
   const c = selected.value;
-  if (!c || !rejectReasonId.value) return;
+  if (!c || props.readonly) return;
   submitting.value = true;
   try {
+    // reasonId 可为空（用户明确要求「丢弃 但是 原因并不是必填项」）——
+    // 快速丢掉明显废图不该被强制先选原因。
     await assetReject(
       c.id,
-      rejectReasonId.value,
+      rejectReasonId.value ?? null,
       rejectNote.value || undefined,
     );
     rejectOpen.value = false;
@@ -181,7 +183,7 @@ onUnmounted(() => {
               c.status === 'approved'
                 ? '已通过'
                 : c.status === 'rejected'
-                  ? '已驳回'
+                  ? '已丢弃'
                   : c.status === 'failed'
                     ? '生成失败'
                     : '待审'
@@ -196,7 +198,7 @@ onUnmounted(() => {
       <div class="mb-2 text-xs text-muted-foreground">
         seed {{ selected.seed }} · {{ selected.width }}×{{ selected.height }}
         <template v-if="selected.rejectNote">
-          · 驳回备注：{{ selected.rejectNote }}
+          · 丢弃备注：{{ selected.rejectNote }}
         </template>
       </div>
       <div class="mb-3 break-all text-xs">{{ selected.prompt }}</div>
@@ -206,7 +208,7 @@ onUnmounted(() => {
           通过<template v-if="showKeyboardHint">（A）</template>
         </Button>
         <Button danger :disabled="submitting" @click="openReject">
-          驳回<template v-if="showKeyboardHint">（R）</template>
+          丢弃<template v-if="showKeyboardHint">（R）</template>
         </Button>
         <Button
           v-if="selected.status === 'approved'"
@@ -221,26 +223,28 @@ onUnmounted(() => {
         v-if="showKeyboardHint && !readonly"
         class="mt-2 text-xs text-muted-foreground"
       >
-        快捷键：1 / 2 / 3 切换候选，A 通过，R 驳回
+        快捷键：1 / 2 / 3 切换候选，A 通过，R 丢弃
       </div>
     </div>
 
-    <!-- 驳回弹窗 -->
+    <!-- 丢弃弹窗（原因非必填 —— 用户明确要求；但要说明填了有用） -->
     <Modal
       v-model:open="rejectOpen"
-      title="驳回候选"
+      title="丢弃该候选"
       :confirm-loading="submitting"
       @ok="confirmReject"
     >
       <div class="flex flex-col gap-3">
         <div>
           <div class="mb-1 text-sm">
-            驳回原因（必选，fix_hint 会进入下一版重写提示词）
+            原因
+            <span class="text-muted-foreground">（可选）</span>
           </div>
           <Select
             v-model:value="rejectReasonId"
+            allow-clear
             class="w-full"
-            placeholder="请选择原因"
+            placeholder="不选也行；选了能让下一版重生成更准"
             :options="
               reasons.map((r) => ({
                 label: `${r.name}${r.fixHint ? ` — ${r.fixHint}` : ''}`,
@@ -248,6 +252,10 @@ onUnmounted(() => {
               }))
             "
           />
+          <div class="mt-1 text-xs text-muted-foreground">
+            填了原因，重生成时会把「上次为什么被否」告诉
+            AI（fix_hint），出图更对路。
+          </div>
         </div>
         <div>
           <div class="mb-1 text-sm">补充备注（可选）</div>

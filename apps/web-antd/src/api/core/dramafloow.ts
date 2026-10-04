@@ -834,9 +834,19 @@ export async function assetApprove(candidateId: number) {
   return api.post<{ staled: number }>('/Asset/Approve', { candidateId });
 }
 
+/**
+ * 丢弃候选（后端 Action 仍叫 Reject，语义 = 移出候选池）。
+ *
+ * `reasonId` **非必填**（用户明确要求：「丢弃 但是 原因并不是必填项」）——
+ * 快速丢掉明显废图时不该被强制先选原因。
+ *
+ * 但原因**有价值**：它经 fix_hint 进入下一版 prompt_rewrite 的修复上下文
+ *（告诉 LLM「上次为什么被否」），所以界面上仍应提供选择器并说明这一点，
+ * 只是不拦提交。
+ */
 export async function assetReject(
   candidateId: number,
-  reasonId: number,
+  reasonId?: null | number,
   note?: string,
 ) {
   return api.post('/Asset/Reject', { candidateId, reasonId, note });
