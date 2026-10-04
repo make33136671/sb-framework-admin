@@ -39,6 +39,41 @@ export function formatTokens(v: null | number = 0): string {
 }
 
 /**
+ * 耗时（毫秒跳动版）：`01:23.456` / `1:02:03.789`
+ *
+ * 用户 2026-10-04 要求：
+ * > 「生成中的已耗时 这里我希望改成 **持续跳动的毫秒数** 看起来舒服点」
+ *
+ * 与 {@link formatElapsed} 的分工：
+ *   · `formatElapsed` 是**中文自然语言**（"3 分 12 秒"），适合"实际总耗时"这类
+ *     一眼读懂的场景；
+ *   · 本函数是**跑表样式**（等宽数字 + 毫秒），适合"还在跑的实时读秒" ——
+ *     毫秒位每帧都在动，视觉上明确传达"它真的在跑"。
+ *
+ * ⚠️ 入参是**秒**（`elapsedSecondsOf` 的口径，带小数），不是毫秒 ——
+ * 这里乘 1000 再格式化。改成毫秒会让所有调用点差 1000 倍，且不会报错。
+ *
+ * 时/分/秒**补零对齐**：等宽字体下 `01:23.456` 与 `1:02:03.789` 位数不同，
+ * 但每段的宽度固定，跳动时不会左右抖。
+ */
+export function formatStopwatch(seconds: null | number): string {
+  if (seconds === null || seconds === undefined) return '-';
+  const totalMs = Math.max(0, Math.floor(seconds * 1000));
+  const ms = totalMs % 1000;
+  const totalSec = Math.floor(totalMs / 1000);
+  const s = totalSec % 60;
+  const totalMin = Math.floor(totalSec / 60);
+  const m = totalMin % 60;
+  const h = Math.floor(totalMin / 60);
+
+  const pad2 = (n: number) => String(n).padStart(2, '0');
+  const pad3 = (n: number) => String(n).padStart(3, '0');
+
+  const core = `${pad2(m)}:${pad2(s)}.${pad3(ms)}`;
+  return h > 0 ? `${h}:${core}` : core;
+}
+
+/**
  * 从任务行取「已耗时」（秒）。
  *
  * 两个独立缺陷都在这里汇合，改动前请先读 `__tests__/taskDisplay.test.ts`：

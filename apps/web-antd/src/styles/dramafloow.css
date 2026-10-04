@@ -163,6 +163,66 @@
 }
 
 /*
+ * ⑦ 任务列表：毫秒跳动的「已耗时」+ 加粗进度条（用户 2026-10-04 要求）
+ *
+ * 用户原话：
+ * > 「生成中的已耗时 这里我希望改成 持续跳动的 毫秒数 看起来舒服点 字体大一点
+ * >  我希望他**高度占满整行** 这样跳动起来视觉冲击力更大 进度条 也加高高度 就是加粗」
+ *
+ * ## 「高度占满整行」怎么实现（踩过两个坑，别再走回去）
+ *
+ * **坑 1：给内层 div 写 `height:100%`** —— 不生效。
+ * 表格单元格的内容盒不建立可解析高度，百分比高度在里面退化成 auto。
+ * 实测：72px 的行，数字只有 34px（占 47%）。
+ *
+ * **坑 2：把 `td` 改成 `display:flex`** —— 更糟。
+ * `td` 一旦不再是 `table-cell` 就**退出表格布局**：它自己塌成内容高（33px），
+ * 而整行仍被别的单元格撑到 94px —— 数字反而更不占满，且该列宽度也失控。
+ *
+ * **正解：td 保持 `table-cell`，在里面放一层 `height:100%` 的包裹 div，
+ * 再用绝对定位让内容撑满。** 但 td 本身也不给百分比高度（循环引用）——
+ * 所以真正起作用的是 `position:relative` + 内层 `position:absolute; inset:0`：
+ * 绝对定位的包含块是**padding box**，它的高度由行高决定，无需百分比即可解析。
+ */
+.df-page .ant-table-tbody > tr > td.df-elapsed-cell {
+  position: relative;
+  padding-top: 4px;
+  padding-bottom: 4px;
+  vertical-align: middle;
+}
+
+/* 绝对定位撑满 td：这是"占满整行"的关键（td 保持 table-cell，不破坏布局） */
+.df-page .df-task-elapsed-live {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  font-size: 22px;
+  font-weight: 700;
+
+  /* 等宽数字：毫秒位每秒变 20 次，非等宽会让整串左右抖动（字号越大越明显） */
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  color: hsl(var(--primary));
+  letter-spacing: 0.02em;
+}
+
+/* 已定型的耗时是普通小字，不要被上面的大字号规则影响（复用同一个 td 类） */
+.df-page .ant-table-tbody > tr > td.df-elapsed-cell > span {
+  vertical-align: middle;
+}
+
+/*
+ * 加粗进度条：高度由组件层的 `stroke-width` 决定（antd 把它写成 inline style，
+ * 是唯一可靠的传入方式 —— `size="small"` 会写死 6px 且 class 覆盖不动）。
+ * 这里补圆角与轨道底色，保证加粗后两端不是直角。
+ */
+.df-page .df-task-progress .ant-progress-inner,
+.df-page .df-task-progress .ant-progress-bg {
+  border-radius: 9999px;
+}
+
+/*
  * ⑦ 指标卡统一高度（AI 任务列表页的「任务总数 / 正在跑 / 已完成 / 失败 / 自动刷新」一行）
  *
  * 问题：这几张卡内容行数不同（有的只有 Statistic，有的多一行小字），

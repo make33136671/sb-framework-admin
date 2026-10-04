@@ -45,6 +45,7 @@ import { TaskDrawer } from '#/components/TaskDrawer';
 import {
   elapsedSecondsOf,
   formatElapsed,
+  formatStopwatch,
   formatTokens,
   isLiveStatus,
 } from '#/components/TaskDrawer/taskDisplay';
@@ -92,14 +93,49 @@ const typeOptions = [
   { label: '成片线（合并）', value: 'concat' },
 ];
 
+/**
+ * 状态筛选。
+ *
+ * ⚠️ 「待审核」这一项过去让人看不懂（用户 2026-10-04 反馈）：
+ * > 「这个列表里的 待审核 我一直没看懂他有什么作用」
+ *
+ * 用户随后自己点破了根因：
+ * > 「他并不与当前的 AI 任务存在状态关联 他是 **素材任务链**上的」
+ *
+ * 核对后端确认用户是对的：
+ *   · `pending_review` **确实在任务状态机上**（`TaskStatuses.PendingReview`，
+ *     编排器在 t2i 出完图后写入，`TaskOrchestrator.cs:1768`）；
+ *   · 但**没有任何代码把任务从这个状态推进出去** —— 全仓搜不到给任务写
+ *     `approved` 的地方。人工审核实际发生在**素材候选**上
+ *     （`Asset.Approve` / `Review.Approve` 动的是 `asset_candidate`）。
+ *
+ * 也就是说：`pending_review` 是任务的**事实终态**，它表达的是
+ * 「这个任务该出的图已经出完了，接下来是素材链上的人工挑选」——
+ * 把它叫「待审核」会让用户以为"任务还在审核中、还会变"，于是永远等不到。
+ *
+ * 处理：**改名为「已出图，待定稿」**并加 tooltip 说明它不会再推进。
+ * 不改后端状态值（那会影响编排器与既有数据的兼容性），只把**界面语义**说对。
+ */
 const statusOptions = [
   { label: '全部', value: 'all' },
   { label: '在跑', value: 'running' },
   { label: '排队中', value: 'queued' },
-  { label: '待审核', value: 'pending_review' },
+  { label: '已出图待定稿', value: 'pending_review' },
   { label: '失败', value: 'failed' },
   { label: '已完成', value: 'done' },
 ];
+
+/**
+ * 状态标签上的一句话解释（鼠标悬停可见）。
+ *
+ * 只给**容易被误读**的状态写：其余（在跑/失败/已完成）语义自明，加了反而是噪音。
+ */
+const statusHints: Record<string, string> = {
+  pending_review:
+    '图片已生成完毕，任务不会再推进。请到「素材」页通过/丢弃候选图，或到角色视图定稿。',
+  queued: '已入队，等待编排器领取（受并发与 GPU 窗口限制）。',
+  collecting: '正在把生成的图片收拢入库，稍后进入「已出图待定稿」。',
+};
 
 async function load() {
   loading.value = true;
@@ -128,8 +164,12 @@ async function load() {
   }
 }
 
-/** 每秒 tick：在跑任务的耗时走字（不再推进的任务会自行冻结）
- *  ⚠️ 必须用 `wallNow()`：后端时间戳是项目时区墙上时间，混用绝对时刻会偏一个时区。 */
+/** 每 tick 刷新「现在」：在跑任务的耗时走字（不再推进的任务会自行冻结）
+ *  ⚠️ 必须用 `wallNow()`：后端时间戳是项目时区墙上时间，混用绝对时刻会偏一个时区。
+ *
+ *  间隔取 **50ms**（不是 1s）：用户要求「改成持续跳动的毫秒数」——
+ *  毫秒位要真的在动才叫"跳动"，1s 一跳的话毫秒永远显示 .000，看起来像坏了。
+ *  50ms 是流畅度与渲染开销的折中（约 20fps，人眼已足够顺；表格一屏几十行也不吃力）。 */
 const nowTick = ref(wallNow());
 let tickTimer: null | ReturnType<typeof setInterval> = null;
 let refreshTimer: null | ReturnType<typeof setInterval> = null;
@@ -138,7 +178,7 @@ onMounted(() => {
   void load();
   tickTimer = setInterval(() => {
     nowTick.value = wallNow();
-  }, 1000);
+  }, 50);
   refreshTimer = setInterval(() => {
     if (autoRefresh.value === 'on') void load();
   }, 30_000);
@@ -246,7 +286,9 @@ const oldestQueuedWait = computed(() => {
 
 function elapsedText(t: Record<string, any> | TaskItem): string {
   const sec = elapsedSecondsOf(t, nowTick.value);
-  return sec === null ? '-' : formatElapsed(0, sec);
+  if (sec === null) return '-';
+  // 在跑 → 跑表样式（毫秒跳动，用户要求）；已定型 → 中文自然语言（"3 分 12 秒"）
+  return isRunning(t.status) ? formatStopwatch(sec) : formatElapsed(0, sec);
 }
 
 function typeText(type?: string): string {
@@ -301,17 +343,47 @@ async function cancel(t: Record<string, any> | TaskItem) {
   }
 }
 
+/**
+ * 列宽（用户 2026-10-04 要求）：
+ * > 「我希望 固定列宽 只留一个 能自动适应的列就好 其他列 是你根据内容 推测的 列宽给他设定好」
+ *
+ * 做法：**除「具体任务」外全部给确定宽度**，并让「具体任务」不设 width
+ * —— antd 会把剩余宽度全部给它（配合 `:scroll={ x: 'max-content' }`，
+ * 表格总宽不足时它会撑满，超出时整体横向滚动）。
+ *
+ * 宽度按**内容实际需要**推的，不是拍脑袋：
+ *   · 剧目/剧本 = 剧名一行 + 「编号 · 剧本 vN」一行 → 220 够放中文剧名不折行；
+ *   · 线路/状态/tokens 都是短标签 → 100~110；
+ *   · AI 服务（模型）常见「服务名 + 指定服务」两行 → 170；
+ *   · 路由徽标（🏠/☁ + 金额）→ 140；
+ *   · 进度 / 已耗时 / 创建时间 / 操作按组件固有尺寸取。
+ *
+ * ⚠️ 「已耗时」列刻意加宽到 150：它是**毫秒跳动**的大字号数字（见下），
+ * 窄了会把数字挤到换行，跳动时整行高度抖动。
+ */
 const columns = [
   { title: '剧目 / 剧本', key: 'drama', width: 220 },
   { title: '任务线路', key: 'line', width: 110 },
   { title: 'AI 服务（模型）', key: 'provider', width: 170 },
   // 成本感知调度 §6.4：路由徽标（🏠 本地 / ☁ 云端）+ 上云原因 tooltip + 金额
   { title: '路由', key: 'route', width: 140 },
-  // 具体任务不设固定宽：让它吃掉剩余宽度（配合表格横向滚动的 max-content 下限 1080）
-  { title: '具体任务', key: 'target', ellipsis: true, width: 200 },
-  { title: '状态', key: 'status', width: 104 },
-  { title: '进度', key: 'progress', width: 140 },
-  { title: '已耗时', key: 'elapsed', width: 104 },
+  // ★ 唯一自适应列：不设 width，吃掉剩余宽度（配合表格横向滚动的 max-content 下限）
+  { title: '具体任务', key: 'target', ellipsis: true },
+  { title: '状态', key: 'status', width: 110 },
+  {
+    title: '进度',
+    key: 'progress',
+    width: 160,
+    // 让加粗进度条的圆角/高度样式能命中（class 挂在 td 上）
+    customCell: () => ({ class: 'df-task-progress' }),
+  },
+  {
+    title: '已耗时',
+    key: 'elapsed',
+    width: 150,
+    // 让毫秒跳动的大字号能"占满整行"（td 不限高 + flex 撑满）
+    customCell: () => ({ class: 'df-elapsed-cell' }),
+  },
   { title: 'tokens', key: 'tokens', width: 100 },
   { title: '创建时间', key: 'createdAt', width: 170 },
   { title: '操作', key: 'action', width: 150 },
@@ -504,9 +576,21 @@ const columns = [
             <span class="text-xs">{{ record.target || '-' }}</span>
           </template>
 
-          <!-- 状态 -->
+          <!-- 状态（pending_review 带 tooltip 说明：它不会再推进，见 statusOptions 注释） -->
           <template v-else-if="column.key === 'status'">
-            <Tag :color="taskStatusColor(record.status)" class="!mr-0">
+            <Tooltip
+              v-if="statusHints[record.status]"
+              :title="statusHints[record.status]"
+            >
+              <Tag :color="taskStatusColor(record.status)" class="!mr-0">
+                <span
+                  v-if="isRunning(record.status)"
+                  class="df-live-dot mr-1 align-middle"
+                ></span>
+                {{ enumText.taskStatus(record.status) }}
+              </Tag>
+            </Tooltip>
+            <Tag v-else :color="taskStatusColor(record.status)" class="!mr-0">
               <span
                 v-if="isRunning(record.status)"
                 class="df-live-dot mr-1 align-middle"
@@ -515,34 +599,51 @@ const columns = [
             </Tag>
           </template>
 
-          <!-- 进度 -->
+          <!-- 进度（用户要求：加高加粗） -->
           <template v-else-if="column.key === 'progress'">
-            <Progress
-              :percent="record.progress ?? 0"
-              :status="
-                record.status === 'failed'
-                  ? 'exception'
-                  : isRunning(record.status)
-                    ? 'active'
-                    : (record.progress ?? 0) >= 100
-                      ? 'success'
-                      : 'normal'
-              "
-              size="small"
-            />
+            <div class="df-task-progress">
+              <Progress
+                :percent="record.progress ?? 0"
+                :status="
+                  record.status === 'failed'
+                    ? 'exception'
+                    : isRunning(record.status)
+                      ? 'active'
+                      : (record.progress ?? 0) >= 100
+                        ? 'success'
+                        : 'normal'
+                "
+                :stroke-width="16"
+              />
+            </div>
           </template>
 
-          <!-- 已耗时（在跑每秒走字） -->
+          <!--
+            已耗时（用户 2026-10-04 要求）：
+            > 「生成中的已耗时 这里我希望改成 持续跳动的 毫秒数 看起来舒服点
+            >  字体大一点 我希望他**高度占满整行** 这样跳动起来视觉冲击力更大」
+
+            实现要点：
+              · 在跑 → `formatStopwatch`（`01:23.456`，毫秒位随 50ms tick 真在动）；
+                已定型 → 中文自然语言，且**冻结**（判据与读秒同源，见 isRunning）；
+              · `.df-task-elapsed-live`：撑满行高 + 加大字号 + 等宽数字
+                （等宽是关键：不定宽的数字每跳一次都会左右抖，越大越明显）
+          -->
           <template v-else-if="column.key === 'elapsed'">
-            <span
-              class="text-xs tabular-nums"
-              :class="isRunning(record.status) ? 'df-live-num' : ''"
+            <div
+              v-if="isRunning(record.status)"
+              class="df-task-elapsed-live df-live-num"
             >
               {{ elapsedText(record) }}
-            </span>
-            <Tooltip v-if="record.finishedAt" title="已结束：为实际总耗时">
-              <span class="ml-1 text-xs text-muted-foreground">·</span>
-            </Tooltip>
+            </div>
+            <template v-else>
+              <span class="text-xs tabular-nums">{{
+                elapsedText(record)
+              }}</span>
+              <Tooltip v-if="record.finishedAt" title="已结束：为实际总耗时">
+                <span class="ml-1 text-xs text-muted-foreground">·</span>
+              </Tooltip>
+            </template>
           </template>
 
           <!-- tokens -->
