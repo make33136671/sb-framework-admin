@@ -44,6 +44,7 @@ import {
   assetRequirementList,
   dramaGet,
   dramaList,
+  taskSizes,
   taskSubmit,
 } from '#/api/core/dramafloow';
 import { AiProviderSelect } from '#/components/AiProviderSelect';
@@ -106,9 +107,10 @@ const dramaStyle = ref<{ negative: null | string; positive: null | string }>({
 });
 
 const sceneOptions = [
-  // 320×320 放在最前并设为默认（用户 2026-10-04 要求）：
-  // 小尺寸出图快、省显存，适合调提示词/试种子的迭代阶段
-  { label: '小图 320×320（默认）', value: '320x320' },
+  // 小图置顶并作为**兜底默认**（真正的默认值来自后端系统设置，见 loadSizes）。
+  // 小尺寸出图快、省显存，适合调提示词/试种子的迭代阶段。
+  { label: '小图 320×320', value: '320x320' },
+  { label: '小图竖版 320×560（全身立姿）', value: '320x560' },
   { label: '正方形 1024×1024', value: '1024x1024' },
   { label: '竖版 768×1344（全身立姿）', value: '768x1344' },
   { label: '横版 1344×768（场景）', value: '1344x768' },
@@ -117,12 +119,33 @@ const sceneOptions = [
 
 const sceneKey = ref('320x320');
 
+/**
+ * 载入**当前生效**的生图尺寸（后端按「视图覆盖 → 通用默认 → 代码兜底」解析）。
+ *
+ * 为什么要问后端、不在前端写死：用户要求「数值不是写死 是数据库」「我随时能在系统设置里改」。
+ * 前端若自己定默认值，用户在设置页改完下发页不会变 —— 且不会报错。
+ */
+const sizeSource = ref('');
+
+async function loadSizes() {
+  try {
+    const s = await taskSizes();
+    form.width = s.defaultWidth;
+    form.height = s.defaultHeight;
+    sizeSource.value = s.defaultSource;
+    sceneKey.value = `${s.defaultWidth}x${s.defaultHeight}`;
+  } catch {
+    // 拦截器已提示；保持内置兜底值，不阻塞页面
+  }
+}
+
 watch(sceneKey, (k) => {
   if (k === 'custom') return;
   const [w, h] = k.split('x').map(Number);
   if (w && h) {
     form.width = w;
     form.height = h;
+    sizeSource.value = '';
   }
 });
 
@@ -215,6 +238,8 @@ async function applyRouteParams() {
 }
 
 onMounted(async () => {
+  // 先取系统设置里的生效尺寸，再应用路由带来的覆盖（后者优先级更高）
+  await loadSizes();
   await loadDramas();
   await applyRouteParams();
 });
@@ -438,6 +463,11 @@ function resetForAnother() {
               :options="sceneOptions"
               style="width: 100%"
             />
+            <!-- 回显默认值来自哪一级（视图设置 / 通用默认 / 代码兜底）：
+                 用户在系统设置里改了值却"没看到生效"时，这里能直接看出原因 -->
+            <div v-if="sizeSource" class="mt-1 text-xs text-muted-foreground">
+              默认值来自系统设置：{{ sizeSource }}
+            </div>
           </div>
           <div>
             <div class="mb-1 text-sm">宽</div>

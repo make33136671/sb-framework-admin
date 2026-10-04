@@ -1144,6 +1144,28 @@ export async function taskUpdate(data: {
   return api.post('/Task/Update', data);
 }
 
+/**
+ * 生图尺寸的**当前生效值**（后端三级优先解析后的结果）。
+ *
+ * 由后端解析而不是前端自己算：来源是「视图覆盖 → 通用默认 → 代码兜底」三级回落，
+ * 前端再实现一遍必然与后端漂移 —— 那种漂移的表现是"设置页改了、下发页没变"，
+ * 且**不会报错**。
+ */
+export async function taskSizes() {
+  return api.get<{
+    defaultHeight: number;
+    defaultSource: string;
+    defaultWidth: number;
+    views: {
+      height: number;
+      label: string;
+      source: string;
+      suffix: string;
+      width: number;
+    }[];
+  }>('/Task/Sizes');
+}
+
 export async function taskStats(dramaId?: number) {
   return api.get<{
     byStatus: Record<string, number>;
