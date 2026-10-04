@@ -58,6 +58,21 @@ async function bootstrap(namespace: string) {
     // app-info.json 不存在（未安装或开发环境）时静默忽略
   }
 
+  // 同步项目时区（后端 appsettings.TimeZone，经 /Verification/Status 的 appTimeZone 下发）。
+  // 为什么必须在启动时做：后端返回的任务/剧目等时间戳是**项目时区的墙上时间、不带时区后缀**，
+  // 前端算「已耗时」时必须用同一口钟（见 #/utils/wallTime）。时区取错 → 读秒整体偏一个时区。
+  // 拉取失败保持默认（Asia/Shanghai），不影响首屏。
+  void (async () => {
+    try {
+      const { verificationStatus } = await import('#/api/core/dramafloow');
+      const { setProjectTimeZone } = await import('#/utils/wallTime');
+      const status = await verificationStatus();
+      setProjectTimeZone(status?.appTimeZone ?? null);
+    } catch {
+      // 未登录 / 未安装 / 网络异常 → 保持默认时区
+    }
+  })();
+
   const app = createApp(App);
 
   // 注册v-loading指令

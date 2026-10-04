@@ -2,8 +2,14 @@
  * 任务展示格式化（仪表盘看板 / 任务详情抽屉共用）
  *
  * 时间的「现在」由调用方传入（`now`）：看板每秒 tick 一次即可让耗时走字，
- * 组件里不要各自 new Date()，避免同一屏出现两个不一致的"现在"。
+ * 组件里不要各自 `new Date()`，避免同一屏出现两个不一致的"现在"。
+ *
+ * ⚠️ 传入的 `now` **必须是墙上时间参照系**（用 `wallNow()` 取，不是 `Date.now()`），
+ * 因为后端返回的任务时间戳是项目时区的墙上时间、不带时区后缀。
+ * 详见 `#/utils/wallTime` 的模块注释 —— 两端不同口径会静默错一个时区。
  */
+
+import { parseWallTime } from '#/utils/wallTime';
 
 /** 耗时（中文明细）：45s / 3分12秒 / 1小时02分 / 2天3小时 */
 export function formatElapsed(startSec: number, endSec: number): string {
@@ -33,8 +39,21 @@ export function formatTokens(v: null | number = 0): string {
 }
 
 /**
- * 从任务行取「已耗时」。
- * 在飞/排队：startedAt ?? createdAt → now；已结束：startedAt ?? createdAt → finishedAt。
+ * 从任务行取「已耗时」（秒）。
+ *
+ * 两个独立缺陷都在这里汇合，改动前请先读 `__tests__/taskDisplay.test.ts`：
+ *
+ * ① **时间参照系必须两端同口径**（用户报「任务已经完成了，读秒还在跑」的真正根因）：
+ *    后端任务时间戳是**项目时区墙上时间、不带时区后缀**，旧实现却拿
+ *    `Date.now()`（绝对时刻）去减 → 浏览器/容器跑在 UTC 时整整偏一个时区 ——
+ *    刚开始的任务耗时算成负数被夹成 0；跨过那个虚假时点后又变成
+ *    「从 8 小时前开始跑」并**每秒继续涨**。
+ *    修法：`now` 必须由调用方用 `wallNow()` 取（见 `#/utils/wallTime`），
+ *    解析任务时间戳统一走 `parseWallTime`。
+ *
+ * ② **不再推进的状态必须冻结**：只有 `isLiveStatus` 为真时才走字到「现在」；
+ *    其余状态（含 `pending_review` 待审）冻结在 `finishedAt ?? updatedAt ?? start`。
+ *    若只依赖 ① 而漏掉 ②，那些「已定型但没写 finishedAt」的任务仍会无限走字。
  */
 export function elapsedSecondsOf(
   task: {
@@ -42,23 +61,43 @@ export function elapsedSecondsOf(
     finishedAt?: null | string;
     startedAt?: null | string;
     status?: string;
+    updatedAt?: null | string;
   },
   now: number,
 ): null | number {
   const startRaw = task.startedAt ?? task.createdAt;
-  if (!startRaw) return null;
-  const start = new Date(startRaw).getTime();
-  if (Number.isNaN(start)) return null;
-  const end =
-    task.finishedAt && isFinishedStatus(task.status)
-      ? new Date(task.finishedAt).getTime()
-      : now;
+  const start = parseWallTime(startRaw);
+  if (start === null) return null;
+
+  // 仍在推进（排队 / 准备 / 生成 / 收集）→ 走字到「现在」
+  let end = now;
+  if (!isLiveStatus(task.status)) {
+    // 不再推进 → 冻结。finishedAt 优先；缺失（如待审、人工取消）时用 updatedAt 兜底，
+    // 最后才退回起点（耗时 0，而不是随 now 无限增长）。
+    end = parseWallTime(task.finishedAt ?? task.updatedAt ?? startRaw) ?? start;
+  }
   return Math.max(0, (end - start) / 1000);
 }
 
 /** 终态（不再走字）：与后端 TaskStatuses 的口径一致 */
 export function isFinishedStatus(status?: string): boolean {
   return ['approved', 'done', 'failed', 'rejected'].includes(status ?? '');
+}
+
+/**
+ * 是否仍会推进（读秒该走字）。
+ *
+ * 「会推进」= 后端 TaskStatuses.InFlight ∪ {queued}，与编排器实际会改库的状态**严格对齐**：
+ * 只有这 4 个状态下的任务才会继续变更，其余（pending_review / approved / rejected / done / failed…）
+ * 都已定型，读秒必须停下。
+ *
+ * 注意与 {@link isFinishedStatus} 的区别：`pending_review`（待人工审核）**不是** finished，
+ * 但它同样**不会再推进**——旧代码把这两件事混为一谈，正是「读秒停不下来」的根因。
+ */
+export function isLiveStatus(status?: string): boolean {
+  return ['collecting', 'generating', 'preparing', 'queued'].includes(
+    status ?? '',
+  );
 }
 
 /**

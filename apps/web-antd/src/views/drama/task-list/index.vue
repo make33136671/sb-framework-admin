@@ -46,16 +46,14 @@ import {
   elapsedSecondsOf,
   formatElapsed,
   formatTokens,
+  isLiveStatus,
 } from '#/components/TaskDrawer/taskDisplay';
 import { TaskRouteBadge } from '#/components/TaskRouteBadge';
 import { TimeTag } from '#/components/TimeTag';
 import { requiredCapabilityText } from '#/composables/useAiProviders';
-import {
-  TASK_STATUS_TEXT,
-  TASK_TYPE_TEXT,
-  taskStatusColor,
-  useTaskStream,
-} from '#/composables/useTaskStream';
+import { enumText } from '#/composables/useEnumText';
+import { taskStatusColor, useTaskStream } from '#/composables/useTaskStream';
+import { wallNow } from '#/utils/wallTime';
 
 const router = useRouter();
 const stream = useTaskStream();
@@ -81,7 +79,12 @@ const autoRefresh = ref('on');
 
 const typeOptions = [
   { label: '全部线路', value: 'all' },
+  // ⚠️ 新增任务类型必须同步本列表：此前缺 analyze / episode_split，
+  // 导致剧本分析任务在列表里既筛不出来、又被后端兜底标签显示成「洗稿」（2026-10-04 修复）。
   { label: '剧本线（洗稿）', value: 'rewrite' },
+  { label: '剧本分析', value: 'analyze' },
+  { label: '分集拆分', value: 'episode_split' },
+  { label: '选区重洗', value: 'partial_rewrite' },
   { label: '分镜线', value: 'storyboard' },
   { label: '素材提取', value: 'asset_extract' },
   { label: '素材线（出图）', value: 't2i' },
@@ -125,15 +128,16 @@ async function load() {
   }
 }
 
-/** 每秒 tick：在跑任务的耗时走字 */
-const nowTick = ref(Date.now());
+/** 每秒 tick：在跑任务的耗时走字（不再推进的任务会自行冻结）
+ *  ⚠️ 必须用 `wallNow()`：后端时间戳是项目时区墙上时间，混用绝对时刻会偏一个时区。 */
+const nowTick = ref(wallNow());
 let tickTimer: null | ReturnType<typeof setInterval> = null;
 let refreshTimer: null | ReturnType<typeof setInterval> = null;
 
 onMounted(() => {
   void load();
   tickTimer = setInterval(() => {
-    nowTick.value = Date.now();
+    nowTick.value = wallNow();
   }, 1000);
   refreshTimer = setInterval(() => {
     if (autoRefresh.value === 'on') void load();
@@ -169,6 +173,11 @@ const merged = computed<TaskItem[]>(() => {
       scriptVersion: prev?.scriptVersion,
       target: prev?.target,
       startedAt: prev?.startedAt ?? e.ts,
+      // ⚠️ finishedAt/updatedAt 的合并口径直接决定「已耗时」是否正确：
+      //  · finishedAt 只能来自 REST（WS 事件不携带），但**不能被覆盖成 undefined**，
+      //    否则刷新一次就丢掉终态时刻，读秒又会用 now 走字；
+      //  · updatedAt 取「事件时刻」，它是任务最后一次落库时间 ——
+      //    pending_review 这类**不写 finishedAt 的终态**靠它冻结耗时（见 elapsedSecondsOf）。
       finishedAt: prev?.finishedAt,
       createdAt: prev?.createdAt ?? e.ts,
       updatedAt: e.ts,
@@ -241,8 +250,7 @@ function elapsedText(t: Record<string, any> | TaskItem): string {
 }
 
 function typeText(type?: string): string {
-  if (!type) return '-';
-  return TASK_TYPE_TEXT[type] ?? type;
+  return enumText.taskType(type);
 }
 
 function tokensOf(t: Record<string, any> | TaskItem): null | TaskTokenSummary {
@@ -261,8 +269,11 @@ function tokensTip(t: Record<string, any> | TaskItem): string {
   return lines.join('\n');
 }
 
+/** 在跑（真正会推进的状态）：决定读秒走字 + 动效。
+ *  ⚠️ 与 `elapsedSecondsOf` 的冻结判据必须同源（都用 isLiveStatus），
+ *  否则会出现「状态已不推进、读秒还在跑」的不一致（2026-10-04 用户报的缺陷）。 */
 function isRunning(status: string): boolean {
-  return ['collecting', 'generating', 'preparing'].includes(status);
+  return isLiveStatus(status);
 }
 
 function openDrama(dramaId?: number) {
@@ -500,7 +511,7 @@ const columns = [
                 v-if="isRunning(record.status)"
                 class="df-live-dot mr-1 align-middle"
               ></span>
-              {{ TASK_STATUS_TEXT[record.status] ?? record.status }}
+              {{ enumText.taskStatus(record.status) }}
             </Tag>
           </template>
 

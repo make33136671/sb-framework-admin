@@ -256,12 +256,13 @@ function insertPlaceholder(name: string, quoted: boolean) {
 
 /** 从文件导入（ComfyUI 导出的 API 格式 JSON）。 */
 function importFile(file: File) {
-  const reader = new FileReader();
-  reader.onload = () => {
-    editor.template = String(reader.result ?? '');
+  // 用 Blob#text()（现代 API，取代 FileReader 的 onload/readAsText）：
+  // 既满足 unicorn/prefer-blob-reading-methods，也避免 onload 赋值写法被 lint 拦下。
+  void file.text().then((text) => {
+    editor.template = text;
     void runAnalyze();
-  };
-  reader.readAsText(file);
+  });
+  // 返回 false 阻止 antd Upload 自动上传（本处只是「选文件即读入编辑器」）
   return false;
 }
 
@@ -389,9 +390,9 @@ async function runTest() {
           </template>
 
           <template v-else-if="column.key === 'bound'">
-            <Tag v-if="record.boundModelCount > 0" color="processing"
-              >已绑定</Tag
-            >
+            <Tag v-if="record.boundModelCount > 0" color="processing">
+              已绑定
+            </Tag>
             <span v-else class="opacity-50">—</span>
           </template>
 

@@ -41,13 +41,18 @@ import {
 import { TaskRouteBadge } from '#/components/TaskRouteBadge';
 import { TimeTag } from '#/components/TimeTag';
 import { requiredCapabilityText } from '#/composables/useAiProviders';
-import {
-  TASK_STATUS_TEXT,
-  TASK_TYPE_TEXT,
-  taskStatusColor,
-} from '#/composables/useTaskStream';
+import { enumText } from '#/composables/useEnumText';
+import { taskStatusColor } from '#/composables/useTaskStream';
+import { wallNow } from '#/utils/wallTime';
 
-import { elapsedSecondsOf, formatElapsed, formatTokens } from './taskDisplay';
+import {
+  elapsedSecondsOf,
+  formatElapsed,
+  formatTokens,
+  isLiveStatus,
+} from './taskDisplay';
+import TaskLogPanel from './TaskLogPanel.vue';
+import TaskPreviewPanel from './TaskPreviewPanel.vue';
 
 const props = defineProps<{
   /** 要查看的任务 id；null 表示关闭 */
@@ -73,12 +78,13 @@ function openDrama(dramaId: number) {
   router.push({ name: 'DramaDetail', query: { id: dramaId } });
 }
 
-/** 每秒走字：在飞任务的「已耗时」实时刷新（终态后停止） */
-const nowTick = ref(Date.now());
+/** 每秒走字：在飞任务的「已耗时」实时刷新（不再推进的任务会自行冻结）
+ *  ⚠️ 必须用 `wallNow()`：后端时间戳是项目时区墙上时间，混用绝对时刻会偏一个时区。 */
+const nowTick = ref(wallNow());
 let tickTimer: null | ReturnType<typeof setInterval> = null;
 onMounted(() => {
   tickTimer = setInterval(() => {
-    nowTick.value = Date.now();
+    nowTick.value = wallNow();
   }, 1000);
 });
 onUnmounted(() => {
@@ -129,12 +135,14 @@ const isFinished = computed(() => {
   return ['approved', 'done', 'failed', 'rejected'].includes(s ?? '');
 });
 
+/** 是否仍在推进（决定「已耗时」走字 vs 冻结、是否显示「进行中」） */
+const isLive = computed(() => isLiveStatus(detail.value?.status));
+
 /** 心跳超时（>20s）→ 疑似卡住 */
 const stuck = computed(() => {
   const d = detail.value;
   if (!d) return false;
-  if (!['collecting', 'generating', 'preparing'].includes(d.status))
-    return false;
+  if (!isLiveStatus(d.status)) return false;
   const hb = d.heartbeatAt ?? d.updatedAt;
   if (!hb) return false;
   return Date.now() - new Date(hb).getTime() > 20_000;
@@ -240,13 +248,13 @@ const jobColumns = [
       <!-- 顶部：状态 + 操作（一行一动作） -->
       <div class="mb-4 flex flex-wrap items-center gap-3">
         <Tag :color="taskStatusColor(detail.status)" class="!mr-0">
-          {{ TASK_STATUS_TEXT[detail.status] ?? detail.status }}
+          {{ enumText.taskStatus(detail.status) }}
         </Tag>
         <Tag v-if="stuck" color="error" class="!mr-0">疑似卡住（心跳超时）</Tag>
         <span class="text-xs text-muted-foreground">
-          #{{ detail.id }} ·
-          {{ TASK_TYPE_TEXT[detail.type] ?? detail.type }}（{{ detail.type }}）·
-          v{{ detail.version }}
+          #{{ detail.id }} · {{ enumText.taskType(detail.type) }} · v{{
+            detail.version
+          }}
         </span>
         <div class="flex-1"></div>
         <Space>
@@ -284,9 +292,15 @@ const jobColumns = [
         :status="detail.status === 'failed' ? 'exception' : 'normal'"
       />
 
+      <!-- 产物预览（已产出的给图/视频，未产出的给**等待占位符**）+ 当前提示词 + 调用的工作流。
+           放在最上部：用户打开详情第一眼要回答的就是「出来了吗 / 长什么样 / 还差什么」。 -->
+      <div class="mb-4 rounded-md border border-border p-3">
+        <TaskPreviewPanel :loading="loading" :preview="detail.preview" />
+      </div>
+
       <Descriptions bordered size="small" :column="2" class="mb-4">
         <Descriptions.Item label="类型">
-          {{ TASK_TYPE_TEXT[detail.type] ?? detail.type }}（{{ detail.type }}）
+          {{ enumText.taskType(detail.type) }}
         </Descriptions.Item>
         <Descriptions.Item label="剧目">
           <a v-if="detail.dramaId" @click="openDrama(detail.dramaId)">
@@ -332,8 +346,11 @@ const jobColumns = [
         </Descriptions.Item>
         <Descriptions.Item label="已耗时">
           <span class="tabular-nums">{{ elapsedText }}</span>
-          <span v-if="!isFinished" class="ml-1 text-xs text-muted-foreground">
+          <span v-if="isLive" class="ml-1 text-xs text-muted-foreground">
             （进行中）
+          </span>
+          <span v-else class="ml-1 text-xs text-muted-foreground">
+            （已停止计时）
           </span>
         </Descriptions.Item>
         <Descriptions.Item label="LLM tokens">
@@ -414,7 +431,7 @@ const jobColumns = [
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'status'">
             <Tag :color="taskStatusColor(record.status)" class="!mr-0">
-              {{ TASK_STATUS_TEXT[record.status] ?? record.status }}
+              {{ enumText.taskStatus(record.status) }}
             </Tag>
           </template>
           <template v-else-if="column.key === 'submittedAt'">
@@ -438,11 +455,17 @@ const jobColumns = [
       >
         <template #bodyCell="{ column, record }">
           <template v-if="column.key === 'status'">
-            <Tag class="!mr-0">{{ record.status }}</Tag>
+            <Tag class="!mr-0">{{ enumText.jobStatus(record.status) }}</Tag>
           </template>
         </template>
       </Table>
       <Empty v-else description="暂无作业" />
+
+      <!-- 生图交互日志（时间线：作业提交/完成/失败 + 提示词快照 + 任务状态与错误） -->
+      <div class="mt-4 mb-2 text-sm font-medium">
+        生图交互日志（{{ (detail.logs ?? []).length }}）
+      </div>
+      <TaskLogPanel :loading="loading" :logs="detail.logs" />
     </template>
 
     <Empty v-else-if="loading" description="加载中…" />

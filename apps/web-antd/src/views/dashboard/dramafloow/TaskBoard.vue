@@ -39,12 +39,9 @@ import {
   formatElapsed,
   formatTokens,
 } from '#/components/TaskDrawer/taskDisplay';
-import {
-  TASK_STATUS_TEXT,
-  TASK_TYPE_TEXT,
-  taskStatusColor,
-  useTaskStream,
-} from '#/composables/useTaskStream';
+import { enumText } from '#/composables/useEnumText';
+import { taskStatusColor, useTaskStream } from '#/composables/useTaskStream';
+import { wallNow } from '#/utils/wallTime';
 
 const router = useRouter();
 const stream = useTaskStream();
@@ -69,8 +66,9 @@ const taskId = ref<null | number>(null);
 /** 未终态任务的 token 汇总：taskId → 汇总（Task/Stats 带出，避免看板 N+1） */
 const tokensByTask = ref<Record<number, TaskTokenSummary>>({});
 
-/** 每秒 tick：让在飞任务的「已耗时」实时走字 */
-const nowTick = ref(Date.now());
+/** 每秒 tick：让在飞任务的「已耗时」实时走字（不再推进的任务会自行冻结）
+ *  ⚠️ 必须用 `wallNow()`：后端时间戳是项目时区墙上时间，混用绝对时刻会偏一个时区。 */
+const nowTick = ref(wallNow());
 let tickTimer: null | ReturnType<typeof setInterval> = null;
 
 async function load() {
@@ -93,7 +91,7 @@ async function load() {
 onMounted(() => {
   void load();
   tickTimer = setInterval(() => {
-    nowTick.value = Date.now();
+    nowTick.value = wallNow();
   }, 1000);
 });
 onUnmounted(() => {
@@ -222,11 +220,9 @@ function elapsedText(t: Record<string, any> | TaskItem): string {
   return sec === null ? '-' : formatElapsed(0, sec);
 }
 
-/** 任务类型中文名（回退英文 type，不显示空白） */
+/** 任务类型中文名（不显示裸英文） */
 function typeText(type?: string): string {
-  if (!type) return '-';
-  const cn = TASK_TYPE_TEXT[type];
-  return cn ? `${cn}（${type}）` : type;
+  return enumText.taskType(type);
 }
 
 /** 该任务的 token 汇总（看板只统计未终态任务，见 Task/Stats） */
@@ -371,7 +367,7 @@ const viewOptions = [
 
         <template v-else-if="column.key === 'status'">
           <Tag :color="taskStatusColor(record.status)" class="!mr-0">
-            {{ TASK_STATUS_TEXT[record.status] ?? record.status }}
+            {{ enumText.taskStatus(record.status) }}
           </Tag>
         </template>
 

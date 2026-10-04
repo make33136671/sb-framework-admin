@@ -24,14 +24,13 @@ import {
   formatElapsed,
   formatTokens,
   isFinishedStatus,
+  isLiveStatus,
 } from '#/components/TaskDrawer/taskDisplay';
 import { TaskRouteBadge } from '#/components/TaskRouteBadge';
 import { TimeTag } from '#/components/TimeTag';
-import {
-  TASK_STATUS_TEXT,
-  TASK_TYPE_TEXT,
-  taskStatusColor,
-} from '#/composables/useTaskStream';
+import { enumText } from '#/composables/useEnumText';
+import { taskStatusColor } from '#/composables/useTaskStream';
+import { wallNow } from '#/utils/wallTime';
 
 const props = withDefaults(
   defineProps<{
@@ -54,12 +53,14 @@ const emit = defineEmits<{
 
 const router = useRouter();
 
-/** 每秒 tick：耗时走字（终态任务不再变化） */
-const nowTick = ref(Date.now());
+/** 每秒 tick：耗时走字（不再推进的任务会自行冻结）
+ *  ⚠️ 必须用 `wallNow()` 而非 `Date.now()`：后端任务时间戳是项目时区的**墙上时间**，
+ *  与绝对时刻相减会偏一个时区（详见 #/utils/wallTime）。 */
+const nowTick = ref(wallNow());
 let tickTimer: null | ReturnType<typeof setInterval> = null;
 onMounted(() => {
   tickTimer = setInterval(() => {
-    nowTick.value = Date.now();
+    nowTick.value = wallNow();
   }, 1000);
 });
 onUnmounted(() => {
@@ -81,9 +82,17 @@ const running = computed(() =>
     }),
 );
 
-/** 合计已耗时（各任务耗时相加；同一时刻通常只有一个任务在跑） */
+/** 真正还在推进的任务（读秒走字 / 合计耗时只算这些）。
+ *  ⚠️ 与 `running` 的区别：`pending_review`（待审）虽然不算 finished、仍要出现在本卡里，
+ *  但**不会再推进**——把它算进「合计已耗时」并让它每秒走字，正是用户看到的
+ *  「任务已经完成了，读秒还在跑」（2026-10-04 缺陷）。 */
+const live = computed(() =>
+  running.value.filter((t) => isLiveStatus(t.status)),
+);
+
+/** 合计已耗时（只累加**仍在推进**的任务；待审/已成型的任务耗时已冻结，不参与合计） */
 const totalElapsed = computed(() =>
-  running.value.reduce(
+  live.value.reduce(
     (sum, t) => sum + (elapsedSecondsOf(t, nowTick.value) ?? 0),
     0,
   ),
@@ -112,7 +121,7 @@ function tokensTip(t: TaskItem): string {
 
 /** 正在干活（区别于「排队中」）：脉冲点 + 流光只给这些状态 */
 function isActivelyRunning(status: string): boolean {
-  return ['collecting', 'generating', 'preparing'].includes(status);
+  return isLiveStatus(status) && status !== 'queued';
 }
 
 function openDrama(dramaId?: number) {
@@ -127,8 +136,12 @@ function openDrama(dramaId?: number) {
       <div class="mb-2 flex flex-wrap items-center gap-2 text-xs">
         <span class="df-live-dot"></span>
         <span class="font-medium">正在跑 {{ running.length }} 个任务</span>
+        <!-- 合计只算仍在推进的：待审任务已定型，耗时不参与合计（否则数字会一直涨） -->
         <span class="text-muted-foreground">
           合计已耗时 {{ formatElapsed(0, totalElapsed) }}
+        </span>
+        <span v-if="running.length > live.length" class="text-muted-foreground">
+          · 另 {{ running.length - live.length }} 个待处理（已停止计时）
         </span>
       </div>
 
@@ -142,7 +155,7 @@ function openDrama(dramaId?: number) {
           <!-- 第一行：状态 · 谁 · 什么线路 · 具体在干什么 -->
           <div class="flex flex-wrap items-center gap-2 text-sm">
             <Tag :color="taskStatusColor(t.status)" class="!mr-0">
-              {{ TASK_STATUS_TEXT[t.status] ?? t.status }}
+              {{ enumText.taskStatus(t.status) }}
             </Tag>
             <a
               v-if="t.dramaId"
@@ -153,7 +166,7 @@ function openDrama(dramaId?: number) {
             </a>
             <span v-else class="text-muted-foreground">（无剧目）</span>
             <Tag class="!mr-0" color="blue">
-              {{ TASK_TYPE_TEXT[t.type] ?? t.type }}
+              {{ enumText.taskType(t.type) }}
             </Tag>
             <span v-if="t.scriptVersion" class="text-xs text-muted-foreground">
               剧本 v{{ t.scriptVersion }}

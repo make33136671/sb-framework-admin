@@ -205,6 +205,75 @@ export interface TaskTokenSummary {
   estimated: boolean;
 }
 
+/** 任务交互日志一行（后端由 job / task_version / 任务状态**派生**，不新增表） */
+export interface TaskLogItem {
+  /** 时间（项目时区墙上时间，TimeTag 原样展示） */
+  at: string;
+  /** 事件类别：task 任务状态 · prompt 提示词 · job 生图作业 · error 失败 */
+  kind: 'error' | 'job' | 'prompt' | 'task' | string;
+  /** 级别：info / warn / error / ok */
+  level: 'error' | 'info' | 'ok' | 'warn' | string;
+  /** 一句话说明 */
+  title: string;
+  /** 细节（可折叠展示：ComfyUI prompt_id / 错误正文 / 提示词全文） */
+  detail?: null | string;
+  /** 关联作业 id（可点跳产物） */
+  jobId?: null | number;
+  /** 关联变体序号（0 起） */
+  variantNo?: null | number;
+  /** 耗时毫秒（仅 job 类：提交→完成） */
+  durationMs?: null | number;
+}
+
+/** 产物预览的一格：filePath 为空 = **还没产出** → 前端画等待占位符 */
+export interface TaskPreviewSlot {
+  variantNo: number;
+  /** 该格提示词（为空表示尚未生成） */
+  prompt?: null | string;
+  /** 媒体绝对路径（media_root 下）；为空 = 等待占位符 */
+  filePath?: null | string;
+  width?: null | number;
+  height?: null | number;
+  seed?: null | number;
+  /** 候选状态：pending / approved / rejected / failed */
+  status?: null | string;
+  /** 该格在等什么（人话：排队第 N / 正在生成 / 已失败…） */
+  waitReason?: null | string;
+  /** 该格绑定的作业状态 */
+  jobStatus?: null | string;
+  jobId?: null | number;
+}
+
+/** 本次任务实际调用的工作流（含**兜底来源**标注，不变量 9） */
+export interface TaskWorkflowInfo {
+  id: number;
+  key: string;
+  name?: null | string;
+  kind?: null | string;
+  /** job 实际使用 / model_binding / provider_default / system_setting / unknown */
+  source: string;
+  sourceText?: null | string;
+  /** 是否走了兜底（非模型显式绑定） */
+  isFallback: boolean;
+}
+
+/** 产物预览面板（按**预期产物数**铺格，缺的格子是等待占位符） */
+export interface TaskPreview {
+  expectedCount: number;
+  doneCount: number;
+  /** image / video / none（文本类任务无视觉产物） */
+  mediaKind: string;
+  /** 任务级等待说明（面板顶部那句话） */
+  waitReason?: null | string;
+  /** 是否仍在等待（决定是否画动态等待图标） */
+  waiting: boolean;
+  /** 当前提示词 */
+  currentPrompt?: null | string;
+  /** 当前调用的工作流 */
+  workflow?: null | TaskWorkflowInfo;
+  slots: TaskPreviewSlot[];
+}
+
 export interface TaskDetail extends TaskItem {
   /** 剧目名（Task/Get 带出） */
   dramaName?: string;
@@ -230,6 +299,10 @@ export interface TaskDetail extends TaskItem {
     variantNo: number;
     workflowKey: string;
   }[];
+  /** 生图交互日志（派生时间线；按时间正序） */
+  logs?: TaskLogItem[];
+  /** 产物预览面板 */
+  preview?: null | TaskPreview;
 }
 
 /** tokens 桶（今日 / 近 7 天共用形状） */
@@ -1318,4 +1391,21 @@ export async function shotStoryboard(
     '/Shot/Storyboard',
     { dramaId, episodeNo, providerId },
   );
+}
+
+// ─────────────────────────── Verification ───────────────────────────
+
+/**
+ * 程序状态（含 `appTimeZone` = 服务端 appsettings.TimeZone，如 `Asia/Shanghai`）。
+ *
+ * ⚠️ 前端算「已耗时」时必须知道项目时区：后端所有时间戳都是**项目时区的墙上时间、
+ * 不带时区后缀**，与 UTC 的 `Date.now()` 混用会整体偏一个时区
+ * （表现为读秒恒为 0 或凭空多跑 8 小时，见 `#/utils/wallTime`）。
+ * 故启动时拉一次并 `setProjectTimeZone(...)`。
+ */
+export async function verificationStatus() {
+  return api.get<{
+    [k: string]: any;
+    appTimeZone?: null | string;
+  }>('/Verification/Status', { params: {} });
 }
