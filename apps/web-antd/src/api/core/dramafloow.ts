@@ -931,18 +931,96 @@ export async function dashboardTokenUsage(params: {
 
 // ─────────────────────────── Template ───────────────────────────
 
+/** 工作流静态体检结果（保存前展示「能不能被系统驱动」）。 */
+export interface WorkflowAnalysis {
+  errors: string[];
+  format: 'api' | 'invalid' | 'ui';
+  formatHint?: null | string;
+  kind?: null | string;
+  /** 工作流依赖的模型文件（checkpoint/vae/clip …） */
+  models?: Record<string, string>;
+  missing: string[];
+  nodeCount: number;
+  outputs: string[];
+  present: string[];
+  usable: boolean;
+  warnings: string[];
+}
+
+export interface WorkflowTemplateRow {
+  analysis: WorkflowAnalysis;
+  boundModelCount: number;
+  createdAt: string;
+  description?: null | string;
+  id: number;
+  isActive: boolean;
+  key: string;
+  kind?: null | string;
+  name: string;
+  template: string;
+  updatedAt: string;
+}
+
+/** 连通性测试结果（真的跑了一次生成）。 */
+export interface WorkflowTestResult {
+  /** 产物内联预览（base64 data URL） */
+  dataUrl?: null | string;
+  detail?: null | string;
+  elapsedMs: number;
+  error?: null | string;
+  fileBytes?: number;
+  fileName?: null | string;
+  fileUrl?: null | string;
+  mimeType?: null | string;
+  promptId?: null | string;
+  providerName?: null | string;
+  success: boolean;
+}
+
 export async function templateWorkflowList() {
-  return api.get<WorkflowTemplateItem[]>('/Template/WorkflowList');
+  return api.get<WorkflowTemplateRow[]>('/Template/WorkflowList');
 }
 
 export async function templateWorkflowSave(data: {
+  description?: string;
+  /** 硬错误时需显式 force 才放行 */
+  force?: boolean;
   id?: number;
   isActive?: boolean;
   key: string;
   name: string;
   template: string;
 }) {
-  return api.post<{ id: number }>('/Template/WorkflowSave', data);
+  return api.post<{
+    id: number;
+    kind?: string;
+    warnings?: string[];
+  }>('/Template/WorkflowSave', data);
+}
+
+/** 静态分析（不落库）：编辑器里边写边体检。 */
+export async function templateWorkflowAnalyze(template: string) {
+  return api.post<WorkflowAnalysis>('/Template/WorkflowAnalyze', { template });
+}
+
+/** 连通性测试：真的提交一次生成并取回产物。 */
+export async function templateWorkflowTest(data: {
+  height?: number;
+  kind?: string;
+  negativePrompt?: string;
+  prompt: string;
+  providerId?: number;
+  seed?: number;
+  template: string;
+  /** 等待上限（秒）。视频工作流（LTX 22B 等）需要远超默认的 180s。 */
+  timeoutSec?: number;
+  width?: number;
+}) {
+  return api.post<WorkflowTestResult>('/Template/WorkflowTest', data);
+}
+
+export async function templateWorkflowDelete(id: number) {
+  return api.post<null>('/Template/WorkflowDelete', { id });
 }
 
 export async function templateLlmList() {
