@@ -45,6 +45,7 @@ import {
 
 import { assetCharacterMatrix, assetSetViewImage } from '#/api/core/dramafloow';
 import { GenerateTaskModal } from '#/components/GenerateTaskModal';
+import { TaskDrawer } from '#/components/TaskDrawer';
 import { toStorageUrl } from '#/utils/media';
 
 import BatchGenerateViewsModal from './BatchGenerateViewsModal.vue';
@@ -202,6 +203,28 @@ const generateCtx = ref<null | {
   viewLabel: string;
   width?: null | number;
 }>(null);
+
+/**
+ * 任务执行窗口要展示的任务 id（null = 关闭）。
+ *
+ * 提交生成后由 `onTaskSubmitted` 设置 → 就地弹出执行窗口。
+ */
+const execTaskId = ref<null | number>(null);
+
+/**
+ * 生成表单提交成功 → 关掉表单、就地弹出**该任务的执行窗口**。
+ *
+ * 用户要求：「提交任务后 直接把任务执行窗口 也 直接用弹窗的方式在当前页面弹出来」。
+ *
+ * 顺序刻意是「先关表单、再开执行窗口」：两个 Modal 同时挂载会叠两层遮罩，
+ * 关掉上面那层时下面那层会闪一下。先关后开只有一个遮罩，视觉干净。
+ */
+function onTaskSubmitted(payload: { taskId: number }) {
+  generateCtx.value = null;
+  execTaskId.value = payload.taskId;
+  // 矩阵可能已因新任务变化（需求进入 generating），刷一次让格子状态跟上
+  void load();
+}
 
 function goGenerate(row: CharacterMatrixRow, cell: CharacterViewCell) {
   if (!cell.requirementId) {
@@ -558,13 +581,28 @@ const totalCells = computed(() =>
       :view-columns="matrix.viewColumns"
       @close="batchRow = null"
       @finished="load"
+      @view-task="(id) => (execTaskId = id)"
     />
 
-    <!-- 「去生成」= 当前窗口弹出 AI 任务执行窗口（不再跳页） -->
+    <!-- 「去生成」= 当前窗口弹出生成表单 → 提交后紧接着弹出任务执行窗口 -->
     <GenerateTaskModal
       :context="generateCtx"
       @close="generateCtx = null"
-      @submitted="load"
+      @submitted="onTaskSubmitted"
+    />
+
+    <!--
+      任务执行窗口（用户要求）：
+      > 「提交任务后 直接把任务执行窗口 也 直接用弹窗的方式在当前页面弹出来」
+
+      与「去生成」表单**依次**出现：提交 → 表单关闭 → 执行窗口弹出，
+      用户不用离开角色视图、也不用去任务列表找刚建的任务。
+    -->
+    <TaskDrawer
+      presentation="modal"
+      :task-id="execTaskId"
+      @close="execTaskId = null"
+      @changed="load"
     />
   </Spin>
 </template>

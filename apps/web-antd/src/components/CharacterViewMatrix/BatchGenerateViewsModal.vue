@@ -64,6 +64,14 @@ const emit = defineEmits<{
   (e: 'close'): void;
   /** 全部完成后通知父组件刷新矩阵 */
   (e: 'finished'): void;
+  /**
+   * 查看某个已下发任务的执行窗口。
+   *
+   * ⚠️ 批量**不自动弹**执行窗口：一次产生多达 7 条任务，弹 7 层窗口是灾难。
+   * 改为每行一个「查看」，让用户挑要看的那条 —— 这与单视图「提交完直接弹」
+   * 的诉求并不冲突：那里只有一条任务，弹出即所见。
+   */
+  (e: 'viewTask', taskId: number): void;
 }>();
 
 const open = computed(() => props.row !== null);
@@ -225,10 +233,12 @@ async function run() {
 }
 
 const columns = [
-  { title: '视图', dataIndex: 'label', key: 'label', width: 180 },
-  { title: '状态', key: 'status', width: 110 },
-  { title: '任务', key: 'task', width: 90 },
+  { title: '视图', dataIndex: 'label', key: 'label', width: 170 },
+  { title: '状态', key: 'status', width: 100 },
+  { title: '任务', key: 'task', width: 80 },
   { title: '说明', dataIndex: 'message', key: 'message', ellipsis: true },
+  // 逐个任务打开执行窗口：批量会产生多条任务，用"查看"而不是自动弹 7 个窗口
+  { title: '操作', key: 'action', width: 80 },
 ];
 
 function statusColor(s: string): string {
@@ -311,6 +321,16 @@ function statusText(s: string): string {
               <span v-if="record.taskId" class="text-xs"
                 >#{{ record.taskId }}</span
               >
+              <span v-else class="text-xs text-muted-foreground">-</span>
+            </template>
+            <template v-else-if="column.key === 'action'">
+              <Button
+                v-if="record.taskId"
+                size="small"
+                @click="emit('viewTask', record.taskId)"
+              >
+                查看
+              </Button>
               <span v-else class="text-xs text-muted-foreground">-</span>
             </template>
           </template>

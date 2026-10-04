@@ -251,6 +251,33 @@
   overflow-x: hidden;
 }
 
+/*
+ * ⑨ 任务执行窗口（弹窗形态的 TaskDrawer）
+ *
+ * 用户要求：「提交任务后 直接把任务执行窗口 也 直接用弹窗的方式在当前页面弹出来」。
+ *
+ * 内容（进度 / 产物预览 / 版本快照表 / 作业表 / 实时日志）**远高于一屏**，
+ * 而 antd Modal 默认不限制内容高度 —— 不约束的话弹窗会长到屏幕外，
+ * 标题栏和关闭按钮都滚不见了（用户只能按 Esc 关，还不知道有没有关掉）。
+ *
+ * 给内容区一个**视口相关**的高度上限并让它内部滚动：
+ *   · 用 `vh` 而不是固定 px —— 小屏笔记本与大屏都要能用；
+ *   · 70vh 是"仍露得出上下边距"的比例：再多会把弹窗顶到贴边，就不像弹窗了。
+ *   · 注意**不是**挂在 `.df-page` 下：弹窗渲染到 body 上的 portal，
+ *     不在页面容器里 —— 写成 `.df-page .df-task-modal-body` 会**匹配不到**，
+ *     表现就是"加了样式但完全没生效"（本项目常见的静默失效）。
+ */
+.df-task-modal-body {
+  max-height: 70vh;
+
+  /* 滚动条贴在内容内侧，不压住右侧表格文字 */
+  padding-right: 4px;
+
+  /* 抵消 antd Modal body 默认 padding 造成的双内边距 */
+  margin: -4px 0;
+  overflow-y: auto;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .df-live-dot::after,
   .df-live-card-active::after,

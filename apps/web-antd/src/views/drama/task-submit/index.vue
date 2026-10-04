@@ -48,6 +48,7 @@ import {
   taskSubmit,
 } from '#/api/core/dramafloow';
 import { AiProviderSelect } from '#/components/AiProviderSelect';
+import { TaskDrawer } from '#/components/TaskDrawer';
 
 const route = useRoute();
 const router = useRouter();
@@ -292,6 +293,16 @@ async function submit() {
 function resetForAnother() {
   result.value = null;
 }
+
+/**
+ * 执行窗口要展示的任务 id（null = 关闭）。
+ *
+ * 提交成功后点「查看执行窗口」就地弹出 —— 不必跳到任务列表再找那条任务。
+ * 与角色视图「提交完自动弹」的差别：这里是页面级入口，用户可能还要继续
+ * 下发下一个（"再下发一个"），**自动弹窗会打断连续下发**，
+ * 故给按钮让他自己决定。角色视图那边是"点一次生成一件事"，自动弹才顺手。
+ */
+const execTaskId = ref<null | number>(null);
 </script>
 
 <template>
@@ -315,7 +326,11 @@ function resetForAnother() {
         </template>
         <template #extra>
           <Space>
-            <Button type="primary" @click="resetForAnother">再下发一个</Button>
+            <!-- 就地看刚提交的任务在跑（用户要求：提交后直接弹执行窗口） -->
+            <Button type="primary" @click="execTaskId = result.taskId">
+              查看执行窗口
+            </Button>
+            <Button @click="resetForAnother">再下发一个</Button>
             <Button @click="router.push({ name: 'DramaTaskList' })">
               去任务列表
             </Button>
@@ -525,5 +540,12 @@ function resetForAnother() {
         </Button>
       </div>
     </template>
+
+    <!-- 任务执行窗口（弹窗形态）：提交后就地看任务在跑，不用跳去任务列表 -->
+    <TaskDrawer
+      presentation="modal"
+      :task-id="execTaskId"
+      @close="execTaskId = null"
+    />
   </Page>
 </template>
