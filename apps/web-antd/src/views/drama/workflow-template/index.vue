@@ -1,6 +1,7 @@
 <script lang="ts" setup>
 import type {
   WorkflowAnalysis,
+  WorkflowImportResult,
   WorkflowTemplateRow,
   WorkflowTestResult,
 } from '#/api/core/dramafloow';
@@ -49,6 +50,8 @@ import {
 import {
   templateWorkflowAnalyze,
   templateWorkflowDelete,
+  templateWorkflowImport,
+  templateWorkflowImportList,
   templateWorkflowList,
   templateWorkflowSave,
   templateWorkflowTest,
@@ -322,6 +325,79 @@ async function runTest() {
     testPanel.running = false;
   }
 }
+
+// ─────────────────────── 从 ComfyUI 网页导入 ───────────────────────
+//
+// 用户的原话是「我在 ComfyUI 的 web 页面里调试好了工作流，如何让短剧系统调用它」。
+// 此前只能手工「导出（API 格式）」再粘贴 —— 这里把那一步做掉。
+//
+// ⚠️ 两条**故意**的设计（都不自动改用户的东西）：
+//   ① 导入只是把转换结果**填进编辑器**，不落库、不覆盖已有模板 → 用户仍走
+//      「体检 → 改 key/name → 保存」这条既有路径，不引入第二套保存逻辑；
+//   ② 占位符**只给建议、不自动插**：自动判断哪个是正向提示词会猜错
+//      （把负面提示词当正向插进去会安静地毁掉出图），所以把判据摆给用户看。
+
+const importPanel = reactive({
+  open: false,
+  loading: false,
+  importing: false,
+  files: [] as string[],
+  providerName: '',
+  baseUrl: '',
+  selected: '',
+  error: '',
+  result: null as null | WorkflowImportResult,
+});
+
+/** 打开导入面板并拉取 ComfyUI 上的工作流列表。 */
+async function openImport() {
+  importPanel.open = true;
+  importPanel.loading = true;
+  importPanel.error = '';
+  importPanel.files = [];
+  importPanel.selected = '';
+  importPanel.result = null;
+  try {
+    const res = await templateWorkflowImportList();
+    importPanel.files = res.files ?? [];
+    importPanel.providerName = res.providerName ?? '';
+    importPanel.baseUrl = res.baseUrl ?? '';
+  } catch (error) {
+    importPanel.error = error instanceof Error ? error.message : '读取失败';
+  } finally {
+    importPanel.loading = false;
+  }
+}
+
+/** 选中一个工作流 → 服务端转换 → 展示预览（**还没填进编辑器**）。 */
+async function loadImportPreview(fileName: string) {
+  importPanel.selected = fileName;
+  importPanel.importing = true;
+  importPanel.result = null;
+  try {
+    importPanel.result = await templateWorkflowImport(fileName);
+  } catch {
+    // 拦截器已提示（如「含嵌套子图，不支持自动展开」）
+  } finally {
+    importPanel.importing = false;
+  }
+}
+
+/** 确认导入：把转换结果填进编辑器（不落库）。 */
+function applyImport() {
+  const r = importPanel.result;
+  if (!r) return;
+  editor.template = r.apiJson;
+  // key 用文件名（去掉 .json）做个能用的默认值，用户可改
+  if (!editor.key.trim()) {
+    editor.key = r.fileName.replace(/\.json$/i, '').replaceAll(/[^\w.-]/g, '_');
+  }
+  if (!editor.name.trim()) {
+    editor.name = r.fileName.replace(/\.json$/i, '');
+  }
+  editor.analysis = r.analysis;
+  importPanel.open = false;
+}
 </script>
 
 <template>
@@ -471,6 +547,13 @@ async function runTest() {
               <span>工作流 JSON（API 格式）</span>
               <Spin v-if="editor.analyzing" size="small" />
               <Button size="small" @click="runAnalyze">重新体检</Button>
+              <Tooltip
+                title="直接读取 ComfyUI 网页里已保存的工作流，自动转成 API 格式"
+              >
+                <Button size="small" type="primary" ghost @click="openImport">
+                  从 ComfyUI 导入
+                </Button>
+              </Tooltip>
               <Upload
                 :show-upload-list="false"
                 :before-upload="importFile"
@@ -771,6 +854,146 @@ async function runTest() {
           </div>
         </div>
       </template>
+    </Modal>
+
+    <!-- 从 ComfyUI 网页导入 -->
+    <Modal
+      v-model:open="importPanel.open"
+      :footer="null"
+      :width="900"
+      title="从 ComfyUI 导入工作流"
+    >
+      <Alert
+        class="mb-3"
+        type="info"
+        show-icon
+        message="读取的是你在 ComfyUI 网页里保存的工作流"
+        :description="`来源：${importPanel.providerName || '—'}（${importPanel.baseUrl || '—'}）。系统会自动把 UI 格式转成 API 格式；导入后仍需自己插占位符并点「连通性测试」真跑一次。`"
+      />
+
+      <Spin :spinning="importPanel.loading">
+        <div v-if="importPanel.error">
+          <Alert type="error" show-icon :message="importPanel.error" />
+        </div>
+
+        <Empty
+          v-else-if="!importPanel.loading && importPanel.files.length === 0"
+          description="ComfyUI 里还没有保存过工作流 —— 先在 ComfyUI 网页调好并 Ctrl+S 保存"
+        />
+
+        <div v-else class="grid grid-cols-3 gap-3">
+          <!-- 左：文件列表 -->
+          <div class="col-span-1 max-h-[420px] overflow-auto border-r pr-2">
+            <div
+              v-for="f in importPanel.files"
+              :key="f"
+              class="cursor-pointer rounded px-2 py-1 text-xs hover:bg-black/5"
+              :class="{
+                'bg-blue-50 font-medium': importPanel.selected === f,
+              }"
+              @click="loadImportPreview(f)"
+            >
+              {{ f }}
+            </div>
+          </div>
+
+          <!-- 右：转换预览 -->
+          <div class="col-span-2 max-h-[420px] overflow-auto">
+            <Spin :spinning="importPanel.importing">
+              <Empty
+                v-if="!importPanel.result && !importPanel.importing"
+                description="选一个工作流看转换结果"
+              />
+              <div v-if="importPanel.result">
+                <Descriptions size="small" :column="2" bordered>
+                  <DescriptionsItem label="可执行节点">
+                    {{ importPanel.result.nodeCount }}
+                  </DescriptionsItem>
+                  <DescriptionsItem label="推断种类">
+                    {{ importPanel.result.analysis.kind ?? '—' }}
+                  </DescriptionsItem>
+                  <DescriptionsItem label="输出节点" :span="2">
+                    <Space :size="2" wrap>
+                      <Tag
+                        v-for="o in importPanel.result.analysis.outputs"
+                        :key="o"
+                        color="processing"
+                      >
+                        {{ o }}
+                      </Tag>
+                      <span
+                        v-if="importPanel.result.analysis.outputs.length === 0"
+                        class="opacity-50"
+                      >
+                        未找到（跑完取不回产物）
+                      </span>
+                    </Space>
+                  </DescriptionsItem>
+                </Descriptions>
+
+                <!-- 转换告警（子图展开、控件对不上…） -->
+                <Alert
+                  v-for="(w, i) in importPanel.result.convertWarnings"
+                  :key="`w${i}`"
+                  class="mt-2"
+                  type="warning"
+                  show-icon
+                  :message="w"
+                />
+
+                <!-- 占位符建议：只提示，不自动改 -->
+                <div
+                  v-if="importPanel.result.suggestions.length > 0"
+                  class="mt-3"
+                >
+                  <div class="mb-1 text-xs font-medium">
+                    占位符建议（需你手工改，系统不会自动插）
+                  </div>
+                  <div
+                    v-for="(s, i) in importPanel.result.suggestions"
+                    :key="`s${i}`"
+                    class="mb-1 rounded border p-2 text-xs"
+                  >
+                    <Space :size="4" wrap>
+                      <Tag>节点 {{ s.nodeId }}</Tag>
+                      <Tag color="geekblue">{{ s.classType }}</Tag>
+                      <Tag color="green">{{ s.field }}</Tag>
+                      <Tag
+                        :color="s.confidence === 'high' ? 'green' : 'orange'"
+                      >
+                        {{ s.confidence === 'high' ? '较确定' : '需确认' }}
+                      </Tag>
+                    </Space>
+                    <div class="mt-1">{{ s.reason }}</div>
+                    <div class="mt-1 opacity-60">
+                      当前值：{{ s.currentValue }}
+                    </div>
+                  </div>
+                </div>
+
+                <Alert
+                  v-else
+                  class="mt-3"
+                  type="warning"
+                  show-icon
+                  message="没有识别到可插占位符的位置 —— 请手工检查文本编码器与采样器节点"
+                />
+              </div>
+            </Spin>
+          </div>
+        </div>
+      </Spin>
+
+      <div class="mt-4 flex justify-end gap-2">
+        <Button @click="importPanel.open = false">取消</Button>
+        <Button
+          type="primary"
+          :disabled="!importPanel.result"
+          @click="applyImport"
+        >
+          填入编辑器
+        </Button>
+      </div>
     </Modal>
   </Page>
 </template>

@@ -1156,6 +1156,58 @@ export async function templateWorkflowDelete(id: number) {
   return api.post<null>('/Template/WorkflowDelete', { id });
 }
 
+// ── 「从 ComfyUI 导入」──────────────────────────────────────────
+// 用户在 ComfyUI 网页调好工作流后 Ctrl+S 存在 ComfyUI 自己的 /userdata/workflows/，
+// 那是 UI 格式（含 nodes/links），不能直接提交给 /prompt。这两个接口把列表读出来、
+// 并在服务端转成 API 格式草稿返回（**不落库**）—— 用户再决定插占位符后保存。
+
+/** 占位符建议（**只提示、不自动改**）：告诉用户哪个节点适合换成哪个占位符。 */
+export interface WorkflowPlaceholderSuggestion {
+  classType: string;
+  confidence: 'high' | 'low' | 'medium';
+  currentValue: string;
+  field: string;
+  nodeId: string;
+  placeholder: string;
+  reason: string;
+}
+
+/** ComfyUI 网页里已保存的工作流（文件名列表）。 */
+export interface WorkflowImportCandidate {
+  baseUrl?: string;
+  files: string[];
+  providerId?: null | number;
+  providerName?: string;
+}
+
+export interface WorkflowImportResult {
+  analysis: WorkflowAnalysis;
+  apiJson: string;
+  convertErrors: string[];
+  convertWarnings: string[];
+  fileName: string;
+  nodeCount: number;
+  suggestions: WorkflowPlaceholderSuggestion[];
+}
+
+/** 列出 ComfyUI 网页里保存的工作流。 */
+export async function templateWorkflowImportList(providerId?: number) {
+  return api.get<WorkflowImportCandidate>('/Template/WorkflowImportList', {
+    params: { providerId },
+  });
+}
+
+/** 拉取并转换一个 ComfyUI 网页工作流（返回草稿，不落库）。 */
+export async function templateWorkflowImport(
+  fileName: string,
+  providerId?: number,
+) {
+  return api.post<WorkflowImportResult>('/Template/WorkflowImport', {
+    fileName,
+    providerId,
+  });
+}
+
 export async function templateLlmList() {
   return api.get<LlmTemplateItem[]>('/Template/LlmList');
 }
