@@ -51,19 +51,63 @@ const rejectReasonId = ref<number | undefined>(undefined);
 const rejectNote = ref('');
 const submitting = ref(false);
 
-const selected = computed(() => props.candidates[selectedIndex.value]);
+/**
+ * 排序后的候选（用户要求：「待审核的候选图 排在最前面」）。
+ *
+ * 为什么在**组件内**排序而不是改数据源：调用方（素材详情、审核队列）传进来的顺序
+ * 有各自语义（审核队列按任务/时间组织），不该被本组件的展示偏好改写。
+ *
+ * 排序键（稳定，同级保持原相对顺序 —— `toSorted` 保证稳定性）：
+ *   1. **待审 pending 最前** ← 用户诉求：待处理的一眼就能看到、能直接操作
+ *   2. 已通过 approved（已定稿，通常只有一张，放中间便于对照）
+ *   3. 生成失败 failed（无图可看，价值低）
+ *   4. 已丢弃 rejected 最后
+ *
+ * ⚠️ `selectedIndex` 索引的是**这个排好序的数组**，不是 props 原数组 ——
+ * 所以下面所有取候选的地方都必须走 `sortedCandidates`，混用会"点这张选中那张"。
+ */
+const sortedCandidates = computed(() => {
+  const rank = (s: string) =>
+    s === 'pending'
+      ? 0
+      : s === 'approved'
+        ? 1
+        : s === 'failed'
+          ? 2
+          : s === 'rejected'
+            ? 3
+            : 4; // 未知状态排最后，不抢占待审的位置
+  return props.candidates.toSorted((a, b) => rank(a.status) - rank(b.status));
+});
+
+/** 待审数量（给调用方/文案用，也便于界面提示"还有 N 张待处理"） */
+const pendingCount = computed(
+  () => props.candidates.filter((c) => c.status === 'pending').length,
+);
+
+const selected = computed(() => sortedCandidates.value[selectedIndex.value]);
 
 /** 单张候选图的可访问 URL（统一走 utils/media，兼容 media_root 变更） */
 const imageUrl = (filePath?: string): string => toStorageUrl(filePath);
 
 function select(i: number) {
-  if (i < 0 || i >= props.candidates.length) return;
+  if (i < 0 || i >= sortedCandidates.value.length) return;
   selectedIndex.value = i;
 }
 
 async function approve() {
   const c = selected.value;
   if (!c || props.readonly) return;
+  await approveOne(c);
+}
+
+/** 通过**指定的那一张**（供「图下按钮」直接调用，不必先点选）。
+ *
+ *  为什么参数是"候选"而不是复用"当前选中"：要让每张图下面的按钮**操作它自己**。
+ *  否则用户点第 3 张图下的「通过」，实际通过的却是"当前选中"的另一张，
+ *  且没有任何提示 —— 这类「操作错对象」比直接报错更糟（用户以为通过了 A，实际通过的是 B）。 */
+async function approveOne(c: AssetCandidateItem) {
+  if (props.readonly || submitting.value) return;
   submitting.value = true;
   try {
     await assetApprove(c.id);
@@ -74,14 +118,27 @@ async function approve() {
 }
 
 function openReject() {
-  if (!selected.value || props.readonly) return;
+  const c = selected.value;
+  if (!c || props.readonly) return;
+  openRejectFor(c);
+}
+
+/** 待丢弃的候选（`confirmReject` 用它，保证「哪张图的按钮丢哪张」）。
+ *  键盘流 R 走 selected，鼠标点图下按钮走这里，两条路径都不串。 */
+const rejectTarget = ref<AssetCandidateItem | null>(null);
+
+/** 打开丢弃弹窗（针对指定候选） */
+function openRejectFor(c: AssetCandidateItem) {
+  if (props.readonly || submitting.value) return;
+  rejectTarget.value = c;
   rejectReasonId.value = props.reasons[0]?.id;
   rejectNote.value = '';
   rejectOpen.value = true;
 }
 
 async function confirmReject() {
-  const c = selected.value;
+  // 优先用「图下按钮点的那张」，回退到"当前选中"（键盘流走的是后者）
+  const c = rejectTarget.value ?? selected.value;
   if (!c || props.readonly) return;
   submitting.value = true;
   try {
@@ -93,6 +150,7 @@ async function confirmReject() {
       rejectNote.value || undefined,
     );
     rejectOpen.value = false;
+    rejectTarget.value = null;
     emit('changed');
   } finally {
     submitting.value = false;
@@ -140,15 +198,20 @@ onUnmounted(() => {
 </script>
 
 <template>
-  <div v-if="candidates.length === 0">
+  <div v-if="sortedCandidates.length === 0">
     <Empty description="暂无候选（可点击「生成」入队 t2i 任务）" />
   </div>
 
   <div v-else class="flex flex-col gap-3">
+    <!-- 待处理提示：排序把待审排到最前，这里说明"前面这几张是要你处理的" -->
+    <div v-if="pendingCount > 0" class="text-xs text-muted-foreground">
+      待审核 {{ pendingCount }} 张（已排在最前，可直接在图下通过 / 丢弃）
+    </div>
+
     <!-- 候选缩略图一行 -->
     <div class="flex flex-wrap items-start gap-3">
       <div
-        v-for="(c, i) in candidates"
+        v-for="(c, i) in sortedCandidates"
         :key="c.id"
         class="cursor-pointer rounded-md border p-1 transition-all"
         :class="
@@ -189,6 +252,35 @@ onUnmounted(() => {
                     : '待审'
             }}
           </Tag>
+        </div>
+
+        <!-- 图下直接操作（用户要求：「待审核的素材 直接把 通过和丢弃的按钮 放在图片下面」）。
+             只在**待审**时出现：已通过/已丢弃/生成失败的图再点没有意义，
+             放着一排无效按钮反而让用户以为还能改。
+             按钮操作的是**本张**（传 c），不是"当前选中"，避免操作错对象。 -->
+        <div
+          v-if="!readonly && c.status === 'pending'"
+          class="mt-1 flex items-center gap-1"
+          @click.stop
+        >
+          <Button
+            :disabled="submitting"
+            block
+            size="small"
+            type="primary"
+            @click="approveOne(c)"
+          >
+            通过
+          </Button>
+          <Button
+            :disabled="submitting"
+            block
+            danger
+            size="small"
+            @click="openRejectFor(c)"
+          >
+            丢弃
+          </Button>
         </div>
       </div>
     </div>
