@@ -20,6 +20,14 @@ export interface DramaItem {
   synopsis?: string;
   status: string;
   episodeTargetCount: number;
+  /**
+   * 第 2 层提示词（剧目整体风格，可空）。
+   *
+   * 归属为**剧目**而非剧本版本：`Script` 有 version + is_current（一副多版本），
+   * 风格挂剧本会让每次洗稿都要重设，且出现"同剧不同版本画风不一致"。
+   */
+  styleNegativePrompt?: null | string;
+  stylePrompt?: null | string;
   createdBy?: string;
   createdAt: string;
   updatedAt: string;
@@ -592,6 +600,15 @@ export async function dramaUpdate(data: {
   genre?: string;
   id: number;
   name: string;
+  /**
+   * 第 2 层提示词（剧目整体风格）。
+   *
+   * ⚠️ `undefined` = **不改动**该字段；`''` = 显式清空。
+   * 两者语义不同 —— 若把"没带该字段"当成清空，改个剧目名就会把用户
+   * 已配好的风格提示词**静默清掉**。
+   */
+  styleNegativePrompt?: string;
+  stylePrompt?: string;
   synopsis?: string;
 }) {
   return api.post('/Drama/Update', data);
@@ -897,8 +914,21 @@ export interface CharacterMatrixRow {
 
 export interface CharacterMatrix {
   characters: CharacterMatrixRow[];
-  /** 列定义（顺序 + 中文名），与 views 一一对应 */
-  viewColumns: { label: string; suffix: string }[];
+  /**
+   * 列定义（顺序 + 中文名 + 该视图的提示词与建议尺寸），与 views 一一对应。
+   *
+   * `spec` / `negativeSpec` / `width` / `height` 由后端从 `CharacterViews`
+   * （唯一事实源）产出，供「去生成」预填下发页 —— 前端**不再写一份视图表**，
+   * 否则两边各写一套必然漂移。
+   */
+  viewColumns: {
+    height?: number;
+    label: string;
+    negativeSpec?: string;
+    spec?: string;
+    suffix: string;
+    width?: number;
+  }[];
 }
 
 /**
@@ -987,6 +1017,65 @@ export async function taskList(params: {
 
 export async function taskGet(id: number) {
   return api.get<TaskDetail>('/Task/Get', { params: { id } });
+}
+
+// ── 统一 AI 生成下发入口 ────────────────────────────────────────────
+//
+// 用户要求：「统一入口……所有的参数都有默认，调用方传过来的时候会覆盖这些参数，
+// 没覆盖的就随默认走；就算没有调用方，我自己新建生成，点开什么也不改也可以生成」。
+//
+// 因此**没有任何必填字段**（除归属需要由页面保证 —— 后端要求至少能定位到剧目）。
+// 调用方（如角色视图的「去生成」）只需传自己特有的那层，前两层提示词由后端补齐。
+
+export interface TaskSubmitParams {
+  /** 生成张数（1–8）；不传用全局 candidate_count */
+  candidateCount?: null | number;
+  dramaId: number;
+  /** 出图高；不传用默认 */
+  height?: null | number;
+  /** 命名模板（预留；实际命名由后端按需求 key 生成） */
+  namePattern?: null | string;
+  /** **反向提示词**；传了则整层覆盖（不再叠加三层） */
+  negativePrompt?: null | string;
+  /** 出图线路 */
+  providerId?: null | number;
+  /** **正向提示词**；传了则整层覆盖，跳过三层拼装 */
+  prompt?: null | string;
+  refEntityId?: null | number;
+  /** 归属类型；角色视图传 `asset_requirement` 即可把产物挂回该视图 */
+  refEntityType?: null | string;
+  /** 种子；传了就用它（可复现同一张图），不传则确定性推导 */
+  seed?: null | number;
+  /** 第 3 层：角色/视图特有的正向约束（由调用方传，如视图 spec） */
+  subjectNegative?: null | string;
+  /** 第 3 层：角色/视图特有的反向约束 */
+  subjectPrompt?: null | string;
+  type?: null | string;
+  /** 出图宽；不传用默认 */
+  width?: null | number;
+  workflowId?: null | number;
+}
+
+/** 提交结果：回显实际使用的提示词与层构成（让用户看见"哪些是自动补的"）。 */
+export interface TaskSubmitResult {
+  layers: string;
+  negativePrompt: string;
+  positivePrompt: string;
+  taskId: number;
+  usedFallbackNegative: boolean;
+  usedFallbackPositive: boolean;
+  version: number;
+}
+
+/**
+ * 统一生成下发。
+ *
+ * ⚠️ 与「跳转预填」的区别：这个函数**才会真正建任务**。
+ * 角色视图的「去生成」只是带参数跳转到页面，用户点了提交才走到这里
+ * （用户明确要求：中途关掉页面 = 什么都没发生）。
+ */
+export async function taskSubmit(params: TaskSubmitParams) {
+  return api.post<TaskSubmitResult>('/Task/Submit', params);
 }
 
 export async function taskRetry(id: number) {
@@ -1164,6 +1253,9 @@ export interface WorkflowTemplateRow {
   analysis: WorkflowAnalysis;
   boundModelCount: number;
   createdAt: string;
+  /** 第 1 层提示词（工作流默认正向，可空）—— 提交时会自动拼在提示词最前 */
+  defaultNegativePrompt?: null | string;
+  defaultPrompt?: null | string;
   description?: null | string;
   id: number;
   isActive: boolean;
@@ -1195,6 +1287,13 @@ export async function templateWorkflowList() {
 }
 
 export async function templateWorkflowSave(data: {
+  /**
+   * 第 1 层提示词（工作流默认，可空）。
+   * `undefined` = 不改动；`''` = 显式清空（不区分的后果：老调用方保存模板时
+   * 会把用户已配的默认提示词**静默清掉**）。
+   */
+  defaultNegativePrompt?: string;
+  defaultPrompt?: string;
   description?: string;
   /** 硬错误时需显式 force 才放行 */
   force?: boolean;

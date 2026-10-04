@@ -43,6 +43,13 @@ const props = withDefaults(defineProps<Props>(), {
 
 const emit = defineEmits<{
   (e: 'changed'): void;
+  /**
+   * 「用这个种子再生成」（用户要求：「下次想生成相同的图 还可以沿用以前的种子 保证风格统一」）。
+   *
+   * 组件**不自己跳转**：它不知道自己在哪个上下文里被用（素材详情 / 审核队列），
+   * 由调用方决定跳去下发页还是就地重生成。这里只把选中的候选上报。
+   */
+  (e: 'reuseSeed', candidate: AssetCandidateItem): void;
 }>();
 
 const selectedIndex = ref(0);
@@ -287,10 +294,23 @@ onUnmounted(() => {
 
     <!-- 选中候选详情 + 操作 -->
     <div v-if="selected" class="rounded-md border border-border p-3">
-      <div class="mb-2 text-xs text-muted-foreground">
-        seed {{ selected.seed }} · {{ selected.width }}×{{ selected.height }}
+      <div
+        class="mb-2 flex flex-wrap items-center gap-2 text-xs text-muted-foreground"
+      >
+        <span
+          >seed {{ selected.seed }} · {{ selected.width }}×{{
+            selected.height
+          }}</span
+        >
+        <!--
+          「沿用此种子再生成」：用户要求「下次想生成相同的图 还可以沿用以前的种子 保证风格统一」。
+          后端已修好「传入的 seed 被静默忽略」的缺陷，传了就会真的用这个种子。
+        -->
+        <Button size="small" @click="emit('reuseSeed', selected)">
+          沿用此种子再生成
+        </Button>
         <template v-if="selected.rejectNote">
-          · 丢弃备注：{{ selected.rejectNote }}
+          <span>· 丢弃备注：{{ selected.rejectNote }}</span>
         </template>
       </div>
       <div class="mb-3 break-all text-xs">{{ selected.prompt }}</div>

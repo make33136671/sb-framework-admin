@@ -16,6 +16,7 @@ import type {
  * 不写配对 toast（拦截器已弹）。
  */
 import { computed, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 
 import {
   Button,
@@ -58,6 +59,8 @@ const emit = defineEmits<{
   (e: 'changed'): void;
   (e: 'openTask', taskId: number): void;
 }>();
+
+const router = useRouter();
 
 const open = computed(() => props.requirement !== null);
 const loading = ref(false);
@@ -107,6 +110,32 @@ async function refreshAfterReview() {
   if (!r) return;
   await load(r.id);
   emit('changed');
+}
+
+/**
+ * 「沿用此种子再生成」：跳到统一生成下发页，带上该候选的种子与提示词。
+ *
+ * ⚠️ **只跳转 + 预填，不建任务**（用户明确要求：点提交才建任务，中途关掉无副作用）。
+ * 种子会经下发页原样回传，后端已修好「传入 seed 被静默忽略」的缺陷，
+ * 因此这里传的种子是**真的会生效**的 —— 这正是用户要的"复现同一张图"。
+ */
+function reuseSeed(cand: AssetCandidateItem) {
+  const r = row.value;
+  if (!r) return;
+  router.push({
+    name: 'DramaTaskSubmit',
+    query: {
+      dramaId: String(r.dramaId),
+      refEntityId: String(r.id),
+      requirementKey: r.key,
+      viewLabel: r.key,
+      // 沿用候选原提示词与种子（种子是关键：决定"画的是哪一张"）
+      subjectPrompt: cand.prompt ?? '',
+      seed: String(cand.seed),
+      ...(cand.width ? { width: String(cand.width) } : {}),
+      ...(cand.height ? { height: String(cand.height) } : {}),
+    },
+  });
 }
 
 /** 套用视图模板：antd 的 @select 回调签名是 (value: RawValue, option)，不能直接写窄类型 */
@@ -355,6 +384,7 @@ const SPEC_PRESETS = [
             :candidates="candidates"
             :reasons="detail.reasons"
             @changed="refreshAfterReview"
+            @reuse-seed="reuseSeed"
           />
           <Empty v-else description="加载中…" />
         </div>

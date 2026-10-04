@@ -29,6 +29,7 @@ import type {
  * 本组件**不硬编码** 7 个视图，避免两边各写一套后漂移。
  */
 import { computed, onMounted, ref } from 'vue';
+import { useRouter } from 'vue-router';
 
 import {
   Image as AImage,
@@ -51,9 +52,9 @@ const props = defineProps<{
 const emit = defineEmits<{
   /** 数据变化（定稿后）—— 父组件据此刷新其它视图 */
   (e: 'changed'): void;
-  /** 该视图还没有需求档案（需先「补齐角色视图」） */
-  (e: 'generate', requirementId: number): void;
 }>();
+
+const router = useRouter();
 
 const loading = ref(false);
 const matrix = ref<CharacterMatrix>({ characters: [], viewColumns: [] });
@@ -75,10 +76,12 @@ defineExpose({ reload: load });
 // ─────────────────────────── 选图弹窗 ───────────────────────────
 
 /** 当前正在为哪个格子选图 */
-const picker = ref<null | {
+const picker = ref<{
   cell: CharacterViewCell;
   characterName: string;
-}>(null);
+  /** 该角色在矩阵里的整行 —— 「去生成」要拿它的 name 等字段，故直接存行引用 */
+  row: CharacterMatrixRow;
+} | null>(null);
 
 const picking = ref(false);
 /** 弹窗里的筛选：只看某个来源视图（null = 全部） */
@@ -146,7 +149,7 @@ function openPicker(row: CharacterMatrixRow, cell: CharacterViewCell) {
     return;
   }
   sourceFilter.value = null;
-  picker.value = { cell, characterName: row.name };
+  picker.value = { cell, characterName: row.name, row };
 }
 
 async function choose(cand: CharacterImageOption) {
@@ -171,7 +174,70 @@ async function choose(cand: CharacterImageOption) {
   }
 }
 
+/**
+ * 「去生成」：带参数跳到统一生成下发页（用户 2026-10-04 要求）。
+ *
+ * ## 关键语义：**只跳转 + 预填，绝不建任务**
+ *
+ * 用户明确要求「用户在页面点提交才建任务；中途关掉 = 什么都没发生」。
+ * 所以这里**不能**调任何生成接口，只把第 3 层参数（视图提示词/反向/尺寸）
+ * 通过 query 传给下发页；前两层（工作流默认 / 剧目风格）由后端在提交时补齐 ——
+ * 这正是"统一入口"的价值：调用方只传自己特有的那层。
+ *
+ * 尺寸取该视图的宽高比默认（全身竖图 / 头部方图），与模型无关。
+ */
+function goGenerate(row: CharacterMatrixRow, cell: CharacterViewCell) {
+  if (!cell.requirementId) {
+    message.warning(
+      `「${row.name}」还没有「${cell.label}」的视图需求 —— 请先点上方的「补齐角色视图」`,
+    );
+    return;
+  }
+
+  const view = viewBySuffix(cell.suffix);
+  const query: Record<string, string> = {
+    dramaId: String(props.dramaId),
+    refEntityId: String(cell.requirementId),
+    viewLabel: cell.label,
+    characterName: row.name,
+    requirementKey:
+      row.candidates.find((c) => c.requirementId === cell.requirementId)
+        ?.requirementKey ?? '',
+  };
+
+  // 第 3 层正向：视图的 spec（构图 + 纯灰底 + 跨视图一致性）
+  if (view?.spec) query.subjectPrompt = view.spec;
+  // 第 3 层反向：视图专有叠加（如全身图排除"裁掉脚"）
+  if (view?.negativeSpec) query.subjectNegative = view.negativeSpec;
+  if (view) {
+    query.width = String(view.width);
+    query.height = String(view.height);
+  }
+
+  picker.value = null;
+  router.push({ name: 'DramaTaskSubmit', query });
+}
+
 // ─────────────────────────── 展示辅助 ───────────────────────────
+
+/**
+ * 按后缀取视图定义（含 spec / 反向 / 建议尺寸）。
+ *
+ * 尺寸与反向提示词由**后端**（CharacterViews 是唯一事实源）在建视图需求时
+ * 就已生成；这里从矩阵数据里已有的 spec 反查，避免前端再写一份视图表
+ * —— 两边各写一套必然漂移。
+ */
+function viewBySuffix(suffix: string) {
+  const col = matrix.value.viewColumns.find((c) => c.suffix === suffix);
+  if (!col) return null;
+  return {
+    suffix,
+    spec: col.spec ?? '',
+    negativeSpec: col.negativeSpec ?? '',
+    width: col.width ?? 1024,
+    height: col.height ?? 1024,
+  };
+}
 
 /** 格子缩略图：从已定稿候选里取 filePath */
 function cellImage(row: CharacterMatrixRow, cell: CharacterViewCell): string {
@@ -396,8 +462,19 @@ const totalCells = computed(() =>
         <Empty v-else description="这个来源下没有图，换个来源或选「全部」" />
       </Spin>
 
-      <div class="mt-3 flex justify-end">
-        <Button @click="picker = null">取消</Button>
+      <div class="mt-3 flex items-center justify-between">
+        <span class="text-xs text-muted-foreground">
+          没有合适的图？带着本视图的提示词与尺寸去下发页生成
+        </span>
+        <Space>
+          <Button @click="picker = null">取消</Button>
+          <Button
+            type="primary"
+            @click="picker && goGenerate(picker.row, picker.cell)"
+          >
+            去生成
+          </Button>
+        </Space>
       </div>
     </Modal>
   </Spin>

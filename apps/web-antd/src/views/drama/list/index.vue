@@ -13,7 +13,7 @@ import { useRouter } from 'vue-router';
 
 import { Page } from '@vben/common-ui';
 
-import { Button, Input, Modal, Space, Tag } from 'ant-design-vue';
+import { Alert, Button, Input, Modal, Space, Tag } from 'ant-design-vue';
 
 import { useVbenVxeGrid } from '#/adapter/vxe-table';
 import {
@@ -164,6 +164,10 @@ async function submitEdit() {
       genre: d.genre,
       synopsis: d.synopsis,
       episodeTargetCount: d.episodeTargetCount ?? 10,
+      // 剧目整体风格提示词（第 ② 层）：下发生成时自动拼在提示词中段。
+      // 传空串 = 显式清空（后端区分 undefined 与空串，故这里要传实际值）
+      stylePrompt: d.stylePrompt ?? '',
+      styleNegativePrompt: d.styleNegativePrompt ?? '',
     });
   } else {
     await dramaAdd({
@@ -293,6 +297,38 @@ function openDetail(row: DramaItem) {
         <div>
           <div class="mb-1 text-sm">简介</div>
           <Input.TextArea v-model:value="editing!.synopsis" :rows="3" />
+        </div>
+
+        <!-- 剧目整体风格提示词（第 ② 层，用户要求：「放在剧本上 他是整体风格提示词」）。
+             全剧共用一份，不随洗稿版本漂移；下发生成时自动拼在
+             「工作流默认」与「角色/视图特有」之间。 -->
+        <div v-if="editing?.id">
+          <Alert class="mb-2" type="info" show-icon>
+            <template #message>整体风格提示词（第 ② 层，全剧共用）</template>
+            <template #description>
+              <span class="text-xs">
+                生成时按
+                <b>工作流默认 → 本剧风格 → 角色/视图特有</b> 顺序自动拼装。
+                留空即跳过该层（不会拼出空段）。
+              </span>
+            </template>
+          </Alert>
+          <div class="mb-2">
+            <div class="mb-1 text-sm">风格（正向）</div>
+            <Input.TextArea
+              v-model:value="editing!.stylePrompt as any"
+              :rows="2"
+              placeholder="如：Regency-era English countryside, painterly period-drama realism"
+            />
+          </div>
+          <div>
+            <div class="mb-1 text-sm">风格排除（反向）</div>
+            <Input.TextArea
+              v-model:value="editing!.styleNegativePrompt as any"
+              :rows="2"
+              placeholder="如：modern clothing, cars, buildings"
+            />
+          </div>
         </div>
 
         <!-- 建剧同时上传剧本（D1）：用户流程「创建剧目的同时上传剧本」。

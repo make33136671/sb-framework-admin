@@ -111,6 +111,10 @@ const PLACEHOLDER_HELP = [
 interface EditorState {
   analysis: null | WorkflowAnalysis;
   analyzing: boolean;
+  /** 第 1 层提示词：工作流默认**反向**（可空，空则该层不参与拼装） */
+  defaultNegativePrompt: string;
+  /** 第 1 层提示词：工作流默认**正向**（可空） */
+  defaultPrompt: string;
   description: string;
   force: boolean;
   id: null | number;
@@ -128,6 +132,8 @@ const editor = reactive<EditorState>({
   key: '',
   name: '',
   description: '',
+  defaultPrompt: '',
+  defaultNegativePrompt: '',
   template: '',
   isActive: true,
   force: false,
@@ -139,6 +145,15 @@ const editor = reactive<EditorState>({
 const editorTitle = computed(() =>
   editor.id === null ? '新建工作流模板' : `编辑工作流模板 #${editor.id}`,
 );
+
+/**
+ * 模板 JSON 里的占位符名。
+ *
+ * 写成常量而不是在模板里内联 `{{ '{{positive}}' }}`：后者会让 Vue 模板编译器
+ * 在解析嵌套花括号时报 `Unexpected end of expression`（本文件实测踩到）。
+ */
+const POSITIVE_PLACEHOLDER = '{{positive}}';
+const NEGATIVE_PLACEHOLDER = '{{negative}}';
 
 // 「能不能被系统驱动」的总体判定
 const healthLevel = computed(() => {
@@ -179,6 +194,8 @@ function openCreate() {
     key: '',
     name: '',
     description: '',
+    defaultPrompt: '',
+    defaultNegativePrompt: '',
     template: '',
     isActive: true,
     force: false,
@@ -194,6 +211,9 @@ function openEdit(row: Record<string, any> | WorkflowTemplateRow) {
     key: row.key,
     name: row.name,
     description: row.description ?? '',
+    // 第 1 层提示词（工作流默认）—— 空则提交时该层被跳过
+    defaultPrompt: row.defaultPrompt ?? '',
+    defaultNegativePrompt: row.defaultNegativePrompt ?? '',
     template: row.template,
     isActive: row.isActive,
     force: false,
@@ -212,6 +232,9 @@ async function save() {
       key: editor.key,
       name: editor.name,
       description: editor.description,
+      // 第 1 层提示词（工作流默认）随模板一起保存
+      defaultPrompt: editor.defaultPrompt,
+      defaultNegativePrompt: editor.defaultNegativePrompt,
       template: editor.template,
       isActive: editor.isActive,
       force: editor.force,
@@ -538,6 +561,34 @@ function applyImport() {
           <Input
             v-model:value="editor.description"
             placeholder="这个工作流干什么、依赖哪些模型文件"
+          />
+        </FormItem>
+
+        <!-- 第 1 层提示词的承载位置（用户要求：「放在这个工作流绑定的上面」） -->
+        <Alert class="mb-3" type="info" show-icon>
+          <template #message>默认提示词（第 ① 层，跟随本工作流）</template>
+          <template #description>
+            <span class="text-xs">
+              下发生成时会自动拼在最前面：<b
+                >本工作流默认 → 剧目风格 → 角色/视图特有</b
+              >。 留空即跳过该层（不会拼出空段）。这两个字段的默认值会填进工作流
+              JSON 的 <code>{{ POSITIVE_PLACEHOLDER }}</code> /
+              <code>{{ NEGATIVE_PLACEHOLDER }}</code> 占位符。
+            </span>
+          </template>
+        </Alert>
+        <FormItem label="默认正向提示词（可选）">
+          <Input.TextArea
+            v-model:value="editor.defaultPrompt"
+            :rows="2"
+            placeholder="如该工作流惯用的质量词/风格前缀；留空则该层不参与拼装"
+          />
+        </FormItem>
+        <FormItem label="默认反向提示词（可选）">
+          <Input.TextArea
+            v-model:value="editor.defaultNegativePrompt"
+            :rows="2"
+            placeholder="如某些模型必须排除的 worst quality；留空则该层不参与拼装"
           />
         </FormItem>
 
