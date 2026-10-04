@@ -9,7 +9,7 @@
  *   ```ts
  *   import { enumText } from '#/composables/useEnumText';
  *   enumText.taskType('asset_extract')   // → '素材提取'
- *   enumText.taskStatus('pending_review') // → '待审核'
+ *   enumText.taskStatus('pending_review') // → '已出图待定稿'
  *   ```
  *
  * ⚠️ 新增后端枚举值时，必须同步本文件的对应表（漏了会走 `unknown()` 兜底，
@@ -40,7 +40,19 @@ export const TASK_STATUS_TEXT: Record<string, string> = {
   preparing: '准备中',
   generating: '生成中',
   collecting: '收集中',
-  pending_review: '待审核',
+  // ⚠️ 后端状态值叫 pending_review，但它**不是**"任务还在等审核"：
+  // 编排器出完图写这个状态后，**没有任何代码再把任务推进出去**
+  // （全仓搜不到给任务写 approved 的地方）。人工审核实际发生在
+  // **素材候选**上（asset_candidate），与任务状态机无关。
+  //
+  // 旧文案「待审核」让用户以为"任务还会变、要继续等下去"，正是这个标签
+  // 一直看不懂的根因（用户 2026-10-04 反馈并自行点破：
+  // 「他并不与当前的 AI 任务存在状态关联 他是素材任务链上的」）。
+  // 故改为如实描述它此刻的事实：图已出完，任务到此为止。
+  //
+  // 注意区分：`CANDIDATE_STATUS_TEXT.pending` 的「待审核」是**对的**
+  // （那才是真正等人工处理的素材候选）。
+  pending_review: '已出图待定稿',
   approved: '已通过',
   rejected: '已驳回',
   failed: '失败',
@@ -184,7 +196,7 @@ export function pick(map: Record<string, string>, v?: null | string): string {
 export const enumText = {
   /** 任务类型：asset_extract → 素材提取 */
   taskType: (v?: null | string) => pick(TASK_TYPE_TEXT, v),
-  /** 任务状态：pending_review → 待审核 */
+  /** 任务状态：pending_review → 已出图待定稿（不是"任务还在等审核"，见上） */
   taskStatus: (v?: null | string) => pick(TASK_STATUS_TEXT, v),
   dramaStatus: (v?: null | string) => pick(DRAMA_STATUS_TEXT, v),
   scriptStatus: (v?: null | string) => pick(SCRIPT_STATUS_TEXT, v),
