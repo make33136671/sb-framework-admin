@@ -4,6 +4,7 @@ import {
   elapsedSecondsOf,
   isFinishedStatus,
   isLiveStatus,
+  isTickingStatus,
 } from '../taskDisplay';
 
 /**
@@ -79,6 +80,58 @@ describe('isLiveStatus —— 「还会不会推进」的唯一事实源', () =>
     expect(isLiveStatus('pending_review')).toBe(false);
     expect(isFinishedStatus('queued')).toBe(false);
     expect(isLiveStatus('queued')).toBe(true);
+  });
+});
+
+/**
+ * isTickingStatus —— 「要不要跑读秒」（用户 2026-10-05）
+ *
+ * > 「排队中的任务 不应该跑计时」
+ *
+ * 它与 isLiveStatus **必须**是两个概念：
+ *   · isLiveStatus = 状态还会不会变（决定耗时冻结还是走字）；
+ *   · isTickingStatus = 是不是正在干活（决定要不要跳动读秒）。
+ * `queued` 属于前者、不属于后者 —— 它还会变，但没在干活。
+ *
+ * 若把两者合并（让 isLiveStatus 也不含 queued），排队任务的耗时会按"终态"冻结在
+ * 进入队列的那一刻，且**再也回不来**（被领走后也不会重新开始计时）。
+ */
+describe('isTickingStatus —— 「正在干活」的唯一事实源', () => {
+  it('在飞三态 → 跑读秒', () => {
+    const actual = Object.fromEntries(
+      ['preparing', 'generating', 'collecting'].map((s) => [
+        s,
+        isTickingStatus(s),
+      ]),
+    );
+    expect(actual).toEqual({
+      collecting: true,
+      generating: true,
+      preparing: true,
+    });
+  });
+
+  it('★ queued → **不**跑读秒（用户明确要求）', () => {
+    expect(isTickingStatus('queued')).toBe(false);
+  });
+
+  it('★ 与 isLiveStatus 的分歧点恰恰就是 queued（两者不可合并）', () => {
+    expect(isLiveStatus('queued')).toBe(true); // 状态还会变 → 耗时不能按终态冻结
+    expect(isTickingStatus('queued')).toBe(false); // 但没在干活 → 不该跑读秒
+  });
+
+  it('终态与待审 → 都不跑读秒', () => {
+    for (const s of [
+      'approved',
+      'done',
+      'failed',
+      'rejected',
+      'pending_review',
+      '',
+      undefined,
+    ]) {
+      expect(isTickingStatus(s)).toBe(false);
+    }
   });
 });
 

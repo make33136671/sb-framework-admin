@@ -120,11 +120,14 @@ export function isFinishedStatus(status?: string): boolean {
 }
 
 /**
- * 是否仍会推进（读秒该走字）。
+ * 状态是否**还会变**（不变量：耗时该不该冻结）。
  *
- * 「会推进」= 后端 TaskStatuses.InFlight ∪ {queued}，与编排器实际会改库的状态**严格对齐**：
+ * 「会变」= 后端 TaskStatuses.InFlight ∪ {queued}，与编排器实际会改库的状态**严格对齐**：
  * 只有这 4 个状态下的任务才会继续变更，其余（pending_review / approved / rejected / done / failed…）
- * 都已定型，读秒必须停下。
+ * 都已定型，耗时必须冻结。
+ *
+ * ⚠️ 本函数**只回答"状态会不会变"**，不回答"要不要跑读秒" —— 那是
+ * {@link isTickingStatus} 的职责。两者必须分开（原因见那里）。
  *
  * 注意与 {@link isFinishedStatus} 的区别：`pending_review`（待人工审核）**不是** finished，
  * 但它同样**不会再推进**——旧代码把这两件事混为一谈，正是「读秒停不下来」的根因。
@@ -133,6 +136,26 @@ export function isLiveStatus(status?: string): boolean {
   return ['collecting', 'generating', 'preparing', 'queued'].includes(
     status ?? '',
   );
+}
+
+/**
+ * 是否**真的要跑读秒**（= 正在干活）。
+ *
+ * 用户 2026-10-05：
+ * > 「排队中的任务 不应该跑计时」
+ *
+ * 与 {@link isLiveStatus} 的分工（**这两个概念不能合并**）：
+ *   · `isLiveStatus` = "状态还会变"（决定耗时**冻结还是走字**）。
+ *     `queued` 属于此列 —— 它确实还会变（会被编排器领走），
+ *     所以不能按"终态冻结"处理，否则耗时永远显示 0 且再也回不来。
+ *   · `isTickingStatus` = "它正在干活"（决定要不要**跳动读秒**）。
+ *     `queued` **不属于**此列：它只是在排队，没有任何工在推进，
+ *     秒表一直跳会给用户"它已经在跑了"的错觉。
+ *
+ * 于是排队中的任务显示为「排队中」而不是跳动的读秒（见任务列表的 elapsed 列）。
+ */
+export function isTickingStatus(status?: string): boolean {
+  return ['collecting', 'generating', 'preparing'].includes(status ?? '');
 }
 
 /**

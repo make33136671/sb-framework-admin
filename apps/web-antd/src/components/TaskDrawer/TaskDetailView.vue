@@ -429,335 +429,332 @@ const jobColumns = [
 ];
 </script>
 
-
 <template>
   <template v-if="detail">
-        <!-- 顶部：状态 + 操作（一行一动作） -->
-        <div class="mb-4 flex flex-wrap items-center gap-3">
-          <Tag :color="taskStatusColor(detail.status)" class="!mr-0">
-            {{ enumText.taskStatus(detail.status) }}
-          </Tag>
-          <Tag v-if="stuck" color="error" class="!mr-0">疑似卡住（心跳超时）</Tag>
-          <span class="text-xs text-muted-foreground">
-            #{{ detail.id }} · {{ enumText.taskType(detail.type) }} · v{{
-              detail.version
-            }}
-          </span>
-          <div class="flex-1"></div>
-          <Space>
-            <!-- 提交式生成：展开可改提示词/张数/分辨率/模型（默认收起） -->
-            <Button
-              v-if="detail.type === 't2i'"
-              size="small"
-              @click="showParams = !showParams"
-            >
-              {{ showParams ? '收起参数' : '参数…' }}
-            </Button>
-            <Button
-              size="small"
-              type="primary"
-              :loading="acting"
-              @click="doRegenerate"
-            >
-              {{ paramsDirty ? '提交生成' : '重新生成' }}
-            </Button>
-            <Button
-              v-if="!isFinished"
-              size="small"
-              danger
-              :loading="acting"
-              @click="doCancel"
-            >
-              取消
-            </Button>
-            <Popconfirm
-              v-if="isFinished"
-              title="确认删除该子任务？"
-              description="将保留记录可追溯；在飞任务需先取消。"
-              @confirm="doDelete"
-            >
-              <Button size="small" danger :loading="acting">删除</Button>
-            </Popconfirm>
-          </Space>
-        </div>
-  
-        <!-- 提交式参数表单（用户诉求：改关键词/张数/分辨率后「提交任务再去生成」） -->
-        <div
-          v-if="showParams && detail.type === 't2i'"
-          class="mb-4 rounded-md border border-border p-3"
+    <!-- 顶部：状态 + 操作（一行一动作） -->
+    <div class="mb-4 flex flex-wrap items-center gap-3">
+      <Tag :color="taskStatusColor(detail.status)" class="!mr-0">
+        {{ enumText.taskStatus(detail.status) }}
+      </Tag>
+      <Tag v-if="stuck" color="error" class="!mr-0">疑似卡住（心跳超时）</Tag>
+      <span class="text-xs text-muted-foreground">
+        #{{ detail.id }} · {{ enumText.taskType(detail.type) }} · v{{
+          detail.version
+        }}
+      </span>
+      <div class="flex-1"></div>
+      <Space>
+        <!-- 提交式生成：展开可改提示词/张数/分辨率/模型（默认收起） -->
+        <Button
+          v-if="detail.type === 't2i'"
+          size="small"
+          @click="showParams = !showParams"
         >
-          <div class="mb-2 text-sm font-medium">
-            提交生成参数
-            <span class="ml-1 text-xs font-normal text-muted-foreground">
-              留空 = 沿用原参数（AI 生成提示词 / 系统默认张数与尺寸）
-            </span>
-          </div>
-  
-          <div class="mb-3 flex flex-wrap items-center gap-3">
-            <span class="text-xs text-muted-foreground">生成张数</span>
-            <InputNumber
-              v-model:value="pCandidateCount"
-              :max="8"
-              :min="1"
-              placeholder="默认 3"
-              size="small"
-              style="width: 110px"
-            />
-            <span class="text-xs text-muted-foreground">1–8 张</span>
-  
-            <span class="ml-2 text-xs text-muted-foreground">分辨率</span>
-            <Select
-              v-model:value="sizePreset"
-              :options="[...SIZE_PRESETS, { label: '自定义…', value: 'custom' }]"
-              size="small"
-              style="width: 200px"
-            />
-            <InputNumber
-              v-model:value="pWidth"
-              :max="2048"
-              :min="256"
-              :step="64"
-              size="small"
-              style="width: 100px"
-            />
-            <span class="text-xs">×</span>
-            <InputNumber
-              v-model:value="pHeight"
-              :max="2048"
-              :min="256"
-              :step="64"
-              size="small"
-              style="width: 100px"
-            />
-            <span class="text-xs text-muted-foreground">
-              256–2048，自动对齐 64 的倍数
-            </span>
-          </div>
-  
-          <div class="mb-3 flex flex-wrap items-center gap-3">
-            <span class="text-xs text-muted-foreground">执行模型</span>
-            <!-- 复用既有选择器（按 taskType 过滤出具备该能力的模型，避免选到不能出图的线路） -->
-            <AiProviderSelect
-              v-model:value="pProviderId"
-              :disabled="acting"
-              task-type="t2i"
-            />
-          </div>
-  
-          <div class="mb-3">
-            <div class="mb-1 flex items-center gap-2">
-              <Switch v-model:checked="pUsePrompt" size="small" />
-              <span class="text-xs text-muted-foreground">
-                自定义提示词（开启后**不再调用 AI 生成**，直接用你写的；多张仅
-                seed 不同）
-              </span>
-            </div>
-            <Input.TextArea
-              v-model:value="pPrompt"
-              :disabled="!pUsePrompt"
-              :rows="3"
-              placeholder="例如：an adult woman in a Regency gown, standing in a garden, soft natural light, painterly illustration"
-            />
-          </div>
-  
-          <div>
-            <div class="mb-1 text-xs text-muted-foreground">
-              负面提示词（可选；工作流有 negative 占位符时生效）
-            </div>
-            <Input
-              v-model:value="pNegative"
-              placeholder="例如：blurry, extra fingers, watermark"
-              size="small"
-            />
-          </div>
-  
-          <div v-if="paramsDirty" class="mt-2 text-xs text-muted-foreground">
-            提交后将**新开一个版本**（v{{ (detail.version ?? 0) + 1 }}），
-            历史版本与产物保留。
-          </div>
-        </div>
-  
-        <Progress
-          class="mb-4"
-          :percent="detail.progress ?? 0"
-          :status="detail.status === 'failed' ? 'exception' : 'normal'"
+          {{ showParams ? '收起参数' : '参数…' }}
+        </Button>
+        <Button
+          size="small"
+          type="primary"
+          :loading="acting"
+          @click="doRegenerate"
+        >
+          {{ paramsDirty ? '提交生成' : '重新生成' }}
+        </Button>
+        <Button
+          v-if="!isFinished"
+          size="small"
+          danger
+          :loading="acting"
+          @click="doCancel"
+        >
+          取消
+        </Button>
+        <Popconfirm
+          v-if="isFinished"
+          title="确认删除该子任务？"
+          description="将保留记录可追溯；在飞任务需先取消。"
+          @confirm="doDelete"
+        >
+          <Button size="small" danger :loading="acting">删除</Button>
+        </Popconfirm>
+      </Space>
+    </div>
+
+    <!-- 提交式参数表单（用户诉求：改关键词/张数/分辨率后「提交任务再去生成」） -->
+    <div
+      v-if="showParams && detail.type === 't2i'"
+      class="mb-4 rounded-md border border-border p-3"
+    >
+      <div class="mb-2 text-sm font-medium">
+        提交生成参数
+        <span class="ml-1 text-xs font-normal text-muted-foreground">
+          留空 = 沿用原参数（AI 生成提示词 / 系统默认张数与尺寸）
+        </span>
+      </div>
+
+      <div class="mb-3 flex flex-wrap items-center gap-3">
+        <span class="text-xs text-muted-foreground">生成张数</span>
+        <InputNumber
+          v-model:value="pCandidateCount"
+          :max="8"
+          :min="1"
+          placeholder="默认 3"
+          size="small"
+          style="width: 110px"
         />
-  
-        <!-- 产物预览（已产出的给图/视频，未产出的给**等待占位符**）+ 当前提示词 + 调用的工作流。
+        <span class="text-xs text-muted-foreground">1–8 张</span>
+
+        <span class="ml-2 text-xs text-muted-foreground">分辨率</span>
+        <Select
+          v-model:value="sizePreset"
+          :options="[...SIZE_PRESETS, { label: '自定义…', value: 'custom' }]"
+          size="small"
+          style="width: 200px"
+        />
+        <InputNumber
+          v-model:value="pWidth"
+          :max="2048"
+          :min="256"
+          :step="64"
+          size="small"
+          style="width: 100px"
+        />
+        <span class="text-xs">×</span>
+        <InputNumber
+          v-model:value="pHeight"
+          :max="2048"
+          :min="256"
+          :step="64"
+          size="small"
+          style="width: 100px"
+        />
+        <span class="text-xs text-muted-foreground">
+          256–2048，自动对齐 64 的倍数
+        </span>
+      </div>
+
+      <div class="mb-3 flex flex-wrap items-center gap-3">
+        <span class="text-xs text-muted-foreground">执行模型</span>
+        <!-- 复用既有选择器（按 taskType 过滤出具备该能力的模型，避免选到不能出图的线路） -->
+        <AiProviderSelect
+          v-model:value="pProviderId"
+          :disabled="acting"
+          task-type="t2i"
+        />
+      </div>
+
+      <div class="mb-3">
+        <div class="mb-1 flex items-center gap-2">
+          <Switch v-model:checked="pUsePrompt" size="small" />
+          <span class="text-xs text-muted-foreground">
+            自定义提示词（开启后**不再调用 AI 生成**，直接用你写的；多张仅 seed
+            不同）
+          </span>
+        </div>
+        <Input.TextArea
+          v-model:value="pPrompt"
+          :disabled="!pUsePrompt"
+          :rows="3"
+          placeholder="例如：an adult woman in a Regency gown, standing in a garden, soft natural light, painterly illustration"
+        />
+      </div>
+
+      <div>
+        <div class="mb-1 text-xs text-muted-foreground">
+          负面提示词（可选；工作流有 negative 占位符时生效）
+        </div>
+        <Input
+          v-model:value="pNegative"
+          placeholder="例如：blurry, extra fingers, watermark"
+          size="small"
+        />
+      </div>
+
+      <div v-if="paramsDirty" class="mt-2 text-xs text-muted-foreground">
+        提交后将**新开一个版本**（v{{ (detail.version ?? 0) + 1 }}），
+        历史版本与产物保留。
+      </div>
+    </div>
+
+    <Progress
+      class="mb-4"
+      :percent="detail.progress ?? 0"
+      :status="detail.status === 'failed' ? 'exception' : 'normal'"
+    />
+
+    <!-- 产物预览（已产出的给图/视频，未产出的给**等待占位符**）+ 当前提示词 + 调用的工作流。
              放在最上部：用户打开详情第一眼要回答的就是「出来了吗 / 长什么样 / 还差什么」。 -->
-        <div class="mb-4 rounded-md border border-border p-3">
-          <TaskPreviewPanel :loading="loading" :preview="detail.preview" />
-        </div>
-  
-        <Descriptions bordered size="small" :column="2" class="mb-4">
-          <Descriptions.Item label="类型">
-            {{ enumText.taskType(detail.type) }}
-          </Descriptions.Item>
-          <Descriptions.Item label="剧目">
-            <a v-if="detail.dramaId" @click="openDrama(detail.dramaId)">
-              {{ detail.dramaName || `#${detail.dramaId}` }}
-            </a>
-            <span v-else class="text-muted-foreground">-</span>
-          </Descriptions.Item>
-          <Descriptions.Item label="AI 服务 / 路由">
-            <!-- 成本感知调度 §6.4：路由徽标（🏠 本地 / ☁ 云端）+ 上云原因 tooltip + 金额 -->
-            <div class="mb-1">
-              <TaskRouteBadge
-                :cost-yuan="detail.costYuan"
-                :off-peak="detail.offPeak"
-                :reason="detail.routeReason"
-                :reason-text="detail.routeReasonText"
-                :route="detail.route"
-              />
-            </div>
-            <template v-if="detail.providerName">
-              {{ detail.providerName }}
-              <span class="text-xs text-muted-foreground">
-                （需要 {{ requiredCapabilityText(detail.type) }}）
-              </span>
-            </template>
-            <template
-              v-else-if="requiredCapabilityText(detail.type).includes('无需')"
-            >
-              <span class="text-muted-foreground">
-                {{ requiredCapabilityText(detail.type) }}
-              </span>
-            </template>
-            <template v-else>
-              <span class="text-muted-foreground">
-                自动（默认服务）· 需要 {{ requiredCapabilityText(detail.type) }}
-              </span>
-            </template>
-          </Descriptions.Item>
-          <Descriptions.Item label="关联实体">
-            {{ detail.refEntityType }} #{{ detail.refEntityId ?? '-' }}
-          </Descriptions.Item>
-          <Descriptions.Item label="变体进度">
-            {{ detail.currentVariant }}
-          </Descriptions.Item>
-          <Descriptions.Item label="已耗时">
-            <span class="tabular-nums">{{ elapsedText }}</span>
-            <span v-if="isLive" class="ml-1 text-xs text-muted-foreground">
-              （进行中）
-            </span>
-            <span v-else class="ml-1 text-xs text-muted-foreground">
-              （已停止计时）
-            </span>
-          </Descriptions.Item>
-          <Descriptions.Item label="LLM tokens">
-            <template v-if="tokens">
-              <span class="tabular-nums">
-                {{ formatTokens(tokens.totalTokens) }}
-              </span>
-              <span class="ml-1 text-xs text-muted-foreground">
-                （{{ tokens.calls }} 次调用）
-              </span>
-              <Tag
-                v-if="tokens.estimated"
-                class="ml-1 !mr-0"
-                color="warning"
-                title="网关未返回 usage，按字符数估算"
-              >
-                估算
-              </Tag>
-            </template>
-            <span v-else class="text-muted-foreground">-</span>
-          </Descriptions.Item>
-          <Descriptions.Item label="开始">
-            <TimeTag v-if="detail.startedAt" :time="detail.startedAt" />
-            <span v-else>-</span>
-          </Descriptions.Item>
-          <Descriptions.Item label="结束">
-            <TimeTag v-if="detail.finishedAt" :time="detail.finishedAt" />
-            <span v-else>-</span>
-          </Descriptions.Item>
-          <Descriptions.Item label="心跳">
-            <TimeTag v-if="detail.heartbeatAt" :time="detail.heartbeatAt" />
-            <span v-else>-</span>
-          </Descriptions.Item>
-          <Descriptions.Item label="创建">
-            <TimeTag :time="detail.createdAt" />
-          </Descriptions.Item>
-        </Descriptions>
-  
-        <!-- 手动修改：备注 + 进度 -->
-        <div class="mb-4 rounded-md border border-border p-3">
-          <div class="mb-2 text-sm font-medium">手动修改</div>
-          <div class="mb-2 flex flex-wrap items-center gap-3">
-            <span class="text-xs text-muted-foreground">进度</span>
-            <InputNumber
-              v-model:value="editProgress"
-              :min="0"
-              :max="100"
-              size="small"
-              style="width: 100px"
-            />
-          </div>
-          <Input.TextArea
-            v-model:value="editError"
-            :rows="2"
-            placeholder="备注 / 失败原因（可人工修正）"
+    <div class="mb-4 rounded-md border border-border p-3">
+      <TaskPreviewPanel :loading="loading" :preview="detail.preview" />
+    </div>
+
+    <Descriptions bordered size="small" :column="2" class="mb-4">
+      <Descriptions.Item label="类型">
+        {{ enumText.taskType(detail.type) }}
+      </Descriptions.Item>
+      <Descriptions.Item label="剧目">
+        <a v-if="detail.dramaId" @click="openDrama(detail.dramaId)">
+          {{ detail.dramaName || `#${detail.dramaId}` }}
+        </a>
+        <span v-else class="text-muted-foreground">-</span>
+      </Descriptions.Item>
+      <Descriptions.Item label="AI 服务 / 路由">
+        <!-- 成本感知调度 §6.4：路由徽标（🏠 本地 / ☁ 云端）+ 上云原因 tooltip + 金额 -->
+        <div class="mb-1">
+          <TaskRouteBadge
+            :cost-yuan="detail.costYuan"
+            :off-peak="detail.offPeak"
+            :reason="detail.routeReason"
+            :reason-text="detail.routeReasonText"
+            :route="detail.route"
           />
-          <div class="mt-2">
-            <Button size="small" :loading="acting" @click="doSave">保存</Button>
-            <span class="ml-2 text-xs text-muted-foreground">
-              状态请用「取消 / 重新生成」，以免绕过状态机
-            </span>
-          </div>
         </div>
-  
-        <!-- 版本快照（append-only） -->
-        <div class="mb-2 text-sm font-medium">
-          版本快照（{{ detail.versions.length }}）
-        </div>
-        <Table
-          v-if="detail.versions.length > 0"
-          :columns="versionColumns"
-          :data-source="detail.versions"
-          :pagination="false"
-          row-key="id"
-          size="small"
-          class="mb-4"
+        <template v-if="detail.providerName">
+          {{ detail.providerName }}
+          <span class="text-xs text-muted-foreground">
+            （需要 {{ requiredCapabilityText(detail.type) }}）
+          </span>
+        </template>
+        <template
+          v-else-if="requiredCapabilityText(detail.type).includes('无需')"
         >
-          <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'status'">
-              <Tag :color="taskStatusColor(record.status)" class="!mr-0">
-                {{ enumText.taskStatus(record.status) }}
-              </Tag>
-            </template>
-            <template v-else-if="column.key === 'submittedAt'">
-              <TimeTag :time="record.submittedAt" />
-            </template>
-          </template>
-        </Table>
-        <Empty v-else class="mb-4" description="暂无版本快照" />
-  
-        <!-- ComfyUI 作业 -->
-        <div class="mb-2 text-sm font-medium">
-          作业（{{ detail.jobs.length }}）
-        </div>
-        <Table
-          v-if="detail.jobs.length > 0"
-          :columns="jobColumns"
-          :data-source="detail.jobs"
-          :pagination="false"
-          row-key="id"
+          <span class="text-muted-foreground">
+            {{ requiredCapabilityText(detail.type) }}
+          </span>
+        </template>
+        <template v-else>
+          <span class="text-muted-foreground">
+            自动（默认服务）· 需要 {{ requiredCapabilityText(detail.type) }}
+          </span>
+        </template>
+      </Descriptions.Item>
+      <Descriptions.Item label="关联实体">
+        {{ detail.refEntityType }} #{{ detail.refEntityId ?? '-' }}
+      </Descriptions.Item>
+      <Descriptions.Item label="变体进度">
+        {{ detail.currentVariant }}
+      </Descriptions.Item>
+      <Descriptions.Item label="已耗时">
+        <span class="tabular-nums">{{ elapsedText }}</span>
+        <span v-if="isLive" class="ml-1 text-xs text-muted-foreground">
+          （进行中）
+        </span>
+        <span v-else class="ml-1 text-xs text-muted-foreground">
+          （已停止计时）
+        </span>
+      </Descriptions.Item>
+      <Descriptions.Item label="LLM tokens">
+        <template v-if="tokens">
+          <span class="tabular-nums">
+            {{ formatTokens(tokens.totalTokens) }}
+          </span>
+          <span class="ml-1 text-xs text-muted-foreground">
+            （{{ tokens.calls }} 次调用）
+          </span>
+          <Tag
+            v-if="tokens.estimated"
+            class="ml-1 !mr-0"
+            color="warning"
+            title="网关未返回 usage，按字符数估算"
+          >
+            估算
+          </Tag>
+        </template>
+        <span v-else class="text-muted-foreground">-</span>
+      </Descriptions.Item>
+      <Descriptions.Item label="开始">
+        <TimeTag v-if="detail.startedAt" :time="detail.startedAt" />
+        <span v-else>-</span>
+      </Descriptions.Item>
+      <Descriptions.Item label="结束">
+        <TimeTag v-if="detail.finishedAt" :time="detail.finishedAt" />
+        <span v-else>-</span>
+      </Descriptions.Item>
+      <Descriptions.Item label="心跳">
+        <TimeTag v-if="detail.heartbeatAt" :time="detail.heartbeatAt" />
+        <span v-else>-</span>
+      </Descriptions.Item>
+      <Descriptions.Item label="创建">
+        <TimeTag :time="detail.createdAt" />
+      </Descriptions.Item>
+    </Descriptions>
+
+    <!-- 手动修改：备注 + 进度 -->
+    <div class="mb-4 rounded-md border border-border p-3">
+      <div class="mb-2 text-sm font-medium">手动修改</div>
+      <div class="mb-2 flex flex-wrap items-center gap-3">
+        <span class="text-xs text-muted-foreground">进度</span>
+        <InputNumber
+          v-model:value="editProgress"
+          :min="0"
+          :max="100"
           size="small"
-        >
-          <template #bodyCell="{ column, record }">
-            <template v-if="column.key === 'status'">
-              <Tag class="!mr-0">{{ enumText.jobStatus(record.status) }}</Tag>
-            </template>
-          </template>
-        </Table>
-        <Empty v-else description="暂无作业" />
-  
-        <!-- 生图交互日志（时间线：作业提交/完成/失败 + 提示词快照 + 任务状态与错误） -->
-        <div class="mt-4 mb-2 text-sm font-medium">
-          生图交互日志（{{ (detail.logs ?? []).length }}）
-        </div>
-        <TaskLogPanel :loading="loading" :logs="detail.logs" />
-</template>
+          style="width: 100px"
+        />
+      </div>
+      <Input.TextArea
+        v-model:value="editError"
+        :rows="2"
+        placeholder="备注 / 失败原因（可人工修正）"
+      />
+      <div class="mt-2">
+        <Button size="small" :loading="acting" @click="doSave">保存</Button>
+        <span class="ml-2 text-xs text-muted-foreground">
+          状态请用「取消 / 重新生成」，以免绕过状态机
+        </span>
+      </div>
+    </div>
+
+    <!-- 版本快照（append-only） -->
+    <div class="mb-2 text-sm font-medium">
+      版本快照（{{ detail.versions.length }}）
+    </div>
+    <Table
+      v-if="detail.versions.length > 0"
+      :columns="versionColumns"
+      :data-source="detail.versions"
+      :pagination="false"
+      row-key="id"
+      size="small"
+      class="mb-4"
+    >
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.key === 'status'">
+          <Tag :color="taskStatusColor(record.status)" class="!mr-0">
+            {{ enumText.taskStatus(record.status) }}
+          </Tag>
+        </template>
+        <template v-else-if="column.key === 'submittedAt'">
+          <TimeTag :time="record.submittedAt" />
+        </template>
+      </template>
+    </Table>
+    <Empty v-else class="mb-4" description="暂无版本快照" />
+
+    <!-- ComfyUI 作业 -->
+    <div class="mb-2 text-sm font-medium">作业（{{ detail.jobs.length }}）</div>
+    <Table
+      v-if="detail.jobs.length > 0"
+      :columns="jobColumns"
+      :data-source="detail.jobs"
+      :pagination="false"
+      row-key="id"
+      size="small"
+    >
+      <template #bodyCell="{ column, record }">
+        <template v-if="column.key === 'status'">
+          <Tag class="!mr-0">{{ enumText.jobStatus(record.status) }}</Tag>
+        </template>
+      </template>
+    </Table>
+    <Empty v-else description="暂无作业" />
+
+    <!-- 生图交互日志（时间线：作业提交/完成/失败 + 提示词快照 + 任务状态与错误） -->
+    <div class="mt-4 mb-2 text-sm font-medium">
+      生图交互日志（{{ (detail.logs ?? []).length }}）
+    </div>
+    <TaskLogPanel :loading="loading" :logs="detail.logs" />
+  </template>
 
   <Empty v-else description="加载中…" />
 </template>

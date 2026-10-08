@@ -23,9 +23,7 @@ describe('formatStopwatch —— 跑表样式（分:秒.毫秒）', () => {
     expect(formatStopwatch(0.5)).toBe('00:00.500');
     // 这四条是核心断言：不同的亚秒输入产生**不同**的毫秒位。
     // 若误把入参当毫秒（不 ×1000），下面全会是 00:00.000 或 00:00.001，测试立刻失败。
-    const seen = new Set(
-      [0.05, 0.1, 0.25, 0.9].map((s) => formatStopwatch(s)),
-    );
+    const seen = new Set([0.05, 0.1, 0.25, 0.9].map((s) => formatStopwatch(s)));
     expect(seen.size).toBe(4);
   });
 

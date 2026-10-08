@@ -163,13 +163,17 @@
 }
 
 /*
- * ⑦ 任务列表：毫秒跳动的「已耗时」+ 加粗进度条（用户 2026-10-04 要求）
+ * ⑦ 任务列表：毫秒跳动的「已耗时」（用户 2026-10-04 要求）
  *
  * 用户原话：
  * > 「生成中的已耗时 这里我希望改成 持续跳动的 毫秒数 看起来舒服点 字体大一点
- * >  我希望他**高度占满整行** 这样跳动起来视觉冲击力更大 进度条 也加高高度 就是加粗」
+ * >  我希望他**高度占满整行** 这样跳动起来视觉冲击力更大」
  *
- * ## 「高度占满整行」怎么实现（踩过两个坑，别再走回去）
+ * ## ⚠️ 2026-10-07 起不再"占满整行"
+ *
+ * 用户后来要求「状态 / 耗时 这一列 采用**上下两行布局**」，
+ * 于是数字与状态标签**上下排列**，绝对定位会盖住标签 → 已改回普通块级。
+ * 下面保留"占满整行"的三条历史经验，供将来若改回并排布局时参考：
  *
  * **坑 1：给内层 div 写 `height:100%`** —— 不生效。
  * 表格单元格的内容盒不建立可解析高度，百分比高度在里面退化成 auto。
@@ -179,13 +183,10 @@
  * `td` 一旦不再是 `table-cell` 就**退出表格布局**：它自己塌成内容高（33px），
  * 而整行仍被别的单元格撑到 94px —— 数字反而更不占满，且该列宽度也失控。
  *
- * **正解：td 保持 `table-cell`，在里面放一层 `height:100%` 的包裹 div，
- * 再用绝对定位让内容撑满。** 但 td 本身也不给百分比高度（循环引用）——
- * 所以真正起作用的是 `position:relative` + 内层 `position:absolute; inset:0`：
- * 绝对定位的包含块是**padding box**，它的高度由行高决定，无需百分比即可解析。
+ * **坑 3（即本次）**：`position:absolute; inset:0` 只在"数字独占整格"时成立。
+ * 一旦格内还有别的元素（状态标签），绝对定位就会与它**争夺同一块区域**。
  */
 .df-page .ant-table-tbody > tr > td.df-elapsed-cell {
-  position: relative;
   padding-top: 4px;
   padding-bottom: 4px;
   vertical-align: middle;
@@ -193,10 +194,17 @@
 
 /* 绝对定位撑满 td：这是"占满整行"的关键（td 保持 table-cell，不破坏布局） */
 .df-page .df-task-elapsed-live {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
+  /*
+   * ⚠️ 2026-10-07：改为**上下两行布局**后不再绝对定位。
+   *
+   * 用户要求：
+   * > 「状态 / 耗时 这一列 采用 上下两行布局」
+   *
+   * 原来 `position:absolute; inset:0` 是为了让跳动的数字**占满整个 td 高度**
+   * （那时状态与耗时并排，数字独占整格视觉）。现在两者上下排列，
+   * 绝对定位会让数字**盖在状态标签上**（两者争夺同一块区域）。
+   * 故改成普通块级 + 大字号 —— 仍然醒目，且不再互相遮挡。
+   */
   font-size: 22px;
   font-weight: 700;
 
@@ -207,20 +215,31 @@
   letter-spacing: 0.02em;
 }
 
-/* 已定型的耗时是普通小字，不要被上面的大字号规则影响（复用同一个 td 类） */
+/* 已定型的耗时是普通小字，不要被上面的大字号规则影响（同一格内的普通 span） */
 .df-page .ant-table-tbody > tr > td.df-elapsed-cell > span {
   vertical-align: middle;
 }
 
-/*
- * 加粗进度条：高度由组件层的 `stroke-width` 决定（antd 把它写成 inline style，
- * 是唯一可靠的传入方式 —— `size="small"` 会写死 6px 且 class 覆盖不动）。
- * 这里补圆角与轨道底色，保证加粗后两端不是直角。
- */
-.df-page .df-task-progress .ant-progress-inner,
-.df-page .df-task-progress .ant-progress-bg {
-  border-radius: 9999px;
+/* 上下两行布局里，耗时的普通态（非跳动）也保持等宽数字，避免与跳动态切换时抖动 */
+.df-page .ant-table-tbody > tr > td.df-elapsed-cell .tabular-nums {
+  font-variant-numeric: tabular-nums;
 }
+
+/*
+ * ⑧ 任务行状态样式
+ *
+ * 用户 2026-10-05：
+ * > 「排队中 和 生成中的 应该做一下颜色区分」
+ * 随后澄清：
+ * > 「我说的 排队和再跑 颜色不一样 是指的那个**状态 tag** 不是背景色」
+ *
+ * 故这里**不给行加底色**（用户明确不要）—— 颜色区分由状态 Tag 承担，
+ * 见 `useTaskStream.taskStatusColor`（生成中=processing 蓝 / 排队中=warning 橙）。
+ *
+ * ⚠️ 保留 `df-row-running` / `df-row-queued` 两个类名但**不画背景**：
+ *   行级样式若将来要用（如只给"生成中"加一条极细的左侧进度色条），
+ *   挂类的地方已经就位；现在留空是刻意的，不是漏写。
+ */
 
 /*
  * ⑦ 指标卡统一高度（AI 任务列表页的「任务总数 / 正在跑 / 已完成 / 失败 / 自动刷新」一行）
@@ -276,6 +295,59 @@
   /* 抵消 antd Modal body 默认 padding 造成的双内边距 */
   margin: -4px 0;
   overflow-y: auto;
+}
+
+/*
+ * ⑧ 调度器状态卡片：**心跳倒计时条**（用户 2026-10-07，三轮迭代后的最终方案）
+ *
+ * 用户原话：
+ * > 「我指的1圈是 10秒 每100毫秒 向前进一格 理论上 进到2000毫秒 就重置为0 了
+ * >   代表心跳正常 如果 一直到 10秒 还没重置 就是 死了 超时了」
+ *
+ * 语义：**满格 = 10 秒没收到新数据 = 判定死亡**。
+ *   0% ─────── 心跳（每 5s 一次）应在此前归零 ─────── 100% 判死
+ * 「总在增长、从不走满」= 健康；「走满变红」= 故障。
+ *
+ * ## 为什么最终用 width 而不是边框/圆弧（三轮试错，别再走回头路）
+ *
+ * | 方案 | 结果 |
+ * |---|---|
+ * | ① CSS `animation` 重放 | **一跳一跳** — 周期与数据周期不同频，跑满后干等 + infinite 重放 |
+ * | ② `::before` + `conic-gradient` + CSS 变量 | **完全不动** — Chromium 对"伪元素 + 自定义属性 + 渐变"的变更**不保证重绘**，改了不重画且不报错 |
+ * | ③ 旋转亮弧（固定弧长、只改起始角） | 看着像**无限滚动** — "跳回起点"看不出来，重置信号不可见 |
+ * | ④ **普通 div 的 width**（当前） | ✅ 布局属性变化必然重绘；长度突然回缩人眼极敏感 |
+ *
+ * 结论：**用 width，别用渐变 + CSS 变量** —— 那组合的失效是静默的，排查成本极高。
+ */
+.df-heartbeat-track {
+  height: 3px;
+  overflow: hidden;
+  background: hsl(var(--muted));
+  border-radius: 9999px;
+}
+
+.df-heartbeat-bar {
+  height: 100%;
+  border-radius: 9999px;
+
+  /* 宽度由行内 style 直接绑定（不经过 CSS 变量中转）。
+     过渡时长 = 步进间隔（500ms），让每次推进**平滑**而非瞬跳。 */
+  transition: width 500ms linear;
+}
+
+/* 正常：主题色。到 50%（约 5 秒）就该被归零重来 */
+.df-hb-ok {
+  background: hsl(var(--primary));
+}
+
+/* 偏慢：超过期望心跳周期仍未归零 —— 判死前的预警 */
+.df-hb-warn {
+  background: hsl(var(--warning));
+}
+
+/* 超时（满格且不再归零）= 死了 */
+.df-hb-dead {
+  background: hsl(var(--destructive));
 }
 
 @media (prefers-reduced-motion: reduce) {
