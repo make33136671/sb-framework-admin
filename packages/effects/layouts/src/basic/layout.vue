@@ -401,7 +401,22 @@ const headerSlots = computed(() => {
 
     <!-- 主体内容 -->
     <template #content>
-      <LayoutContent />
+      <!--
+        `content-extra`：与主内容**并排**的常驻侧栏（2026-10-06 新增）。
+
+        为什么加在框架层而不是各页面自己塞一个浮层：
+          · 业务页面的根节点由路由控制，页面内塞侧栏会**随路由重建**
+            （展开态、滚动位置全丢），而且每个页面都得写一遍；
+          · 放这里则跨路由常驻 —— 侧栏状态天然保持。
+        首个使用者：DramaFlow 的右侧「任务队列」面板（用户要求"全站常驻"）。
+        未使用该 slot 时布局与之前**完全一致**（不占宽度、不影响任何页面）。
+      -->
+      <div class="flex h-full w-full overflow-hidden">
+        <div class="min-w-0 flex-1">
+          <LayoutContent />
+        </div>
+        <slot name="content-extra"></slot>
+      </div>
     </template>
 
     <template v-if="preferences.transition.loading" #content-overlay>

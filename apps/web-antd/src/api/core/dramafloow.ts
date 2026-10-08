@@ -92,6 +92,10 @@ export interface AssetRequirementItem {
   kind: string;
   description?: string;
   spec?: string;
+  /** 已保存的第 ③ 层正向提示词（弹窗重开时回填） */
+  subjectPrompt?: null | string;
+  /** 已保存的第 ③ 层反向提示词（弹窗重开时回填） */
+  subjectNegative?: null | string;
   status: string;
   approvedAssetId?: number;
   /** 该 key 的版本总数（用于显示"共 N 版"） */
@@ -171,6 +175,14 @@ export interface TaskItem {
   providerId?: null | number;
   /** 服务名（展示「用哪个服务跑」） */
   providerName?: null | string;
+  /**
+   * 指定的模型**当前为何不可用**（null = 可用，或本就未指定模型）。
+   *
+   * 实测场景：任务被指定了一个不具备所需能力的模型后，会一直停在 queued
+   * （领取 SQL 的 `provider_id IS NULL OR provider_id=@p_svc` 把它排除），
+   * 界面上只显示"排队中"看不出原因。非空时模型列标红并给出原因。
+   */
+  providerUnavailableReason?: null | string;
   /** 该任务类型需要的能力位掩码（说明「为什么有些服务是灰的」） */
   requiredCapability?: number;
   /**
@@ -190,6 +202,15 @@ export interface TaskItem {
   costYuan?: null | number;
   /** 该次上云是否处于优惠时段（谷时）；null = 未知 */
   offPeak?: boolean | null;
+  /** 两档优先级（1=高）。排序第一关键字，与领取 SQL 一致。 */
+  priority: number;
+  /**
+   * 队列内显式顺序（越小越先执行）。
+   *
+   * 面板必须用它排 —— 只按 id 排会与领取顺序（priority DESC, sort_no ASC, id ASC）
+   * 不一致，用户读到的先后就是反的（这正是「看不懂队列」的成因之一）。
+   */
+  sortNo?: number;
   refEntityType?: string;
   refEntityId?: number;
   status: string;
@@ -833,6 +854,92 @@ export async function assetRequirementSave(data: {
 }
 
 /**
+ * **只保存角色描述**（不动 key / kind / name / spec）。
+ *
+ * 为什么单独一个接口、不复用 `assetRequirementSave`：
+ * 那条接口会按 `name` **重算 key**，而 key 是角色视图 / 候选 / 任务的关联锚点。
+ * 弹窗里只想改"描述"这一个字段，走那条路既要前端从 key 反推 name（脆），
+ * 又有"name 传错 → key 被改掉 → 历史候选全部对不上"的风险。
+ * 这里语义收窄到"改描述"，从根上排除改坏 key。
+ */
+export async function assetRequirementSaveDescription(data: {
+  description?: null | string;
+  id: number;
+}) {
+  return api.post<{ id: number }>('/Asset/RequirementSaveDescription', data);
+}
+
+/**
+ * **保存该视图的提示词**（正向 + 反向，第 ③ 层）。
+ *
+ * 为什么需要它（2026-10-07 用户报障）：
+ * > 「生成角色提示词…不会保存 重新打开这个页面 提示词又变回去了」
+ *
+ * 生成结果原先只活在前端表单里，关掉弹窗即丢；重开时又从**视图 spec**
+ * （固定模板）重新填一遍，于是用户看到"白生成了"。现在落库，重开即可回填。
+ *
+ * 两个字段都是**整值覆盖**：传空串 = 清空该层（不是"不修改"），
+ * 否则用户把内容删光后就再也清不掉了。
+ */
+export async function assetRequirementSavePrompts(data: {
+  id: number;
+  subjectNegative?: null | string;
+  subjectPrompt?: null | string;
+}) {
+  return api.post<{ id: number }>('/Asset/RequirementSavePrompts', data);
+}
+
+/**
+ * **专用提示词生成通道**（供角色视图弹窗的「一键生成提示词」）。
+ *
+ * · 正向：真调 ComfyUI 上的 PE-T2I（9.4B）把角色描述改写成英文画面描述；
+ * · 反向：**规则推导**（不调模型）—— 实测 PE-T2I 的 system_prompt 强制
+ *   "只描述画面里有什么"，做不到产出负向词。
+ *
+ * ⚠️ 长耗时（实测 50s+，冷启更久）：调用方**必须**传 `signal` 以便用户取消，
+ *    并自行识别取消（`CanceledError`）与真实失败的区别。
+ */
+export async function assetGeneratePrompts(
+  data: {
+    /** 未保存的最新描述；不传则用库里已保存的 description */
+    brief?: null | string;
+    requirementId: number;
+    /**
+     * 视图的构图约束（视图 spec）。
+     *
+     * ⚠️ 必须传：7 视图要求**纯灰底、无场景元素**。PE-T2I 的 system_prompt 写着
+     * "没提到的它自己决定"，不把这条约束喂进去，模型会自造背景
+     * （实测生成过 "warm off-white studio background / window / furniture"）——
+     * 带背景的立绘无法用于后续合成，等于废图。
+     */
+    viewPrompt?: null | string;
+    /** 视图专有反向约束（如 "full body, wide shot"），附加到规则反向词末尾 */
+    viewNegative?: null | string;
+  },
+  options?: { signal?: AbortSignal },
+) {
+  return api.post<{
+    negativePrompt: string;
+    positiveError: null | string;
+    positivePrompt: null | string;
+    whRatio: null | string;
+  }>('/Asset/GeneratePrompts', data, {
+    signal: options?.signal,
+    // ⚠️ 必须显式给足超时：RequestClient 默认只有 **10 秒**，
+    //    而 PE-T2I（9.4B / 17.9 GB 权重）实测要 **52–56 秒**。
+    //    不给就会复现那个极迷惑的现象 —— ComfyUI 控制台显示
+    //    "Prompt executed in 55.99 seconds"（真跑通了），前端却报超时。
+    //    这里给 10 分钟：与后端 pe_t2i_timeout_sec 默认值（600s）对齐，
+    //    留出冷启加载权重的余量；用户随时可用「等待中，点击取消」中断，
+    //    所以给长一点没有副作用。
+    timeout: 10 * 60 * 1000,
+    // 静默：本接口耗时很长，拦截器的全局 loading/toast 会与按钮内 loading 重复，
+    // 且取消时不该弹错误。错误由调用方自己决定怎么呈现。
+    silent: true,
+  });
+}
+
+/**
  * 为已有角色补齐「视图/机位」需求（存量数据迁移）。
  *
  * 背景：视图拆分在**素材提取**时生效，所以已提取过的角色不会自动获得视图结构。
@@ -865,6 +972,22 @@ export async function assetGenerate(
 
 export async function assetApprove(candidateId: number) {
   return api.post<{ staled: number }>('/Asset/Approve', { candidateId });
+}
+
+/**
+ * **解除定稿**（把已选中的图改回未定稿状态）。
+ *
+ * 用户原话：
+ * > 「我说的清空选择 是把选择图 改为 未定稿状态 清除他的定稿」
+ *
+ * 后端会一起回滚：需求状态 → pending、被定稿候选 → pending、引用方标记 stale。
+ * 幂等：本来未定稿时返回 changed=false，**不报错**（批量里混着未定稿是常态）。
+ */
+export async function assetUnapprove(requirementId: number) {
+  return api.post<{ changed: boolean; requirementId: number; staled: number }>(
+    '/Asset/Unapprove',
+    { requirementId },
+  );
 }
 
 // ── 角色 × 视图矩阵（格子选图）─────────────────────────────────────
@@ -908,6 +1031,14 @@ export interface CharacterImageOption {
 export interface CharacterMatrixRow {
   /** 该角色的全部已有候选图（跨视图、含旧数据）—— 选图池 */
   candidates: CharacterImageOption[];
+  /**
+   * 角色外观描述（7 个视图共享同一条）。
+   *
+   * 「一键 7 图」必须把它作为**提示词生成的输入** —— 它回答"画谁"，
+   * 而 `spec` 只回答"怎么拍"（45° 侧脸 + 纯灰底）。
+   * 少了它，出图模型只能画出随机路人（实测：伊丽莎白画出来是个男的）。
+   */
+  description?: null | string;
   name: string;
   /** 固定 7 个格子，顺序由后端（CharacterViews.Standard）决定 */
   views: CharacterViewCell[];
@@ -1004,8 +1135,20 @@ export async function assetLibraryList(params: {
 
 // ─────────────────────────── Task ───────────────────────────
 
+/**
+ * 任务列表（**服务端分页 + 服务端筛选**）。
+ *
+ * `keyword` 必须下推给后端：分页后前端只有当前一页，
+ * 在本地做关键词过滤会变成"只搜当前页"（搜第 3 页的任务得到空结果，且无提示）。
+ *
+ * `status` 除单个状态外，还接受两个**聚合**取值（由后端展开）：
+ *   · `running` → preparing / generating / collecting
+ *   · `done`    → approved / done / rejected
+ * 聚合也必须在后端做，否则同样会"把当前页过滤空但分页器还显示有下一页"。
+ */
 export async function taskList(params: {
   dramaId?: number;
+  keyword?: string;
   page?: number;
   pageSize?: number;
   status?: string;
@@ -1079,6 +1222,142 @@ export async function taskSubmit(params: TaskSubmitParams) {
   return api.post<TaskSubmitResult>('/Task/Submit', params);
 }
 
+/**
+ * 批量下发角色视图（用户 2026-10-06：
+ * 「可以批量选择角色 执行批量一键7视图」「点击一键7视图 实际上是加入任务列队」）。
+ *
+ * ## 为什么必须是**一次调用**
+ *
+ * 用户实测报障：
+ * > 「点击 一键生成7视图 是不是 关掉页面 任务就结束了 如果生成了2张
+ * >   在关掉页面后 剩下的 5张图 不会在生成了」
+ *
+ * **确实如此。** 原来 7 次下发跑在浏览器循环里，关页面/切标签/睡眠都会让循环终止，
+ * 后面的视图任务**根本没被创建**（不是"创建了没执行"），且不报错。
+ *
+ * 改成一次调用后：请求返回时所有任务已入库，页面关不关都不影响。
+ *
+ * 每个需求建 2 个任务：`prompt_gen`（文本组）+ `t2i`（生图组），
+ * 由后端按分区分段分配 sort_no，天然形成"先提示词、后出图"的顺序。
+ */
+export async function taskBatchSubmitViews(params: {
+  autoFinalize?: boolean;
+  candidateCount?: number;
+  providerId?: number;
+  requirementIds: number[];
+}) {
+  return api.post<{
+    created: {
+      /** null = 该视图已有提示词，**跳过**了阶段① 提示词任务（直接出图） */
+      promptGenTaskId: null | number;
+      requirementId: number;
+      t2iTaskId: number;
+    }[];
+    /** 已有提示词、被复用（未重做提示词）的视图 */
+    promptReused: { key: string; requirementId: number }[];
+    skipped: { requirementId: number; why: string }[];
+  }>('/Task/BatchSubmitViews', {
+    autoFinalize: params.autoFinalize,
+    candidateCount: params.candidateCount,
+    providerId: params.providerId,
+    requirementIds: params.requirementIds.join(','),
+  });
+}
+
+/**
+ * **批量补充提示词**（用户 2026-10-07：「一键生7图边上 加入一个 一键补充提示词」）。
+ *
+ * 为每个视图下发一条 `image_prompt_gen` 任务，由编排器调 PE-T2I 生成
+ * 正/反向提示词并**落回该需求**（下次打开弹窗即可见）。
+ *
+ * 为什么走任务队列而不是同步调：
+ * 用户明确要求「希望在 AI 执行任务列表里 显示这些 AI 任务」——
+ * 同步调用（`assetGeneratePrompts`）在任务列表里完全不可见，
+ * 用户无法判断跑到哪、失败没有。走队列后每条都是正规任务，
+ * 可排队、可取消、可重试、可在执行窗口看日志。
+ */
+export async function taskBatchSubmitPromptGen(params: {
+  requirementIds: number[];
+}) {
+  return api.post<{
+    created: { key: string; requirementId: number; taskId: number }[];
+    skipped: { requirementId: number; why: string }[];
+  }>('/Task/BatchSubmitPromptGen', {
+    requirementIds: params.requirementIds.join(','),
+  });
+}
+
+/**
+ * **批量生成提示词**（素材页多选 → 「一键生成提示词」）。
+ *
+ * 只下发 `image_prompt_gen`（PE-T2I），**不出图**；产物落回需求的
+ * subjectPrompt/subjectNegative，并进 AI 任务列表（可查看进度/取消/重试）。
+ */
+export async function assetBatchGeneratePrompts(
+  requirementIds: number[],
+  force = false,
+) {
+  return api.post<{
+    created: { key: string; requirementId: number; taskId: number }[];
+    replaced: { requirementId: number; what: string }[];
+    skipped: { requirementId: number; why: string }[];
+    force: boolean;
+  }>('/Asset/BatchGeneratePrompts', {
+    requirementIds: requirementIds.join(','),
+    force,
+  });
+}
+
+/**
+ * **批量生成图像**（素材页多选 → 「一键生成图像」）。
+ *
+ * `autoFinalize` 勾选后由**后端**在出图完成时自动定稿第一张 ——
+ * 不是前端等待（前端等待会被关页面打断）。
+ *
+ * `force` 勾选后**清空现有图片**（含定稿）再生成新的 ——
+ * 用户原话：「图片就是 清空掉现有选择的 生成新的」。
+ */
+export async function assetBatchGenerate(params: {
+  autoFinalize?: boolean;
+  candidateCount?: number;
+  force?: boolean;
+  providerId?: number;
+  requirementIds: number[];
+}) {
+  return api.post<{
+    created: { key: string; requirementId: number; taskId: number }[];
+    replaced: { requirementId: number; removedCandidates: number }[];
+    skipped: { requirementId: number; why: string }[];
+    force: boolean;
+  }>('/Asset/BatchGenerate', {
+    requirementIds: params.requirementIds.join(','),
+    providerId: params.providerId,
+    autoFinalize: params.autoFinalize,
+    candidateCount: params.candidateCount,
+    force: params.force,
+  });
+}
+
+/**
+ * **保存角色信息**（角色信息弹窗：改名 / 改描述）。
+ *
+ * ⚠️ 一个角色在库里是 **7 行需求**（7 个视图各一行），描述共享。
+ * 该接口按角色名定位全部 7 行一起更新 —— 后端做了这件事，
+ * 前端**不要**自己循环调 `assetRequirementSaveDescription`（那样只改一个视图，
+ * 现象是"改了描述只有某个视图生效"且不报错）。
+ */
+export async function assetSaveCharacter(data: {
+  description?: null | string;
+  dramaId: number;
+  name: string;
+  newName?: null | string;
+}) {
+  return api.post<{ name: string; updated: number }>(
+    '/Asset/SaveCharacter',
+    data,
+  );
+}
+
 export async function taskRetry(id: number) {
   return api.post<{ taskId: number; version: number }>('/Task/Retry', { id });
 }
@@ -1145,6 +1424,112 @@ export async function taskUpdate(data: {
 }
 
 /**
+ * 手动接管：给**排队中**的任务指定执行模型（providerId 传 null = 改回"自动"）。
+ *
+ * 用户诉求：「AI任务里只有自动排队，不能手动指定任务模型跑，这部分我希望可以手动接管」。
+ * 只有 status=queued 的任务可改；已开跑/已结束的会被后端拒绝（改了也不会影响本次执行，
+ * 只会让界面显示"已改为X"——那种静默不一致比报错更难查）。
+ */
+export async function taskAssignProvider(
+  id: number,
+  providerId: null | number,
+) {
+  return api.post('/Task/AssignProvider', { id, providerId });
+}
+
+/**
+ * 立即执行：把**排队中**的任务插到队首（只提优先级，不改任务归属）。
+ *
+ * 用户诉求：「AI任务列表里 排队中的 不能设置立即执行」。
+ * ⚠️ 插队只解决"排队位置"，解决不了"根本没有可用服务"
+ * （节点离线 / 云端开关关闭 / 模型不匹配）—— 故后端会回 `blockedReason`，
+ * 前端必须透传，否则"点了还是没跑"会变成无从排查的谜题。
+ */
+export async function taskRunNow(id: number) {
+  return api.post<{
+    blockedReason?: null | string;
+    priority: number;
+    source: string;
+    taskId: number;
+  }>('/Task/RunNow', { id });
+}
+
+/**
+ * 队列内上移 / 下移（用户 2026-10-06：
+ * 「可以让用户直接操作真实的任务队列 比如改先后顺序」）。
+ *
+ * ⚠️ **只在同一组内交换**（文本组 / 生图组）——跨组会破坏"文本组整体在前"的
+ * 分段结构，进而造成额外的模型切换。到组边界时后端会返回明确原因（不静默不动）。
+ */
+export async function taskMove(id: number, direction: 'down' | 'up') {
+  return api.post<{ id: number; sortNo: number; swappedWith: number }>(
+    '/Task/Move',
+    { direction, id },
+  );
+}
+
+/** 任务是否属于生图组（前端分组展示用，与后端 TaskSort.IsGpuGroup 一致）。 */
+export const GPU_GROUP_TYPES = new Set(['i2v', 't2i']);
+
+/** 任务是否属于文本组（提示词/文本类，先于生图执行）。 */
+export const TEXT_GROUP_TYPES = new Set([
+  'analyze',
+  'asset_extract',
+  'episode_split',
+  // 图片提示词增强（2026-10-07）：产物是文本，归文本组（与后端
+  // TaskSort.IsGpuGroup / SchedClass.Tasks[Text] 一致）。
+  'image_prompt_gen',
+  'partial_rewrite',
+  'prompt_gen',
+  'rewrite',
+  'storyboard',
+]);
+
+/**
+ * 批量操作（用户 2026-10-05：「AI 任务 增加一个批量操作功能 暂停 删除 之类的」）。
+ *
+ * 后端**尽力而为 + 逐条回报**（不做整体回滚）：批量对象往往混着已完成/状态不匹配的条目，
+ * 整体回滚会导致"选 50 条想清掉、有 3 条已完成"就一条都处理不了。
+ * 故返回值里带 `skipped`，前端要如实把"跳过了哪几条、为什么"告诉用户。
+ */
+export async function taskBatch(
+  ids: number[],
+  action: 'cancel' | 'delete' | 'retry',
+) {
+  return api.post<{
+    ok: number;
+    skipped: { id: number; why: string }[];
+  }>('/Task/Batch', { ids: ids.join(','), action });
+}
+
+/**
+ * 一键暂停 / 恢复（全局）。
+ *
+ * 用户原话：
+ * > 「顶部也加入个 一键暂停 就是AI就是个机器 不管他连接那条线路
+ * >   执行哪个任务 暂停了就全部都停下了」
+ *
+ * 语义：暂停 = 编排器**不再领取任何任务** + **中断在飞任务**；
+ * 排队中的任务保持 queued，恢复后自动继续（不是"取消"，是"暂停"）。
+ */
+export async function taskPauseAll(reason?: string) {
+  return api.post<{ interrupted: number; queued: number }>('/Task/PauseAll', {
+    reason,
+  });
+}
+
+export async function taskResumeAll() {
+  return api.post<{ queued: number }>('/Task/ResumeAll', {});
+}
+
+/** 全局暂停状态（顶部按钮据此显示"暂停"还是"恢复"）。 */
+export async function taskPauseStatus() {
+  return api.get<{ inFlight: number; paused: boolean; queued: number }>(
+    '/Task/PauseStatus',
+  );
+}
+
+/**
  * 生图尺寸的**当前生效值**（后端三级优先解析后的结果）。
  *
  * 由后端解析而不是前端自己算：来源是「视图覆盖 → 通用默认 → 代码兜底」三级回落，
@@ -1178,6 +1563,115 @@ export async function taskStats(dramaId?: number) {
     tokensByTask: Record<number, TaskTokenSummary>;
     total: number;
   }>('/Task/Stats', { params: dramaId ? { dramaId } : {} });
+}
+
+// ─────────────────────────── AI 全局日志 ───────────────────────────
+
+/** 一次 LLM 调用记录（`llm_call_log`，append-only；失败的调用同样有一行）。 */
+export interface AiCallLogItem {
+  channel?: string;
+  completionTokens: number;
+  createdAt: string;
+  dramaId?: null | number;
+  dramaName?: null | string;
+  error?: null | string;
+  id: number;
+  latencyMs: number;
+  model?: null | string;
+  promptTokens: number;
+  provider?: null | string;
+  providerId?: null | number;
+  providerName?: null | string;
+  purpose: string;
+  /** local / cloud —— 这次调用走的是本地还是云端算力 */
+  route?: null | string;
+  taskId?: null | number;
+  /** true = 网关没返回 usage，token 是按字符数估算的（界面必须如实标注） */
+  tokensEstimated: boolean;
+}
+
+/** 一条系统运行事件（`audit_log`：调度决策/告警/任务生命周期）。 */
+export interface AiSystemEventItem {
+  action: string;
+  actor?: null | string;
+  after?: null | string;
+  before?: null | string;
+  createdAt: string;
+  entityId: number;
+  entityType: string;
+  id: number;
+  /** 同一事件连续重复了多少次（折叠前）；1 = 无重复 */
+  repeatCount: number;
+}
+
+export interface AiCallLogQuery {
+  dramaId?: number;
+  keyword?: string;
+  onlyError?: boolean;
+  page?: number;
+  pageSize?: number;
+  purpose?: string;
+  taskId?: number;
+}
+
+/**
+ * 逐次 LLM 调用日志（全局，支持按任务/剧目/用途/关键字/成败筛选）。
+ *
+ * 用户诉求：「ai任务页面 加一个全局ai日志」——用于回答
+ * 「这次调用发了什么、花了多少 token、报了什么错」。
+ */
+export async function aiLogCalls(params: AiCallLogQuery = {}) {
+  return api.get<{ items: AiCallLogItem[]; total: number }>('/AiLog/Calls', {
+    params,
+  });
+}
+
+/** 调用统计（口径与列表筛选**一致**，避免"列表 3 条、指标卡 200 条"）。 */
+export async function aiLogCallStats(params: AiCallLogQuery = {}) {
+  return api.get<{
+    avgLatencyMs: number;
+    completionTokens: number;
+    errors: number;
+    estimated: number;
+    promptTokens: number;
+    total: number;
+  }>('/AiLog/CallStats', { params });
+}
+
+/** 调用日志的筛选器可选值（从已有数据取 distinct，不写死枚举）。 */
+export async function aiLogCallFilters() {
+  return api.get<{ models: string[]; providers: string[]; purposes: string[] }>(
+    '/AiLog/CallFilters',
+  );
+}
+
+/**
+ * 系统运行事件（调度决策/告警）——回答「为什么任务没被执行」。
+ *
+ * `collapse=true`（默认）会把**连续重复**的同一条事件折叠成一条并记次数：
+ * 实测同一模型离线一天几百条，原样列出会把真正有用的信息淹掉。
+ */
+export async function aiLogEvents(
+  params: {
+    action?: string;
+    collapse?: boolean;
+    entityId?: number;
+    entityType?: string;
+    keyword?: string;
+    page?: number;
+    pageSize?: number;
+    taskId?: number;
+  } = {},
+) {
+  return api.get<{ items: AiSystemEventItem[]; total: number }>(
+    '/AiLog/Events',
+    { params },
+  );
+}
+
+/** 系统事件的筛选器可选值（动作类型）。 */
+export async function aiLogEventFilters() {
+  return api.get<{ actions: string[] }>('/AiLog/EventFilters');
 }
 
 // ─────────────────────────── Review ───────────────────────────

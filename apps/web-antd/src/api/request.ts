@@ -148,8 +148,36 @@ interface ApiOptions {
   params?: Record<string, any>;
   /** 静默模式：不显示 loading 和成功提示（GET 默认 true，POST 默认 false） */
   quiet?: boolean;
+  /**
+   * 中断信号：传入后可用 AbortController 取消请求。
+   *
+   * 为什么需要它：AI 提示词生成是**长耗时**请求（PE-T2I 是 9.4B 模型，
+   * 冷启要把 18.9 GB 权重读进显存，实测 50s+）。用户必须能在等待中取消，
+   * 否则一旦点了就只能干等；且服务端也会因连接断开而停止等待，
+   * 不会白占 GPU。
+   *
+   * ⚠️ 取消会让 axios 抛 `CanceledError`（不是业务异常）—— 调用方要单独识别，
+   * 否则会把"用户主动取消"当成"生成失败"弹一个红色错误。
+   */
+  signal?: AbortSignal;
   /** 完全静默：不显示任何提示（含错误），调用方自行 try-catch 处理 */
   silent?: boolean;
+  /**
+   * 本次请求的超时（毫秒）。不传则用 axios 客户端的默认值 **10 秒**。
+   *
+   * ⚠️ 为什么必须能单独覆盖（2026-10-07 真机踩坑）：
+   * `RequestClient` 的默认超时是 **10s**（packages/effects/request 的
+   * `timeout: 10_000`）。而 AI 提示词生成要调 110 上的 PE-T2I（9.4B），
+   * 冷启要把 17.9 GB 权重读进显存，**实测 52–56 秒**。
+   * 于是出现极迷惑的现象：
+   *   · ComfyUI 控制台**跑通了**（Prompt executed in 55.99 seconds）；
+   *   · 前端却报超时（10s 就断了）。
+   * 两边都没错，是**前端根本没等到**。
+   *
+   * 故长耗时接口必须显式调大；不要改全局默认值 —— 那会让真正卡死的
+   * 普通接口也一起等下去（用户点一下要干等几分钟才看到错误）。
+   */
+  timeout?: number;
 }
 
 async function request<T = any>(
@@ -165,7 +193,13 @@ async function request<T = any>(
 
   let body: any;
   try {
-    const config: any = { params: options?.params };
+    const config: any = {
+      params: options?.params,
+      signal: options?.signal,
+    };
+    // 只在调用方显式给了才设置，否则沿用客户端默认（不要写 undefined，
+    // 那会覆盖掉 axios 实例上的默认值）
+    if (options?.timeout !== undefined) config.timeout = options.timeout;
     if (silent) config._silent = true;
     body = await (method === 'GET'
       ? _client.get(url, config)

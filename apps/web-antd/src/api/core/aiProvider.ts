@@ -152,6 +152,16 @@ export interface AiProviderAvailable {
   taskType: string;
   requiredCapabilities: number;
   needsProvider: boolean;
+  /**
+   * 本任务需要的**功能键**（2026-10-07 调度重构的新判据）。
+   *
+   * 能力位只表达模态（文本/图片/视频），同模态下功能不可互换 ——
+   * 通用 LLM 与 PE-T2I 都"是文本模型"，但只有 PE 能做提示词强化。
+   * 判据改为功能键后，"选了干不了这活的模型"不再可能。
+   */
+  requiredFunction?: null | string;
+  /** 功能展示名（如「提示词强化（PE-T2I）」）——界面显示用 */
+  requiredFunctionName?: null | string;
   autoProviderId?: null | number;
   autoProviderName?: null | string;
   items: {
@@ -174,8 +184,10 @@ export interface AiProviderAvailable {
     /** 提供商的 provider_key */
     providerType: string;
     runStatus: string;
-    /** false → 前端置灰不可选（不具备该任务所需能力） */
+    /** false → 前端置灰不可选（不具备该任务所需**功能**） */
     selectable: boolean;
+    /** 不可选的原因（如「该模型不提供『提示词强化』功能」）——tooltip 显示 */
+    notSelectableReason?: null | string;
     /** 「暂不可用」原因（节点离线/切换中/熔断）；null = 可正常选 */
     unavailableReason: null | string;
   }[];

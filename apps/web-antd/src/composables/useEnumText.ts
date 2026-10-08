@@ -31,6 +31,11 @@ export const TASK_TYPE_TEXT: Record<string, string> = {
   episode_split: '分集拆分',
   storyboard: '分镜',
   asset_extract: '素材提取',
+  prompt_gen: '提示词生成',
+  // 图片提示词增强（2026-10-07 新增）：由 ComfyUI 上的 PE-T2I 执行。
+  // 刻意与 prompt_gen 区分显示 —— 二者是**同一件事的两个引擎**，
+  // 用户需要一眼看出这条任务走的是哪条线路（LLM 还是 PE-T2I）。
+  image_prompt_gen: '图片提示词增强（PE-T2I）',
   concat: '成片合并',
 };
 
@@ -182,6 +187,24 @@ export const CLOUD_DECISION_TEXT: Record<string, string> = {
   CloudHold: '未上云',
 };
 
+/**
+ * LLM 调用用途（后端 `LlmPurposes` + `llm_call_log.purpose`）。
+ *
+ * 与后端一一对应；**新增 LLM 环节时必须同步本表**，否则界面显示
+ * 「未知(xxx)」—— 那是有意的：显式暴露漏配，比悄悄显示裸英文好排查。
+ */
+export const LLM_PURPOSE_TEXT: Record<string, string> = {
+  rewrite: '洗稿',
+  partial_rewrite: '选区重洗',
+  storyboard: '分镜',
+  asset_extract: '素材提取',
+  analyze: '剧本分析',
+  episode_split: '分集拆分',
+  prompt_gen: '出图提示词',
+  prompt_rewrite: '提示词重写',
+  score: '候选打分',
+};
+
 /** 通用 pick：有映射取中文，无映射走「未知(xxx)」兜底（**绝不显示裸英文**） */
 export function pick(map: Record<string, string>, v?: null | string): string {
   if (!v) return '-';
@@ -198,6 +221,8 @@ export const enumText = {
   taskType: (v?: null | string) => pick(TASK_TYPE_TEXT, v),
   /** 任务状态：pending_review → 已出图待定稿（不是"任务还在等审核"，见上） */
   taskStatus: (v?: null | string) => pick(TASK_STATUS_TEXT, v),
+  /** LLM 调用用途：asset_extract → 素材提取（AI 日志页用） */
+  llmPurpose: (v?: null | string) => pick(LLM_PURPOSE_TEXT, v),
   dramaStatus: (v?: null | string) => pick(DRAMA_STATUS_TEXT, v),
   scriptStatus: (v?: null | string) => pick(SCRIPT_STATUS_TEXT, v),
   shotStatus: (v?: null | string) => pick(SHOT_STATUS_TEXT, v),

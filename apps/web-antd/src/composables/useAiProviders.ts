@@ -33,7 +33,15 @@ export function singleCapabilityText(bit?: null | number): string {
 /** 任务类型 → 所需能力中文名（与后端 TaskCapabilityMap 一一对应） */
 export function requiredCapabilityText(taskType: string): string {
   switch (taskType) {
+    case 'analyze':
     case 'asset_extract':
+    case 'episode_split':
+    // 图片提示词增强（2026-10-07）：后端归 text 类（PE-T2I 产出的是提示词文本）。
+    // 漏登记 → 落 default 显示「未知」，与后端不一致且不报错。
+    // falls through
+    case 'image_prompt_gen':
+    case 'partial_rewrite':
+    case 'prompt_gen':
     case 'rewrite':
     case 'storyboard': {
       return capabilityText(AI_CAPABILITY.text);
@@ -56,7 +64,15 @@ export function requiredCapabilityText(taskType: string): string {
 /** 任务类型 → 所需能力位掩码（与后端 TaskCapabilityMap.RequiredFor 一致） */
 export function requiredCapabilityBits(taskType: string): number {
   switch (taskType) {
+    // 与后端 TaskCapabilityMap.RequiredFor 一致 —— 两处必须同步，
+    // 否则前端下拉会按错误的能力位过滤模型。
+    // falls through
+    case 'analyze':
     case 'asset_extract':
+    case 'episode_split':
+    case 'image_prompt_gen':
+    case 'partial_rewrite':
+    case 'prompt_gen':
     case 'rewrite':
     case 'storyboard': {
       return AI_CAPABILITY.text;

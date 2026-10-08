@@ -294,7 +294,23 @@ export function useTaskStream() {
   };
 }
 
-/** 任务状态 → antd Tag 颜色（沿用 preset 名，禁硬编码色值） */
+/**
+ * 任务状态 → antd Tag 颜色（沿用 preset 名，禁硬编码色值）。
+ *
+ * 用户 2026-10-05：
+ * > 「排队中 和 生成中的 应该做一下颜色区分」
+ * 随后澄清：
+ * > 「是指的那个**状态 tag** 不是背景色」
+ *
+ * 原来 `preparing`/`queued` 都是 `default`（灰），而"排队中"与"生成中"
+ * 恰恰是最需要一眼分辨的一对（一个在干活、一个还没轮到）。现在：
+ *   · 正在干活（preparing/generating/collecting）→ `processing`（蓝，配脉冲动效）；
+ *   · 排队中（queued）→ `warning`（橙）—— 明确是"等着"，不是"在跑"；
+ *   · 已出图待定稿（pending_review）→ `purple`：它**既不是**在跑、**也不是**排队，
+ *     而是"跑完了等人挑图"。与 queued 同为橙会让人以为"还在等"（这一对在列表里
+ *     经常同时出现，必须能分开）。
+ *   · 已结束（done/approved）→ `success`（绿）；失败/驳回 → `error`（红）。
+ */
 export function taskStatusColor(status: string): string {
   switch (status) {
     case 'approved':
@@ -302,19 +318,19 @@ export function taskStatusColor(status: string): string {
       return 'success';
     }
     case 'collecting':
-    case 'generating': {
+    case 'generating':
+    case 'preparing': {
       return 'processing';
     }
     case 'failed':
     case 'rejected': {
       return 'error';
     }
-    case 'pending_review': {
+    case 'queued': {
       return 'warning';
     }
-    case 'preparing':
-    case 'queued': {
-      return 'default';
+    case 'pending_review': {
+      return 'purple';
     }
     default: {
       return 'default';

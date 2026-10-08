@@ -152,6 +152,140 @@ export async function schedulerStatus() {
   return api.get<SchedStatusView>('/Scheduler/Status');
 }
 
+/**
+ * **调度实时状态**（2026-10-07 新增）—— AI 任务页的「调度器状态」面板用它。
+ *
+ * ## 为什么它能 2 秒刷新而不加压数据库
+ *
+ * 数据来自后端的**状态缓存**（编排器每 5 秒写入），本接口**不查业务表**。
+ * 与数据库 10 分钟一条的审计节奏完全解耦：
+ *   · 缓存 → "现在什么样"（本接口，UI 2 秒读）
+ *   · 审计 → "历史发生过什么"（10 分钟/条，不变）
+ *
+ * ## staleSec 是它的灵魂
+ *
+ * 表示"缓存写入至今的秒数"。界面据此：
+ *   · 显示「更新于 N 秒前」
+ *   · 驱动卡片滚动边框（**刷新即归零**，一直向前滚）
+ * 编排器若停了，它只增不减 → 一眼看出数据僵死，
+ * 而不是误以为"没变化 = 没问题"。
+ */
+export async function schedulerLive() {
+  return api.get<SchedLiveView>('/Scheduler/Live');
+}
+
+// ─────────────── 运行时手动操作（2026-10-07，用户要求）───────────────
+//
+// > 「在任务调度器 内的ComfyUI 内 加入 一个 清除按钮 执行/free
+// >   一个Select 选择支持的模型 一个载入按钮 载入选择的模型」
+
+/** ComfyUI 磁盘上可用的模型（按类别）—— "载入模型"下拉的数据源。 */
+export interface ComfyUiModelsView {
+  categories: {
+    type: string;
+    files: string[];
+  }[];
+}
+
+/** 列出 ComfyUI 支持的模型（只列磁盘上真实存在的，避免手填错名字）。 */
+export async function schedulerComfyUiModels() {
+  return api.get<ComfyUiModelsView>('/Scheduler/ComfyUiModels');
+}
+
+/**
+ * **清除显存**：执行 ComfyUI `POST /free`（卸载模型 + 释放显存）。
+ *
+ * 同时会清空后端的"装载记账" —— 显存都释放了，记账必须跟着失效，
+ * 否则调度器会以为模型还在（跳过装载）而直接执行失败。
+ */
+export async function schedulerComfyUiFree(
+  runtimeId: number,
+  unloadModels = true,
+) {
+  return api.post<{
+    runtimeId: number;
+    vramFreeMb: number;
+    vramTotalMb: number;
+  }>('/Scheduler/ComfyUiFree', { runtimeId, unloadModels });
+}
+
+/**
+ * **载入模型**：把指定模型主动装进 ComfyUI 显存（预热）。
+ *
+ * 返回里的 `usedDeltaMb` 是**实测**的显存占用增量 —— 用来证明"真的装进去了"。
+ * 实测教训：只提交 CLIPLoader 而无下游消费者时 ComfyUI 会立即释放，
+ * 看着"成功"其实没装，必须用显存差值识破。
+ */
+export async function schedulerComfyUiLoad(
+  runtimeId: number,
+  clipName: string,
+) {
+  return api.post<{
+    clipName: string;
+    promptId: string;
+    usedDeltaMb: number;
+    vramFreeAfterMb: number;
+    vramFreeBeforeMb: number;
+  }>('/Scheduler/ComfyUiLoad', { runtimeId, clipName });
+}
+
+/** 调度实时状态视图（对应后端 Scheduler/Live 的返回结构）。 */
+export interface SchedLiveView {
+  ready: boolean;
+  updatedAt: null | string;
+  /** 缓存写入至今的秒数（null = 缓存未就绪） */
+  staleSec: null | number;
+  /** 是否陈旧（> 30 秒，编排器可能已停） */
+  stale: boolean;
+  scheduler: null | {
+    decision: string;
+    reason: string;
+    /** 中文原因 —— 界面**直接显示这个**，用户据此判断卡在哪 */
+    reasonText: string;
+    at: string;
+    benefitMin: null | number;
+    costMin: null | number;
+    thresholdMin: null | number;
+    gpuWindowOpen: boolean;
+    gpuWindow: string;
+    totalQueued: number;
+  };
+  machines: {
+    crossRuntimeCostMin: number;
+    machineId: number;
+    machineName: string;
+    online: boolean;
+    queued: {
+      functionKey: string;
+      functionName: string;
+      queued: number;
+      oldestWaitMin: number;
+    }[];
+    runtimes: {
+      enabled: boolean;
+      endpoint: null | string;
+      internalSwitchCostMin: number;
+      kind: string;
+      loaded: {
+        evidenceTaskId: null | number;
+        modelId: number;
+        modelName: string;
+        /** recorded = 我们记的（确知）；inferred = 显存推断（存疑） */
+        source: string;
+        since: string;
+        vramMb: null | number;
+      }[];
+      loadedVramMb: number;
+      name: string;
+      online: boolean;
+      runtimeId: number;
+      switchingUntil: null | string;
+      vramReservedMb: number;
+    }[];
+    vramTotalMb: number;
+  }[];
+}
+
 /** 预测：p50/p90 + 队列 ETA（含切换成本折算） */
 export async function schedulerPredict() {
   return api.get<SchedPredictView>('/Scheduler/Predict');
