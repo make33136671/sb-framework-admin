@@ -43,12 +43,20 @@ import {
   Tooltip,
 } from 'ant-design-vue';
 
-import { assetCharacterMatrix, assetSetViewImage } from '#/api/core/dramafloow';
+import {
+  assetBatchGenerate,
+  assetBatchGeneratePrompts,
+  assetUnapprove,
+  assetCharacterMatrix,
+  assetSetViewImage,
+} from '#/api/core/dramafloow';
 import { GenerateTaskModal } from '#/components/GenerateTaskModal';
 import { TaskDrawer } from '#/components/TaskDrawer';
 import { toStorageUrl } from '#/utils/media';
 
 import BatchGenerateViewsModal from './BatchGenerateViewsModal.vue';
+import CharacterInfoModal from './CharacterInfoModal.vue';
+import PromptBatchModal from './PromptBatchModal.vue';
 
 const props = defineProps<{
   dramaId: number;
@@ -265,6 +273,21 @@ function goGenerate(row: CharacterMatrixRow, cell: CharacterViewCell) {
  */
 const autoFinalize = ref(false);
 
+/**
+ * **强制执行**（用户 2026-10-07 要求）—— 与素材页同一语义。
+ *
+ * > 「两个一键生成 提示词 和 图片 增加个选项为强制执行
+ * >   就是不管有没有 强制生成替换 关键词是更新为新的
+ * >   图片就是 清空掉现有选择的 生成新的」
+ *
+ * ⚠️ 素材页有这个开关而角色视图没有 → 用户实测发现两处不一致
+ *    （原话：「强制执行 分类视图有 但是 角色视图没有」）。
+ *    两处工具栏的动作集必须**保持一致**，否则用户在不同视图下能力不同，极易困惑。
+ *
+ * 默认**不勾**：破坏性操作（会删掉已有图/提示词），默认开启会让用户误删成果。
+ */
+const force = ref(false);
+
 /** 当前正在批量生成的角色行；null = 弹窗关闭 */
 const batchRow = ref<CharacterMatrixRow | null>(null);
 
@@ -278,6 +301,33 @@ function openBatch(row: CharacterMatrixRow) {
     return;
   }
   batchRow.value = row;
+}
+
+// ───────────────── 一键补充提示词（用户 2026-10-07 要求）─────────────────
+//
+// > 「一键生7图边上 加入一个 一键补充提示词」
+//
+// 与「一键生成 7 图」的区别：**只生成提示词、不出图**。
+// 每个视图下发一条 image_prompt_gen 任务（可在 AI 任务列表看到），
+// 由编排器调 PE-T2I 生成正/反向并落回该需求。
+//
+// 为什么不做成"跳过已有提示词的视图"：
+// 提示词不是图，重生成无损失（不覆盖任何已定稿的图），
+// 且用户点它多半正是因为"之前生成的不满意，想全刷一遍"。
+const promptBatchRow = ref<CharacterMatrixRow | null>(null);
+
+/** 角色信息弹窗（点角色名打开）；null = 关闭 */
+const infoRow = ref<CharacterMatrixRow | null>(null);
+
+function openPromptBatch(row: CharacterMatrixRow) {
+  const hasAny = row.views.some((v) => v.requirementId);
+  if (!hasAny) {
+    message.warning(
+      `「${row.name}」还没有任何视图需求 —— 请先点上方的「补齐角色视图」`,
+    );
+    return;
+  }
+  promptBatchRow.value = row;
 }
 
 // ─────────────────────────── 展示辅助 ───────────────────────────
@@ -345,6 +395,184 @@ const filledCount = computed(() =>
 const totalCells = computed(() =>
   matrix.value.characters.reduce((n, r) => n + r.views.length, 0),
 );
+
+// ───────────────── 多选（用户 2026-10-07 要求）─────────────────
+//
+// > 「角色视图里 角色不能多选」—— 补上，且要求与素材页**保持一致**的动作：
+// >   一键生成提示词 / 一键生成图像 / 自动定稿
+// > 粒度要求：「全选 单选 逐个单选 逐行单选」→ 行级 + 视图级都支持。
+//
+// 选中态用 **requirementId 集合**（视图级）作为唯一事实源，行选中 = 该行 7 个
+// 视图全被选中。这样"行勾选"与"格子勾选"天然自洽 —— 若两者各存一份，
+// 勾了行再取消一个格子就会出现"行还勾着但少一个"的矛盾态。
+
+/** 选中的视图需求 id（唯一的选中事实源） */
+const checkedReqIds = ref<Set<number>>(new Set());
+
+/** 该行 7 个视图的 requirementId（未建档的视图没有 id，不参与选择） */
+function reqIdsOf(row: CharacterMatrixRow): number[] {
+  return row.views
+    .map((v) => v.requirementId)
+    .filter((id): id is number => typeof id === 'number');
+}
+
+/** 行是否全选 */
+function isRowChecked(row: CharacterMatrixRow): boolean {
+  const ids = reqIdsOf(row);
+  return ids.length > 0 && ids.every((id) => checkedReqIds.value.has(id));
+}
+
+/** 行是否部分选中（用于三态勾选框） */
+function isRowIndeterminate(row: CharacterMatrixRow): boolean {
+  const ids = reqIdsOf(row);
+  const hit = ids.filter((id) => checkedReqIds.value.has(id)).length;
+  return hit > 0 && hit < ids.length;
+}
+
+function toggleCell(reqId: number | null | undefined, checked: boolean) {
+  if (typeof reqId !== 'number') return;
+  // ⚠️ Set 是引用类型：原地增删**不会**触发 computed，必须整体替换。
+  const next = new Set(checkedReqIds.value);
+  if (checked) next.add(reqId);
+  else next.delete(reqId);
+  checkedReqIds.value = next;
+}
+
+/** 行级勾选 = 该行全部视图一起勾/取消 */
+function toggleRow(row: CharacterMatrixRow, checked: boolean) {
+  const next = new Set(checkedReqIds.value);
+  for (const id of reqIdsOf(row)) {
+    if (checked) next.add(id);
+    else next.delete(id);
+  }
+  checkedReqIds.value = next;
+}
+
+/** 全选/取消全选：作用于**全部角色**（与素材页的"全选本页"同义） */
+function toggleSelectAll(checked: boolean) {
+  const next = new Set(checkedReqIds.value);
+  for (const row of matrix.value.characters) {
+    for (const id of reqIdsOf(row)) {
+      if (checked) next.add(id);
+      else next.delete(id);
+    }
+  }
+  checkedReqIds.value = next;
+}
+
+/** 可被选中的视图总数（未建档的视图没有 requirementId，选不了） */
+const selectableCount = computed(() =>
+  matrix.value.characters.reduce((n, r) => n + reqIdsOf(r).length, 0),
+);
+
+const allChecked = computed(
+  () =>
+    selectableCount.value > 0 &&
+    checkedReqIds.value.size >= selectableCount.value,
+);
+const someChecked = computed(
+  () => checkedReqIds.value.size > 0 && !allChecked.value,
+);
+
+const selectedReqIds = computed(() => [...checkedReqIds.value]);
+
+/** 批量操作进行中（防重复点击） */
+const batchRunning = ref(false);
+
+/**
+ * 批量生成提示词 / 批量出图（与素材页同一套后端接口）。
+ *
+ * ⚠️ **一次请求下发全部**：前端循环调用时，关页面/切标签会让后面的视图
+ * 根本没被创建且不报错（`taskBatchSubmitViews` 的 api 注释记录过该事故）。
+ */
+async function runBatchPrompts() {
+  const ids = selectedReqIds.value;
+  if (ids.length === 0) return;
+  batchRunning.value = true;
+  try {
+    const res = await assetBatchGeneratePrompts(ids, force.value);
+    const parts = [`已下发 ${res.created.length} 个`];
+    if (res.replaced?.length > 0)
+      parts.push(`替换旧提示词 ${res.replaced.length} 个`);
+    if (res.skipped.length > 0)
+      parts.push(
+        `跳过 ${res.skipped.length} 个（${res.skipped[0]?.why ?? ''}）`,
+      );
+    if (res.replaced?.length > 0 || res.skipped.length > 0)
+      message.info(parts.join('，'));
+    checkedReqIds.value = new Set();
+    await load();
+  } catch {
+    // 拦截器已提示
+  } finally {
+    batchRunning.value = false;
+  }
+}
+
+async function runBatchGenerate() {
+  const ids = selectedReqIds.value;
+  if (ids.length === 0) return;
+  batchRunning.value = true;
+  try {
+    const res = await assetBatchGenerate({
+      requirementIds: ids,
+      autoFinalize: autoFinalize.value,
+      force: force.value,
+    });
+    const parts = [`已下发 ${res.created.length} 个`];
+    if (res.replaced?.length > 0) {
+      const total = res.replaced.reduce((n, r) => n + r.removedCandidates, 0);
+      parts.push(`清空旧图 ${total} 张`);
+    }
+    if (res.skipped.length > 0)
+      parts.push(
+        `跳过 ${res.skipped.length} 个（${res.skipped[0]?.why ?? ''}）`,
+      );
+    if (res.replaced?.length > 0 || res.skipped.length > 0)
+      message.info(parts.join('，'));
+    checkedReqIds.value = new Set();
+    await load();
+  } catch {
+    // 拦截器已提示
+  } finally {
+    batchRunning.value = false;
+  }
+}
+
+/**
+ * **批量清除定稿**（用户 2026-10-07 要求）。
+ *
+ * 与素材页同一个语义：把选中视图的定稿图改回未定稿。
+ * 逐个调用（接口是单条语义，要回滚需求+候选+引用方三处）；
+ * 选中数量通常是个位数，串行足够且失败能精确定位。
+ */
+async function runBatchUnapprove() {
+  const ids = selectedReqIds.value;
+  if (ids.length === 0) return;
+  batchRunning.value = true;
+  let changed = 0;
+  let skipped = 0;
+  try {
+    for (const id of ids) {
+      try {
+        const r = await assetUnapprove(id);
+        if (r.changed) changed += 1;
+        else skipped += 1;
+      } catch {
+        skipped += 1;
+      }
+    }
+    message.info(
+      skipped > 0
+        ? `已清除 ${changed} 个定稿，${skipped} 个本就未定稿`
+        : `已清除 ${changed} 个定稿`,
+    );
+    checkedReqIds.value = new Set();
+    await load();
+  } finally {
+    batchRunning.value = false;
+  }
+}
 </script>
 
 <template>
@@ -367,6 +595,106 @@ const totalCells = computed(() =>
       </template>
     </Alert>
 
+    <!--
+      批量工具栏（用户 2026-10-07：「角色视图里 角色不能多选」）。
+      动作与素材页保持一致：一键生成提示词 / 一键生成图像 / 自动定稿。
+    -->
+    <div
+      v-if="matrix.characters.length > 0"
+      class="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/30 p-2"
+    >
+      <Checkbox
+        :checked="allChecked"
+        :indeterminate="someChecked"
+        @change="(e: any) => toggleSelectAll(e.target.checked)"
+      >
+        <span class="text-xs">全选（{{ selectableCount }} 个视图）</span>
+      </Checkbox>
+
+      <Tag v-if="checkedReqIds.size > 0" class="!mr-0" color="blue">
+        已选 {{ checkedReqIds.size }}
+      </Tag>
+
+      <!--
+        定稿操作（用户 2026-10-07）—— 与素材页**保持一致的动作集**。
+        > 「我说的清空选择 是把选择图 改为 未定稿状态 清除他的定稿」
+      -->
+      <Tooltip
+        title="把选中视图的定稿图改回未定稿状态（需求状态回到「待生成」）"
+      >
+        <Button
+          :disabled="checkedReqIds.size === 0"
+          :loading="batchRunning"
+          size="small"
+          @click="runBatchUnapprove"
+        >
+          清除定稿
+        </Button>
+      </Tooltip>
+
+      <Button
+        v-if="checkedReqIds.size > 0"
+        size="small"
+        type="link"
+        @click="checkedReqIds = new Set()"
+      >
+        取消勾选
+      </Button>
+
+      <span class="flex-1"></span>
+
+      <Checkbox v-model:checked="autoFinalize">
+        <span class="text-xs">生成图像自动定稿</span>
+      </Checkbox>
+
+      <!--
+        强制执行（与素材页同款）—— 破坏性开关，默认不勾。
+        Tooltip 讲清"会删掉什么"，避免误以为只是"重试一下"。
+      -->
+      <Tooltip
+        title="强制替换：不管有没有进行中的任务都照发。提示词会清掉旧的重新生成；图片会清空现有图片（含定稿）后重新生成。默认关闭。"
+      >
+        <Checkbox v-model:checked="force">
+          <span class="text-xs text-destructive">强制执行（替换已有）</span>
+        </Checkbox>
+      </Tooltip>
+
+      <Tooltip
+        :title="
+          force
+            ? '强制模式：将清空选中视图的旧提示词并重新生成'
+            : '为选中视图逐个生成提示词（走 PE-T2I），只补提示词、不出图；任务可在 AI 任务列表查看'
+        "
+      >
+        <Button
+          :disabled="checkedReqIds.size === 0"
+          :loading="batchRunning"
+          size="small"
+          @click="runBatchPrompts"
+        >
+          一键生成提示词
+        </Button>
+      </Tooltip>
+      <Tooltip
+        :title="
+          force
+            ? '强制模式：将清空选中视图的现有图片（含定稿）并重新生成'
+            : '为选中视图下发 t2i 出图任务（等同逐个点「一键生成 7 图」，已有定稿的视图会跳过）'
+        "
+      >
+        <Button
+          :disabled="checkedReqIds.size === 0"
+          :loading="batchRunning"
+          size="small"
+          :danger="force"
+          :type="force ? 'default' : 'primary'"
+          @click="runBatchGenerate"
+        >
+          一键生成图像
+        </Button>
+      </Tooltip>
+    </div>
+
     <div v-if="matrix.characters.length > 0" class="overflow-x-auto">
       <div
         v-for="row in matrix.characters"
@@ -375,7 +703,25 @@ const totalCells = computed(() =>
       >
         <!-- 角色名 + 该角色可选图总数 + 一键生成 7 图（用户要求：名字右侧） -->
         <div class="mb-2 flex flex-wrap items-center gap-2">
-          <span class="font-medium">{{ row.name }}</span>
+          <!-- 行级勾选：勾上 = 该角色全部 7 视图一起选中（逐行单选） -->
+          <Checkbox
+            :checked="isRowChecked(row)"
+            :indeterminate="isRowIndeterminate(row)"
+            @change="(e: any) => toggleRow(row, e.target.checked)"
+          />
+          <!--
+            角色名可点击 → 角色信息弹窗（用户 2026-10-07 要求）：
+            > 「在角色视图 点击那个名字 显示角色的 信息 角色信息可以修改 底下是7视图」
+            用 button 而非 span：键盘可达；样式仍是普通文字，仅 hover 下划线。
+          -->
+          <button
+            class="font-medium hover:text-primary hover:underline"
+            title="点击查看/修改角色信息（描述 + 7 视图）"
+            type="button"
+            @click="infoRow = row"
+          >
+            {{ row.name }}
+          </button>
           <Tag class="!mr-0">{{ row.candidates.length }} 张已有图</Tag>
           <span
             v-if="row.candidates.length === 0"
@@ -395,6 +741,18 @@ const totalCells = computed(() =>
               一键生成 7 图
             </Button>
           </Tooltip>
+          <!--
+            一键补充提示词（用户 2026-10-07 要求）：
+            > 「一键生7图边上 加入一个 一键补充提示词」
+            只生成提示词、不出图；每个视图一条任务，可在「AI任务列表」里看到。
+          -->
+          <Tooltip
+            title="为这个角色的 7 个视图逐个生成提示词（走 PE-T2I 真机），只补提示词、不出图；任务可在「AI 任务列表」查看进度"
+          >
+            <Button size="small" @click="openPromptBatch(row)">
+              一键补充提示词
+            </Button>
+          </Tooltip>
         </div>
 
         <!-- 7 个视图格子 -->
@@ -404,12 +762,31 @@ const totalCells = computed(() =>
             :key="cell.suffix"
             class="cursor-pointer overflow-hidden rounded border transition-all hover:border-primary"
             :class="
-              cell.approvedAssetId
-                ? 'border-primary'
-                : 'border-dashed border-border'
+              cell.requirementId && checkedReqIds.has(cell.requirementId)
+                ? 'border-primary bg-primary/5'
+                : cell.approvedAssetId
+                  ? 'border-primary'
+                  : 'border-dashed border-border'
             "
             @click="openPicker(row, cell)"
           >
+            <!--
+              视图级勾选（用户要求「逐个单选」）：
+              @click.stop 必须加 —— 否则勾选会同时触发 openPicker 弹窗。
+            -->
+            <div class="flex items-center gap-1 px-1 pt-1">
+              <Checkbox
+                :checked="
+                  !!cell.requirementId && checkedReqIds.has(cell.requirementId)
+                "
+                :disabled="!cell.requirementId"
+                @click.stop
+                @change="
+                  (e: any) => toggleCell(cell.requirementId, e.target.checked)
+                "
+              />
+              <span class="flex-1"></span>
+            </div>
             <!-- 已定稿：缩略图；空：点击提示 -->
             <AImage
               v-if="cellImage(row, cell)"
@@ -582,6 +959,35 @@ const totalCells = computed(() =>
       @close="batchRow = null"
       @finished="load"
       @view-task="(id) => (execTaskId = id)"
+    />
+
+    <!-- 一键补充提示词：只生成提示词、不出图，任务进 AI 任务列表 -->
+    <PromptBatchModal
+      :drama-id="props.dramaId"
+      :row="promptBatchRow"
+      :view-columns="matrix.viewColumns"
+      @close="promptBatchRow = null"
+      @finished="load"
+      @view-task="(id) => (execTaskId = id)"
+    />
+
+    <!-- 角色信息（点角色名打开）：上半可改可存，下半 7 视图 -->
+    <CharacterInfoModal
+      :drama-id="props.dramaId"
+      :row="infoRow"
+      @close="infoRow = null"
+      @open-view="
+        ({ suffix }) => {
+          const r = infoRow;
+          if (!r) return;
+          const cell = r.views.find((v) => v.suffix === suffix);
+          if (cell) {
+            infoRow = null;
+            openPicker(r, cell);
+          }
+        }
+      "
+      @saved="load"
     />
 
     <!-- 「去生成」= 当前窗口弹出生成表单 → 提交后紧接着弹出任务执行窗口 -->

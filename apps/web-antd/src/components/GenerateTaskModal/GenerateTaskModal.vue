@@ -17,7 +17,7 @@ import type {
  * ⚠️ 弹窗**不自己写 toast**：`api/request.ts` 的拦截器已按 code 自动弹，
  * 再写一遍就是双 toast（项目规范 Conventions §1）。
  */
-import { computed, reactive, ref, watch } from 'vue';
+import { computed, onBeforeUnmount, reactive, ref, watch } from 'vue';
 
 import {
   Alert,
@@ -26,6 +26,7 @@ import {
   DescriptionsItem,
   Input,
   InputNumber,
+  message,
   Modal,
   Select,
   Space,
@@ -34,7 +35,10 @@ import {
 } from 'ant-design-vue';
 
 import {
+  assetGeneratePrompts,
   assetRequirementList,
+  assetRequirementSaveDescription,
+  assetRequirementSavePrompts,
   dramaGet,
   taskSizes,
   taskSubmit,
@@ -94,7 +98,66 @@ const loadingReqs = ref(false);
 const submitting = ref(false);
 const result = ref<null | TaskSubmitResult>(null);
 const sizeSource = ref('');
-/** 剧本风格提示词（第 2 层）—— 只读展示，让用户知道会自动拼上什么 */
+
+// ───────────────── 角色描述（可改 · 可保存）─────────────────
+//
+// 用户 2026-10-07 要求：
+// > 「在这里我希望看到这个角色的描述信息 可以改 改了之后 显示保存按钮
+// >   这个保存是只保存角色描述信息」
+//
+// `description` 是**库里当前值**，`descDraft` 是编辑中的草稿。
+// 分离两者的理由：只有草稿 ≠ 库里值时才显示「保存」按钮，
+// 保存成功后把草稿回写为库里值，按钮自动收起 —— 用户一眼能看出"存没存过"。
+const description = ref('');
+const descDraft = ref('');
+const savingDesc = ref(false);
+
+/** 草稿与库中值不一致 → 才显示「保存」 */
+const descDirty = computed(
+  () => descDraft.value.trim() !== description.value.trim(),
+);
+
+// ───────────────── 提示词（第 ③ 层）的保存 ─────────────────
+//
+// 用户 2026-10-07 报障：
+// > 「生成角色提示词…不会保存 重新打开这个页面 提示词又变回去了」
+//
+// 生成结果原先只活在前端表单里、关掉就丢。现在：
+//   · 生成成功后**自动保存**（用户不必再点一次保存）；
+//   · 用户手改后显示「保存」按钮，可手动落库。
+// 与"角色描述"同样是"库中值 vs 草稿"的对比模型。
+const savedPrompt = ref('');
+const savedNegative = ref('');
+const savingPrompts = ref(false);
+
+/** 提示词被改过（与库中值不同）→ 显示保存按钮 */
+const promptsDirty = computed(
+  () =>
+    form.subjectPrompt.trim() !== savedPrompt.value.trim() ||
+    form.subjectNegative.trim() !== savedNegative.value.trim(),
+);
+
+// ───────────────── 一键生成提示词（AI 下达 + 实时等待）─────────────────
+//
+// 用户 2026-10-07 要求：
+// > 「然后有 一键生成提示词 也是AI下达任务 并且这里做上实时等待
+// >   就是 按钮 点击一次 在按钮内部加一个 loadding 并且问题改成等待中,点击取消」
+//
+// 实现要点：
+//   · 用 AbortController 真正中断 HTTP —— 服务端会因连接断开而停止等待，
+//     GPU 不会被白占（这是"取消"该有的语义，不只是前端把转圈藏起来）。
+//   · 组件卸载 / 弹窗关闭时**必须** abort，否则请求悬空、
+//     且回来时会往已关闭的弹窗里写值。
+const generating = ref(false);
+let generateAbort: AbortController | null = null;
+
+/** 是否处于"用户主动取消"导致的结束（用于区分取消与失败，不弹错误） */
+function isCanceled(err: unknown): boolean {
+  const e = err as { code?: string; name?: string };
+  return e?.name === 'CanceledError' || e?.code === 'ERR_CANCELED';
+}
+
+// 剧本风格提示词（第 2 层）—— 只读展示，让用户知道会自动拼上什么
 const dramaStyle = ref<{ negative: null | string; positive: null | string }>({
   positive: null,
   negative: null,
@@ -132,6 +195,7 @@ watch(
     if (!ctx) return;
 
     form.refEntityId = ctx.requirementId ?? undefined;
+    // 先填**视图模板**（第 ③ 层的默认内容）……
     form.subjectPrompt = ctx.subjectPrompt ?? '';
     form.subjectNegative = ctx.subjectNegative ?? '';
     // 「每视图 1 张」是批量补齐的默认；单视图手动生成也默认 1 张，用户可改
@@ -139,6 +203,10 @@ watch(
     form.seed = undefined;
     form.providerId = undefined;
     dramaStyle.value = { positive: null, negative: null };
+    description.value = '';
+    descDraft.value = '';
+    savedPrompt.value = '';
+    savedNegative.value = '';
 
     // 先用上下文里的尺寸兜底，随后被系统设置覆盖（若后端有解析结果）
     form.width = ctx.width ?? 320;
@@ -167,6 +235,23 @@ watch(
       }
 
       requirements.value = reqs.items.filter((r) => r.kind !== 'text');
+
+      // 角色描述：取该视图所属需求的 description。
+      // 用 requirementId 精确命中（而不是按角色名猜）—— 同一角色有 7 个视图需求，
+      // 按名字取会拿到"随便哪一个"，用户会看到与当前视图无关的描述。
+      const mine = requirements.value.find(
+        (r) => r.id === (ctx.requirementId ?? form.refEntityId),
+      );
+      description.value = mine?.description ?? '';
+      descDraft.value = description.value;
+
+      // ……再让**已保存的提示词**覆盖视图模板（有的话）。
+      // ⚠️ 顺序不能反：视图 spec 是"从没生成过"时的默认内容，
+      //    而库里存的是用户上次生成/手改后的定稿 —— 后者优先。
+      //    这正是"重开页面提示词变回去了"的修复点：以前只填 spec，
+      //    用户生成的提示词从没被读回来过。
+      if (mine?.subjectPrompt) form.subjectPrompt = mine.subjectPrompt;
+      if (mine?.subjectNegative) form.subjectNegative = mine.subjectNegative;
 
       const d = detail?.drama as unknown as {
         styleNegativePrompt?: null | string;
@@ -205,6 +290,167 @@ const promptPlan = computed(() => {
   else parts.push('③ 角色/视图特有（未填写，将跳过）');
   return parts;
 });
+
+/**
+ * 保存角色描述（**只**保存描述，不动 key/kind/name/spec）。
+ *
+ * 走 `RequirementSaveDescription` 而不是 `RequirementSave`：
+ * 后者会按 name 重算 key，而 key 是视图/候选/任务的关联锚点（详见 api 注释）。
+ */
+async function saveDescription() {
+  const ctx = props.context;
+  if (!ctx) return;
+  const reqId = ctx.requirementId ?? form.refEntityId;
+  if (!reqId) {
+    message.warning('该视图没有关联素材需求，无法保存描述');
+    return;
+  }
+  savingDesc.value = true;
+  try {
+    await assetRequirementSaveDescription({
+      id: reqId,
+      description: descDraft.value.trim(),
+    });
+    // 保存成功 → 库中值 = 草稿 → descDirty 自动变 false，按钮收起
+    description.value = descDraft.value.trim();
+    // 同步到列表缓存，避免下次打开弹窗又读到旧描述
+    const mine = requirements.value.find((r) => r.id === reqId);
+    if (mine) mine.description = description.value;
+  } catch {
+    // 拦截器已提示
+  } finally {
+    savingDesc.value = false;
+  }
+}
+
+/**
+ * 保存第 ③ 层提示词（正向 + 反向）。成功返回 true。
+ *
+ * 空串照传（= 清空该层）：用户把框删空的意图就是"这层不要"，
+ * 若当成"不修改"就永远清不掉（后端也是整值覆盖语义）。
+ */
+async function savePrompts(): Promise<boolean> {
+  const ctx = props.context;
+  if (!ctx) return false;
+  const reqId = ctx.requirementId ?? form.refEntityId;
+  if (!reqId) {
+    message.warning('该视图没有关联素材需求，无法保存提示词');
+    return false;
+  }
+  savingPrompts.value = true;
+  try {
+    await assetRequirementSavePrompts({
+      id: reqId,
+      subjectPrompt: form.subjectPrompt.trim(),
+      subjectNegative: form.subjectNegative.trim(),
+    });
+    savedPrompt.value = form.subjectPrompt.trim();
+    savedNegative.value = form.subjectNegative.trim();
+    // 同步列表缓存，避免下次打开又读到旧值
+    const mine = requirements.value.find((r) => r.id === reqId);
+    if (mine) {
+      mine.subjectPrompt = savedPrompt.value;
+      mine.subjectNegative = savedNegative.value;
+    }
+    return true;
+  } catch {
+    // 拦截器已提示
+    return false;
+  } finally {
+    savingPrompts.value = false;
+  }
+}
+
+/**
+ * 一键生成提示词：正向走 PE-T2I（真机），反向走规则推导。
+ *
+ * 生成结果**只回填输入框**，不自动出图 —— 用户可以先改再点「提交生成」
+ * （用户 2026-10-07 确认："只回填到输入框，不自动出图"）。
+ */
+async function generatePrompts() {
+  const ctx = props.context;
+  if (!ctx) return;
+  const reqId = ctx.requirementId ?? form.refEntityId;
+  if (!reqId) {
+    message.warning('该视图没有关联素材需求，无法生成提示词');
+    return;
+  }
+
+  generateAbort?.abort();
+  const ac = new AbortController();
+  generateAbort = ac;
+  generating.value = true;
+
+  try {
+    const r = await assetGeneratePrompts(
+      {
+        requirementId: reqId,
+        // 传**未保存**的草稿：用户改完描述直接点生成，应当立刻用上新描述，
+        // 不该被"还没点保存"挡住（否则用户会以为改了没用）。
+        brief: descDraft.value.trim() || null,
+        // 视图构图约束（纯灰底 + 无场景）：不传模型会自造背景，
+        // 而 7 视图必须是无背景立绘（用户 2026-10-07 报障）。
+        // 用 ctx.subjectPrompt 的**原始视图 spec**，而不是 form.subjectPrompt ——
+        // 后者可能已被上次生成的英文描述覆盖，用它当约束就自我循环了。
+        viewPrompt: ctx.subjectPrompt ?? null,
+        // 视图专有反向约束（如 "full body, wide shot"）附在规则反向词之后
+        viewNegative: form.subjectNegative.trim() || null,
+      },
+      { signal: ac.signal },
+    );
+
+    if (r.positivePrompt) {
+      form.subjectPrompt = r.positivePrompt;
+    }
+    if (r.negativePrompt) {
+      form.subjectNegative = r.negativePrompt;
+    }
+
+    if (r.positiveError) {
+      // 反向是纯规则、算得出来；正向失败时明确告知，别让用户以为"生成了"却缺一半
+      message.warning(`反向提示词已生成；正向未生成：${r.positiveError}`);
+    } else if (r.whRatio) {
+      message.success(`提示词已生成（建议画幅 ${r.whRatio}）`);
+    } else {
+      message.success('提示词已生成');
+    }
+
+    // 生成成功即**自动落库** —— 这是"重开页面又变回去"的修复关键。
+    // 放在 message 之后：先让用户看到生成成功，保存失败再单独提示，
+    // 不会因为保存问题把"其实已经生成出来了"这件事盖掉。
+    const ok = await savePrompts();
+    if (!ok) {
+      message.warning(
+        '提示词已生成，但**保存失败** —— 关闭窗口后会丢失，请重试保存',
+      );
+    }
+  } catch (err) {
+    if (isCanceled(err)) {
+      // 用户主动取消 —— 这不是失败，不该弹红色错误
+      message.info('已取消生成');
+    } else {
+      message.error(`提示词生成失败：${(err as Error)?.message || '未知错误'}`);
+    }
+  } finally {
+    generating.value = false;
+    if (generateAbort === ac) generateAbort = null;
+  }
+}
+
+/** 取消等待（再点一次「等待中，点击取消」触发） */
+function cancelGenerate() {
+  generateAbort?.abort();
+}
+
+// 弹窗关闭 / 组件卸载时必须中断：
+// 否则请求悬空，且回来后会往已关闭的弹窗写值。
+onBeforeUnmount(() => generateAbort?.abort());
+watch(
+  () => props.context,
+  (ctx, prev) => {
+    if (prev && !ctx) generateAbort?.abort();
+  },
+);
 
 async function submit() {
   const ctx = props.context;
@@ -309,12 +555,90 @@ function close() {
             </div>
 
             <div class="col-span-2">
-              <div class="mb-1 text-sm">
-                角色 / 视图特有提示词（第 ③ 层，自动叠加到前两层之上）
+              <div class="mb-1 flex items-center justify-between">
+                <span class="text-sm">
+                  角色描述
+                  <span class="text-xs text-muted-foreground">
+                    （提示词生成的事实源，可改）
+                  </span>
+                </span>
+                <!-- 只有改过才显示「保存」：一眼看出存没存过 -->
+                <Button
+                  v-if="descDirty"
+                  :loading="savingDesc"
+                  size="small"
+                  type="primary"
+                  @click="saveDescription"
+                >
+                  保存
+                </Button>
+                <span v-else class="text-xs text-muted-foreground">
+                  已保存
+                </span>
+              </div>
+              <Input.TextArea
+                v-model:value="descDraft"
+                :rows="4"
+                placeholder="如：女性，25岁，身高约165cm，纤细匀称；肤色白皙……"
+              />
+              <div class="mt-1 text-xs text-muted-foreground">
+                「保存」只更新这段描述，不会改动角色名 / 视图结构。
+              </div>
+            </div>
+
+            <!-- 一键生成提示词：正向走 PE-T2I 真机，反向走规则推导 -->
+            <div class="col-span-2">
+              <Button
+                v-if="!generating"
+                :disabled="false"
+                block
+                type="dashed"
+                @click="generatePrompts"
+              >
+                一键生成提示词（AI 下达 · 正向 + 反向）
+              </Button>
+              <!--
+                等待态按用户要求做成"按钮内 loading + 文案改成等待中,点击取消"：
+                同一个按钮再点一次即取消，不需要额外的取消按钮。
+              -->
+              <Button
+                v-else
+                block
+                danger
+                loading
+                type="default"
+                @click="cancelGenerate"
+              >
+                等待中，点击取消
+              </Button>
+              <div class="mt-1 text-xs text-muted-foreground">
+                正向由 110 ComfyUI 上的 PE-T2I 生成（约 1 分钟，首次更久）；
+                反向按角色描述规则推导。生成后可直接修改再提交。
+              </div>
+            </div>
+
+            <div class="col-span-2">
+              <div class="mb-1 flex items-center justify-between">
+                <span class="text-sm">
+                  角色 / 视图特有提示词（第 ③ 层，自动叠加到前两层之上）
+                </span>
+                <!-- 生成后自动保存过；只有用户手改过才需要再点保存 -->
+                <Button
+                  v-if="promptsDirty"
+                  :loading="savingPrompts"
+                  size="small"
+                  type="primary"
+                  @click="savePrompts"
+                >
+                  保存
+                </Button>
+                <span v-else class="text-xs text-muted-foreground">
+                  已保存
+                </span>
               </div>
               <Input.TextArea
                 v-model:value="form.subjectPrompt"
-                :rows="3"
+                :rows="5"
                 placeholder="如：head-and-shoulders portrait, facing camera directly, plain light gray background (#F0F0F0)"
               />
             </div>
@@ -323,9 +647,12 @@ function close() {
               <div class="mb-1 text-sm">角色 / 视图特有反向提示词</div>
               <Input.TextArea
                 v-model:value="form.subjectNegative"
-                :rows="2"
+                :rows="3"
                 placeholder="如：full body, wide shot, turned head"
               />
+              <div class="mt-1 text-xs text-muted-foreground">
+                提示词会随本视图保存，下次打开自动带回（无需重新生成）。
+              </div>
             </div>
           </div>
 

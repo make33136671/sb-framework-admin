@@ -40,14 +40,9 @@ import {
   Tag,
 } from 'ant-design-vue';
 
-import {
-  assetApprove,
-  assetCandidateList,
-  taskGet,
-  taskSubmit,
-} from '#/api/core/dramafloow';
+import { taskBatchSubmitViews } from '#/api/core/dramafloow';
 
-import { firstCandidateId, planViewsToGenerate } from './batchPlan';
+import { planViewsToGenerate } from './batchPlan';
 
 const props = defineProps<{
   /** 自动定稿勾选态（由父组件持有，勾选后记住用户偏好） */
@@ -114,60 +109,23 @@ const percent = computed(() => {
   );
 });
 
-/** 任务是否还在跑（轮询等待出图用） */
-function isLive(status?: string): boolean {
-  return ['collecting', 'generating', 'preparing', 'queued'].includes(
-    status ?? '',
-  );
-}
-
-const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
-
 /**
- * 等某个任务产出候选（最多 `timeoutMs`），返回候选 id（按 variantNo 升序）。
+ * 下发这一批视图（用户 2026-10-06：「点击一键7视图 实际上是加入任务列队」）。
  *
- * 为什么必须等：自动定稿要在**图真的出来之后**才能选一张通过。
- * 立刻去查候选只会查到空列表，然后"什么都没定稿" —— 而用户以为已经定稿了。
+ * ⚠️ **一次 API 调用**，不再是浏览器 for 循环。
  *
- * 终止条件（三条，缺一不可 —— 少任何一条都会变成死循环或过早放弃）：
- *   ① 任务 failed/rejected → 抛错（把这个视图记成失败，不静默）；
- *   ② 任务定型（pending_review/done/approved）→ 候选已落库，跳出；
- *   ③ 超时 → 跳出并按"有没有候选"决定下一步。
+ * 用户实测报障：
+ * > 「点击 一键生成7视图 是不是 关掉页面 任务就结束了 如果生成了2张
+ * >   在关掉页面后 剩下的 5张图 不会在生成了」
  *
- * 主判据用**任务状态**而不是轮询候选列表：候选落库与状态更新之间有个很短的窗口，
- * 只看候选会在恰好那个窗口里误判成"没有图"。
+ * 确实如此 —— 原来的循环一旦因关页面/切标签/睡眠而终止，
+ * 后面的视图任务**根本没被创建**（不是创建了没执行），且不报错。
+ *
+ * 现在：请求返回时所有任务已入库，由后端按队列顺序推进，页面关不关都不影响。
+ *
+ * 两阶段（prompt_gen + t2i）由**后端**建立，故前端不再关心顺序 ——
+ * 后端按分区分段分配 sort_no，天然形成先提示词、后出图。
  */
-async function waitForCandidates(
-  taskId: number,
-  timeoutMs = 10 * 60 * 1000,
-): Promise<number[]> {
-  const start = Date.now();
-  while (Date.now() - start < timeoutMs) {
-    const detail = await taskGet(taskId).catch(() => null);
-    const status = detail?.status;
-    if (status === 'failed' || status === 'rejected') {
-      throw new Error(detail?.error || '生成失败');
-    }
-    // pending_review = 出图完毕、等人工定稿；done/approved 同样算产出完毕
-    if (['approved', 'done', 'pending_review'].includes(status ?? '')) break;
-    // 未知/已定型但不在上面三个里（如人工取消）→ 也别再等了，交给下面的候选查询定性
-    if (!isLive(status)) break;
-    await sleep(3000);
-  }
-
-  const detail = await taskGet(taskId).catch(() => null);
-  const requirementId = detail?.refEntityId;
-  if (!requirementId) return [];
-  const cands = await assetCandidateList(requirementId).catch(() => []);
-  // 只认**本任务产出**且**真的有文件**的候选：别的任务留下的候选不能拿来定稿，
-  // 没有 file_path 的候选后端 `Approve` 会直接拒绝（"候选文件缺失"）。
-  return cands
-    .filter((c) => c.taskId === taskId && c.filePath)
-    .toSorted((a, b) => a.variantNo - b.variantNo)
-    .map((c) => c.id);
-}
-
-/** 逐个视图下发任务（**串行**：避免一次性把 GPU 队列打满，也让进度可读） */
 async function run() {
   const row = props.row;
   if (!row) return;
@@ -182,49 +140,47 @@ async function run() {
     suffix: v.suffix,
   }));
 
-  for (const [i, view] of runQueue.value.entries()) {
-    const item = items.value[i];
-    if (!item) continue;
-    try {
-      const res = await taskSubmit({
-        dramaId: props.dramaId,
-        type: 't2i',
-        refEntityType: 'asset_requirement',
-        refEntityId: view.requirementId,
-        subjectPrompt: view.spec ?? null,
-        subjectNegative: view.negativeSpec ?? null,
-        // 全默认：每视图 1 张
-        candidateCount: 1,
-      });
-      item.taskId = res.taskId;
-      item.status = 'submitted';
-      item.message = '任务已下发';
+  if (runQueue.value.length === 0) {
+    running.value = false;
+    done.value = true;
+    emit('finished');
+    return;
+  }
 
-      if (props.autoFinalize) {
-        item.message = '等待出图…';
-        const ids = await waitForCandidates(res.taskId);
-        // waitForCandidates 已按 variant_no 升序返回 → 第 1 个就是这一版的主图
-        const first = firstCandidateId(
-          ids.map((id, idx) => ({ id, variantNo: idx })),
-        );
-        if (first) {
-          const r = await assetApprove(first);
-          item.status = 'approved';
-          item.message =
-            r?.staled > 0
-              ? `已自动定稿（${r.staled} 个引用待更新）`
-              : '已自动定稿';
-        } else {
-          item.status = 'candidate-ready';
-          item.message = '已出图，待人工定稿';
-        }
+  try {
+    const res = await taskBatchSubmitViews({
+      autoFinalize: props.autoFinalize,
+      candidateCount: 1,
+      requirementIds: runQueue.value.map((v) => v.requirementId),
+    });
+
+    // 按需求 id 回填每个视图的状态
+    const byReq = new Map(res.created.map((c) => [c.requirementId, c]));
+    const skipByReq = new Map(res.skipped.map((s) => [s.requirementId, s.why]));
+
+    runQueue.value.forEach((view, i) => {
+      const item = items.value[i];
+      if (!item) return;
+      const hit = byReq.get(view.requirementId);
+      if (hit) {
+        // 展示 t2i 任务号（用户关心的是哪张图，提示词任务是内部阶段）
+        item.taskId = hit.t2iTaskId;
+        item.status = 'submitted';
+        item.message = '已加入队列（提示词 → 出图）';
+      } else {
+        const why = skipByReq.get(view.requirementId) ?? '未下发';
+        item.status = 'failed';
+        item.message = why;
+        failures.value.push({ label: view.label, reason: why });
       }
-    } catch (error: any) {
+    });
+  } catch (error: any) {
+    const reason = error?.message || '下发失败';
+    items.value.forEach((item) => {
       item.status = 'failed';
-      const reason = error?.message || '下发失败';
       item.message = reason;
-      failures.value.push({ label: view.label, reason });
-    }
+    });
+    failures.value = runQueue.value.map((v) => ({ label: v.label, reason }));
   }
 
   running.value = false;
@@ -279,9 +235,7 @@ function statusText(s: string): string {
             </template>
             <template v-if="plan.skippedNoRequirement > 0">
               有
-              {{
-                plan.skippedNoRequirement
-              }}
+              {{ plan.skippedNoRequirement }}
               个视图还没建档（请先点「补齐角色视图」）；
             </template>
             <template v-if="autoFinalize">

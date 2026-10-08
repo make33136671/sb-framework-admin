@@ -37,6 +37,8 @@ import {
 /** 6 个设置项的键与默认值（与后端 DramaModuleInitializer 定义一致） */
 const KEYS = {
   enabled: 'sched_cloud_cost_aware_enabled',
+  // 忽略一切成本考量（用户 2026-10-06）：本地优先，本地跑不了就用云端
+  ignoreCost: 'sched_cloud_ignore_cost',
   ratio: 'sched_cloud_value_ratio',
   maxPerTask: 'sched_cloud_max_cost_per_task',
   maxPerDay: 'sched_cloud_max_cost_per_day',
@@ -51,6 +53,7 @@ const rawRows = ref<Record<string, SystemSettingRow>>({});
 
 const form = ref({
   enabled: false,
+  ignoreCost: false,
   ratio: 30,
   maxPerTask: 2,
   maxPerDay: 20,
@@ -96,6 +99,7 @@ async function load() {
     rawRows.value = rows;
     form.value = {
       enabled: asBool(valueOf('enabled'), false),
+      ignoreCost: asBool(valueOf('ignoreCost'), false),
       ratio: asNum(valueOf('ratio'), 30),
       maxPerTask: asNum(valueOf('maxPerTask'), 2),
       maxPerDay: asNum(valueOf('maxPerDay'), 20),
@@ -133,6 +137,7 @@ async function save() {
     const f = form.value;
     const patch: Record<string, string> = {
       enabled: String(f.enabled),
+      ignoreCost: String(f.ignoreCost),
       ratio: String(f.ratio ?? 30),
       maxPerTask: String(f.maxPerTask ?? 2),
       maxPerDay: String(f.maxPerDay ?? 20),
@@ -216,6 +221,31 @@ const ratio = computed(() => form.value.ratio || 30);
         </div>
       </Card>
 
+      <!-- ①a 忽略一切成本考量（用户 2026-10-06 要求）-->
+      <Card size="small" title="忽略一切成本考量">
+        <div class="flex items-start gap-3">
+          <Switch v-model:checked="form.ignoreCost" />
+          <div class="flex-1">
+            <div class="text-sm">
+              {{
+                form.ignoreCost
+                  ? '已开启：本地优先，本地跑不了就用云端'
+                  : '已关闭（默认：按性价比决定）'
+              }}
+              <Tag v-if="form.ignoreCost" class="ml-2 !mr-0" color="warning">
+                ⚠️ 不看花费
+              </Tag>
+            </div>
+            <div class="mt-1 text-xs text-muted-foreground">
+              开启后<strong>不看性价比、不看峰谷时段、不看花费上限</strong>：
+              本地能跑就在本地跑（不主动花钱），本地<strong>不可用</strong>（模型停用/离线）或
+              <strong>被占用</strong>（在跑别的任务）时，直接送到云端执行。
+              适合"先用云端把流程跑通、成本以后再算"。
+            </div>
+          </div>
+        </div>
+      </Card>
+
       <!-- ① 总开关：默认关，且明确"会主动花钱" -->
       <Card size="small" title="主动花钱上云">
         <div class="flex items-start gap-3">
@@ -230,6 +260,11 @@ const ratio = computed(() => form.value.ratio || 30);
             <div class="mt-1 text-xs text-muted-foreground">
               开启后，系统会在【优惠时段】自动把"本地排队久"的任务送到云端执行（独立算力，不占本地槽位）。
               关闭后仅在紧急兜底与手动指定时上云。
+              <br />
+              <strong>与上方"忽略一切成本考量"的区别</strong
+              >：本开关是"按性价比、
+              省钱地花钱"，上方开关是"跳过性价比、本地跑不了就用云端"。
+              两者任一开启都会启用云端路径。
             </div>
           </div>
         </div>

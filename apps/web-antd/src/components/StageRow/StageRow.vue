@@ -139,6 +139,12 @@ const gateHint = computed(() => {
       <!-- 建议的下一步：高亮提示 -->
       <Tag v-if="isNext" color="processing">建议下一步</Tag>
 
+      <!-- 「用哪个模型跑」选择器（调用方按需提供）
+           用户诉求：「素材提取 也需要 手动指定 AI 任务的执行」。
+           放在操作按钮**左侧**：它修饰的正是紧邻的那个「开始/重跑」按钮，
+           离得远会被误读成别的地方的设置（素材页此前就有这个歧义）。 -->
+      <slot name="provider"></slot>
+
       <!-- 操作 -->
       <Tooltip :title="gateHint">
         <Button

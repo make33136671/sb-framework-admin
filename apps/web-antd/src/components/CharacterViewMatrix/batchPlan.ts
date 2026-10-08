@@ -30,6 +30,13 @@ export interface ViewToGenerate {
   label: string;
   /** 该视图的定稿图（用于判断"是否已有"） */
   approvedAssetId?: null | number;
+  /**
+   * 角色外观描述（**画谁**）—— 7 个视图共享同一条，来自所属角色行。
+   *
+   * ⚠️ 这是 2026-10-06 修复的核心：此前只传 `spec`（**怎么拍**），
+   * 出图模型不知道画谁 → 实测产出随机路人（伊丽莎白画出来是个男的）。
+   */
+  description?: null | string;
   /** 正向（第 3 层）：视图 spec */
   spec?: string;
   /** 反向（第 3 层）：通用底线 + 视图专有 */
@@ -88,6 +95,9 @@ export function planViewsToGenerate(
       suffix: cell.suffix,
       label: cell.label,
       approvedAssetId: cell.approvedAssetId,
+      // 角色描述来自**行**（一条覆盖 7 个视图），spec 来自**列**（每个视图不同）。
+      // 两者缺一不可：spec 说怎么拍、description 说拍谁。
+      description: row.description,
       spec: col?.spec,
       negativeSpec: col?.negativeSpec,
       width: col?.width,

@@ -89,6 +89,13 @@ defineExpose({ reload: load });
         @run="emit('run', row.key)"
         @toggle="toggle(row.key)"
       >
+        <!-- 「用哪个模型跑」选择器：按 row.key 转发给父组件，
+             父组件据此给每条横向配一个能力匹配的选择器
+             （如 extract → asset_extract 文本能力、produce → t2i/i2v）。 -->
+        <template #provider>
+          <slot name="provider" :row="row"></slot>
+        </template>
+
         <template #items>
           <!-- 分集 / 成片的子项由父组件用插槽覆盖（它们需要预览与单集操作） -->
           <slot :name="row.key" :row="row">

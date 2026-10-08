@@ -32,6 +32,7 @@ import {
   assetVersionDelete,
   assetVersionList,
 } from '#/api/core/dramafloow';
+import { AiProviderSelect } from '#/components/AiProviderSelect';
 import { TimeTag } from '#/components/TimeTag';
 import { enumText } from '#/composables/useEnumText';
 
@@ -50,6 +51,14 @@ const open = ref(false);
 const loading = ref(false);
 const rows = ref<AssetRequirementItem[]>([]);
 const acting = ref(false);
+/**
+ * 「重新提取」用哪个模型（null = 自动，按文本能力的默认线路）。
+ *
+ * 用户诉求：「AI任务里只有自动排队，不能手动指定任务模型跑，这部分我希望可以手动接管」。
+ * 这里与素材页的「素材提取」用**同一个组件、同一套能力校验**（asset_extract → 文本能力），
+ * 不再让"重新提取"这条路径成为唯一不能选模型的入口。
+ */
+const extractProviderId = ref<null | number>(null);
 
 async function load() {
   if (props.dramaId === null || !props.assetKey) return;
@@ -91,8 +100,11 @@ async function reExtract() {
   if (props.dramaId === null) return;
   acting.value = true;
   try {
-    const res = await assetExtractStart(props.dramaId);
-    message.success(`已入队素材提取（任务 #${res.taskId}），完成后会新增一版`);
+    const res = await assetExtractStart(props.dramaId, extractProviderId.value);
+    // 与素材页同一口径：说清"只出清单、不出图"，避免用户在素材页苦等图片
+    message.success(
+      `已入队素材清单提取（任务 #${res.taskId}）：完成后会新增一版，**不会自动出图**`,
+    );
     emit('changed');
   } finally {
     acting.value = false;
@@ -143,6 +155,11 @@ const columns = [
       <span class="text-sm font-medium">{{ assetKey }}</span>
       <Tag class="!mr-0">共 {{ rows.length }} 版</Tag>
       <div class="flex-1"></div>
+      <!-- 手动指定「重新提取」用哪个模型（默认自动）：与素材页的提取入口能力一致 -->
+      <AiProviderSelect
+        v-model:value="extractProviderId"
+        task-type="asset_extract"
+      />
       <Button size="small" type="primary" :loading="acting" @click="reExtract">
         重新提取（新增一版）
       </Button>

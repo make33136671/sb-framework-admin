@@ -13,6 +13,7 @@ import type {
   WordParseResult,
 } from '#/api/core/dramafloow';
 import type { ScriptEpisodeRow } from '#/api/core/scriptEpisode';
+import type { AssetViewItem } from '#/api/core/assetCategory';
 import type { ResourceDetailType } from '#/components/ResourceDetailModal';
 
 /**
@@ -57,6 +58,9 @@ import {
   shotList,
   shotStaleReplay,
   shotStoryboard,
+  assetBatchGenerate,
+  assetBatchGeneratePrompts,
+  assetUnapprove,
 } from '#/api/core/dramafloow';
 import {
   scriptEpisodeHistory,
@@ -99,7 +103,10 @@ const activeTab = ref('script');
  * - `list`     列表视图：原始清单（key/版本/候选/状态），便于处理没有图的行
  */
 const assetView = ref<'category' | 'list' | 'matrix'>('category');
-const assetCategoryRef = ref<null | { reload: () => void }>(null);
+const assetCategoryRef = ref<null | {
+  clearSelection: () => void;
+  reload: () => void;
+}>(null);
 const characterMatrixRef = ref<null | { reload: () => void }>(null);
 const sourceDraft = ref('');
 const saving = ref(false);
@@ -154,9 +161,12 @@ async function onStageRun(key: StageKey) {
         break;
       }
       case 'extract': {
+        // ⚠️ 这里此前错传 `rewriteProviderId`（洗稿的模型）—— 复制粘贴留下的缺陷：
+        // 用户为「洗稿」选的模型会被**静默**用到素材提取上，界面上完全看不出来。
+        // 用户诉求：「素材提取 也需要 手动指定 AI 任务的执行」。
         await assetExtractStart(
           dramaId.value,
-          rewriteProviderId.value ?? undefined,
+          extractProviderId.value ?? undefined,
         );
 
         break;
@@ -496,6 +506,102 @@ async function generateAssetById(id: number) {
   characterMatrixRef.value?.reload();
 }
 
+/**
+ * 素材页批量生成提示词 / 批量出图（用户 2026-10-07 要求）。
+ *
+ * ⚠️ **一次请求下发全部**，不在前端循环：循环调用时关页面/切标签会让
+ * 后面的素材根本没被创建，且不报错（`taskBatchSubmitViews` 的 api 注释
+ * 记录过这个真实事故）。故批量接口在后端循环建任务，请求返回即全部入库。
+ */
+async function batchPrompts(payload: {
+  force: boolean;
+  items: AssetViewItem[];
+}) {
+  if (payload.items.length === 0) return;
+  try {
+    const res = await assetBatchGeneratePrompts(
+      payload.items.map((i) => i.id),
+      payload.force,
+    );
+    // 有跳过时**必须说明**：否则用户以为"全下发了"，实际少了几条却不自知。
+    // 强制模式下 replaced 也要说 —— 用户需要知道"旧提示词被清掉了几个"。
+    const parts = [`已下发 ${res.created.length} 个`];
+    if (res.replaced?.length > 0)
+      parts.push(`替换旧提示词 ${res.replaced.length} 个`);
+    if (res.skipped.length > 0)
+      parts.push(
+        `跳过 ${res.skipped.length} 个（${res.skipped[0]?.why ?? ''}）`,
+      );
+    if (res.replaced?.length > 0 || res.skipped.length > 0)
+      message.info(parts.join('，'));
+    assetCategoryRef.value?.clearSelection();
+    assetCategoryRef.value?.reload();
+  } catch {
+    // 拦截器已提示
+  }
+}
+
+/** 批量清除定稿：把选中素材的定稿图改回未定稿（用户 2026-10-07 要求）。 */
+async function batchUnapprove(payload: { items: AssetViewItem[] }) {
+  if (payload.items.length === 0) return;
+  let changed = 0;
+  let skipped = 0;
+  try {
+    // 逐个调用：后端接口是单条语义（要回滚需求+候选+引用方三处，批量合并反而难报进度）。
+    // 选中数量通常是个位数，串行足够；且失败能精确定位到哪一条。
+    for (const it of payload.items) {
+      try {
+        const r = await assetUnapprove(it.id);
+        if (r.changed) changed += 1;
+        else skipped += 1;
+      } catch {
+        skipped += 1;
+      }
+    }
+    message.info(
+      skipped > 0
+        ? `已清除 ${changed} 个定稿，${skipped} 个本就未定稿`
+        : `已清除 ${changed} 个定稿`,
+    );
+    assetCategoryRef.value?.clearSelection();
+    assetCategoryRef.value?.reload();
+    characterMatrixRef.value?.reload();
+  } catch {
+    // 拦截器已提示
+  }
+}
+
+async function batchGenerate(payload: {
+  autoFinalize: boolean;
+  force: boolean;
+  items: AssetViewItem[];
+}) {
+  if (payload.items.length === 0) return;
+  try {
+    const res = await assetBatchGenerate({
+      requirementIds: payload.items.map((i) => i.id),
+      autoFinalize: payload.autoFinalize,
+      force: payload.force,
+    });
+    const parts = [`已下发 ${res.created.length} 个`];
+    if (res.replaced?.length > 0) {
+      const total = res.replaced.reduce((n, r) => n + r.removedCandidates, 0);
+      parts.push(`清空旧图 ${total} 张（${res.replaced.length} 个素材）`);
+    }
+    if (res.skipped.length > 0)
+      parts.push(
+        `跳过 ${res.skipped.length} 个（${res.skipped[0]?.why ?? ''}）`,
+      );
+    if (res.replaced?.length > 0 || res.skipped.length > 0)
+      message.info(parts.join('，'));
+    assetCategoryRef.value?.clearSelection();
+    assetCategoryRef.value?.reload();
+    characterMatrixRef.value?.reload();
+  } catch {
+    // 拦截器已提示
+  }
+}
+
 /** 素材提取抽屉 / 子任务详情抽屉 */
 const assetKey = ref<null | string>(null);
 const taskId = ref<null | number>(null);
@@ -503,8 +609,11 @@ const taskId = ref<null | number>(null);
 /** 触发「素材提取」：LLM 从剧本正文提取 角色/道具/场景（每次新增一版） */
 async function extractAssets() {
   const res = await assetExtractStart(dramaId.value, extractProviderId.value);
+  // ⚠️ 文案必须说清"只出清单、不出图"（用户 2026-10-05 明确要求提取不自动出图）。
+  // 若只说"已入队"，用户会以为图正在生成，然后在素材页苦等。
   message.success(
-    `素材提取已入队（任务 #${res.taskId}），完成后可在「历史版本」查看`,
+    `素材清单提取已入队（任务 #${res.taskId}）：只产出角色/道具/场景清单，**不会自动出图**；` +
+      `需要哪张再到素材页单独点生成`,
   );
   await loadAll();
 }
@@ -694,6 +803,31 @@ function reqStatusColor(s: string): string {
           :refresh-key="stageRefreshKey"
           @run="onStageRun"
         >
+          <!-- 每条横向的「用哪个模型跑」选择器（紧贴该行的开始/重跑按钮）。
+               按 row.key 映射到**能力匹配**的选择器。映射必须与 onStageRun
+               里实际传给端点的变量一一对应，否则又是"界面选的"与"实际用的"不一致
+               （extract 此前正是这个缺陷：界面没得选、代码还错用了洗稿的模型）。
+
+               ⚠️ produce（成片）这一行**不放选择器**：它的「开始」跑的是
+               `Shot/Storyboard`，那是**文本**任务（LLM 生成分镜表），用的是
+               rewriteProviderId；而 t2i/i2v 的模型选择各自在「素材页」「分镜页」内。
+               在这里放图片/视频选择器会误导用户以为它影响出图。 -->
+          <template #provider="{ row }">
+            <AiProviderSelect
+              v-if="row.key === 'extract'"
+              v-model:value="extractProviderId"
+              task-type="asset_extract"
+            />
+            <AiProviderSelect
+              v-else-if="
+                row.key === 'rewrite' ||
+                row.key === 'analyze' ||
+                row.key === 'episodes'
+              "
+              v-model:value="rewriteProviderId"
+              task-type="rewrite"
+            />
+          </template>
           <!-- 横向④ 分集：子项 = 一集一行，可单独开始分镜 -->
           <template #episodes="{ row }">
             <div class="space-y-2">
@@ -1091,6 +1225,9 @@ function reqStatusColor(s: string): string {
             v-if="assetView === 'category'"
             ref="assetCategoryRef"
             :drama-id="dramaId"
+            @batch-generate="batchGenerate"
+            @batch-prompts="batchPrompts"
+            @batch-unapprove="batchUnapprove"
             @changed="loadAll"
             @generate="(it) => generateAssetById(it.id)"
             @open="(it) => openAssetDetailById(it.id)"

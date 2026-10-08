@@ -54,7 +54,107 @@ const emit = defineEmits<{
   (e: 'versions', item: AssetViewItem): void;
   /** 素材数据变化（生成/审核后） */
   (e: 'changed'): void;
+  /** 批量：为选中素材生成提示词（PE-T2I，不出图）。force=true 时强制替换旧提示词 */
+  (
+    e: 'batchPrompts',
+    payload: { force: boolean; items: AssetViewItem[] },
+  ): void;
+  /** 批量：清除定稿（把选中素材的定稿图改回未定稿） */
+  (e: 'batchUnapprove', payload: { items: AssetViewItem[] }): void;
+  /** 批量：为选中素材出图。force=true 时清空旧图并生成新的 */
+  (
+    e: 'batchGenerate',
+    payload: { autoFinalize: boolean; force: boolean; items: AssetViewItem[] },
+  ): void;
 }>();
+
+// ───────────────── 多选（用户 2026-10-07 要求）─────────────────
+//
+// > 「素材 我还希望加入 多选 全选 然后一键生成提示词 一键生成图像 生成图像自动定稿」
+//
+// 选中态存 **id 集合**而不是对象数组：素材列表会因生成/审核而刷新，
+// 存对象会在刷新后变成一批陈旧副本（勾选看似还在、实际对象已换）。
+// 存 id 则刷新后按 id 重新匹配，勾选状态始终准确。
+const selectedIds = ref<Set<number>>(new Set());
+
+const selectedItems = computed(() =>
+  items.value.filter((it) => selectedIds.value.has(it.id)),
+);
+
+/** 当前筛选结果是否已全选（全选框用） */
+const allSelected = computed(
+  () =>
+    filtered.value.length > 0 &&
+    filtered.value.every((it) => selectedIds.value.has(it.id)),
+);
+const someSelected = computed(
+  () => selectedIds.value.size > 0 && !allSelected.value,
+);
+
+function toggleSelect(id: number, checked: boolean) {
+  // ⚠️ Set 是引用类型，原地改**不会**触发 computed —— 必须换一个新 Set。
+  //    这是 Vue 响应式最典型的静默失效点：改了但界面不动，且不报错。
+  const next = new Set(selectedIds.value);
+  if (checked) next.add(id);
+  else next.delete(id);
+  selectedIds.value = next;
+}
+
+/** 全选/取消全选：只作用于**当前筛选结果**（与用户看到的一致） */
+function toggleSelectAll(checked: boolean) {
+  const next = new Set(selectedIds.value);
+  for (const it of filtered.value) {
+    if (checked) next.add(it.id);
+    else next.delete(it.id);
+  }
+  selectedIds.value = next;
+}
+
+function clearSelection() {
+  selectedIds.value = new Set();
+}
+
+/** 生成图像是否自动定稿（用户偏好：勾一次对后续批量操作仍生效） */
+const batchAutoFinalize = ref(false);
+
+/**
+ * **强制执行**（用户 2026-10-07 要求）。
+ *
+ * > 「两个一键生成 提示词 和 图片 增加个选项为强制执行
+ * >   就是不管有没有 强制生成替换 关键词是更新为新的
+ * >   图片就是 清空掉现有选择的 生成新的」
+ *
+ * 勾选后：
+ *   · 不再因"已有进行中任务"而跳过 —— 照发
+ *   · 提示词：清掉旧提示词，更新为新的
+ *   · 图片：清空现有候选图（并解除定稿），生成新的
+ *
+ * ⚠️ 默认**不勾**：它是破坏性操作（会删掉已有图/提示词），
+ *    默认开启会让用户误删成果。必须显式选择。
+ */
+const batchForce = ref(false);
+
+function runBatchPrompts() {
+  if (selectedItems.value.length === 0) return;
+  emit('batchPrompts', {
+    force: batchForce.value,
+    items: selectedItems.value,
+  });
+}
+
+function runBatchUnapprove() {
+  if (selectedItems.value.length === 0) return;
+  emit('batchUnapprove', { items: selectedItems.value });
+}
+
+function runBatchGenerate() {
+  if (selectedItems.value.length === 0) return;
+  emit('batchGenerate', {
+    items: selectedItems.value,
+    autoFinalize: batchAutoFinalize.value,
+    force: batchForce.value,
+  });
+}
 
 const loading = ref(false);
 const tree = ref<AssetCategoryNode[]>([]);
@@ -91,7 +191,9 @@ async function loadAll() {
 }
 
 onMounted(() => void loadAll());
-defineExpose({ reload: loadAll });
+// clearSelection 也暴露出去：父组件下发批量任务成功后要清空勾选，
+// 否则用户会以为"还选着"、再点一次就重复下发了。
+defineExpose({ reload: loadAll, clearSelection });
 
 // ─────────────────────────── 分类树辅助 ───────────────────────────
 
@@ -397,6 +499,105 @@ function episodesText(eps: number[]): string {
       </div>
     </div>
 
+    <!--
+      批量操作栏（用户 2026-10-07 要求：多选 / 全选 / 一键生成提示词 / 一键生成图像）。
+      只在当前筛选结果非空时显示，避免空列表上挂一排点不动的按钮。
+    -->
+    <div
+      v-if="filtered.length > 0"
+      class="mb-3 flex flex-wrap items-center gap-2 rounded-md border border-border bg-muted/30 p-2"
+    >
+      <Checkbox
+        :checked="allSelected"
+        :indeterminate="someSelected"
+        @change="(e: any) => toggleSelectAll(e.target.checked)"
+      >
+        <span class="text-xs">全选本页（{{ filtered.length }}）</span>
+      </Checkbox>
+
+      <!--
+        定稿操作（用户 2026-10-07 要求）。
+        > 「我说的清空选择 是把选择图 改为 未定稿状态 清除他的定稿」
+
+        ⚠️ 注意区分两个概念（我最初理解错了）：
+          · **清空选择** = 取消勾选（多选态）—— 这只是工具栏的本地状态
+          · **清除定稿** = 把已定稿的图改回**未定稿**（业务状态，要落库）
+        用户要的是后者。
+      -->
+      <Tooltip
+        title="把选中素材的定稿图改回未定稿状态（需求状态回到「待生成」）"
+      >
+        <Button
+          :disabled="selectedIds.size === 0"
+          size="small"
+          @click="runBatchUnapprove"
+        >
+          清除定稿
+        </Button>
+      </Tooltip>
+
+      <template v-if="selectedIds.size > 0">
+        <Tag class="!mr-0" color="blue">已选 {{ selectedIds.size }}</Tag>
+        <Tooltip title="仅取消勾选（不改动定稿状态）">
+          <Button size="small" type="link" @click="clearSelection">
+            取消勾选
+          </Button>
+        </Tooltip>
+      </template>
+
+      <span class="flex-1"></span>
+
+      <!-- 自动定稿：勾选后出图完成即取第 1 张定为定稿（后端执行） -->
+      <Checkbox v-model:checked="batchAutoFinalize">
+        <span class="text-xs">生成图像自动定稿</span>
+      </Checkbox>
+
+      <!--
+        强制执行（用户 2026-10-07 要求）—— 破坏性开关，默认**不勾**。
+        用 Tooltip 讲清"会删掉什么"，避免用户误以为只是"重试一下"。
+      -->
+      <Tooltip
+        title="强制替换：不管有没有进行中的任务都照发。提示词会清掉旧的重新生成；图片会清空现有图片（含定稿）后重新生成。默认关闭。"
+      >
+        <Checkbox v-model:checked="batchForce">
+          <span class="text-xs text-destructive">强制执行（替换已有）</span>
+        </Checkbox>
+      </Tooltip>
+
+      <Tooltip
+        :title="
+          batchForce
+            ? '强制模式：将清空选中素材的旧提示词并重新生成'
+            : '为选中素材逐个生成提示词（走 PE-T2I），只补提示词、不出图；任务可在 AI 任务列表查看'
+        "
+      >
+        <Button
+          :disabled="selectedIds.size === 0"
+          size="small"
+          @click="runBatchPrompts"
+        >
+          一键生成提示词
+        </Button>
+      </Tooltip>
+      <Tooltip
+        :title="
+          batchForce
+            ? '强制模式：将清空选中素材的现有图片（含定稿）并重新生成'
+            : '为选中素材下发 t2i 出图任务'
+        "
+      >
+        <Button
+          :disabled="selectedIds.size === 0"
+          size="small"
+          :danger="batchForce"
+          :type="batchForce ? 'default' : 'primary'"
+          @click="runBatchGenerate"
+        >
+          一键生成图像
+        </Button>
+      </Tooltip>
+    </div>
+
     <!-- 素材网格：预览图 + 简介 -->
     <div
       v-if="filtered.length > 0"
@@ -405,8 +606,22 @@ function episodesText(eps: number[]): string {
       <div
         v-for="it in filtered"
         :key="it.id"
-        class="flex flex-col rounded-md border border-border p-2"
+        class="flex flex-col rounded-md border p-2"
+        :class="
+          selectedIds.has(it.id)
+            ? 'border-primary bg-primary/5'
+            : 'border-border'
+        "
       >
+        <!-- 勾选：让"选了哪些"一眼可见（选中卡片同时加边框高亮） -->
+        <div class="mb-1 flex items-center gap-1">
+          <Checkbox
+            :checked="selectedIds.has(it.id)"
+            @change="(e: any) => toggleSelect(it.id, e.target.checked)"
+          />
+          <span class="flex-1"></span>
+        </div>
+
         <!-- 预览图 -->
         <div
           class="mb-2 cursor-pointer overflow-hidden rounded bg-muted/40"
@@ -427,10 +642,27 @@ function episodesText(eps: number[]): string {
         </div>
 
         <!-- 名称 + 状态 -->
+        <!--
+          名称可点击 → 打开素材详情（用户 2026-10-06 要求：
+          「在素材页面 点击素材名字 我希望显示 这个素材的信息 并且可以修改
+            例如对于任务的描述 提示词 这些」）。
+
+          ⚠️ 改之前名称是**纯文本**，点它没有任何反应 —— 素材详情只能从
+             「看候选」按钮进，而用户的心智是"点名字看详情"（列表页的通行做法）。
+
+          用 button 而不是 span+@click：键盘可达（Tab 聚焦 / Enter 触发），
+          不必额外补 a11y 属性；样式仍是普通文字，仅 hover 出现下划线，
+          不改变原有视觉密度。
+        -->
         <div class="flex items-center gap-1">
-          <span class="truncate font-medium" :title="it.name">{{
-            it.name
-          }}</span>
+          <button
+            class="min-w-0 truncate text-left font-medium hover:text-primary hover:underline"
+            :title="`${it.name} —— 点击查看详情并修改描述 / 提示词`"
+            type="button"
+            @click="emit('open', it)"
+          >
+            {{ it.name }}
+          </button>
           <Tag :color="statusColor(it.status)" class="!mr-0">
             {{ statusText(it.status) }}
           </Tag>
