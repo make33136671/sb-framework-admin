@@ -35,7 +35,15 @@ import type { SchedLiveView } from '#/api/core/scheduler';
  */
 import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 
-import { Alert, Button, Card, Select, Spin, Tag, Tooltip } from 'ant-design-vue';
+import {
+  Alert,
+  Button,
+  Card,
+  Select,
+  Spin,
+  Tag,
+  Tooltip,
+} from 'ant-design-vue';
 
 import {
   schedulerComfyUiFree,
@@ -329,7 +337,10 @@ async function loadModels() {
  * ⚠️ option 的 label 类型是 antd 的 `DefaultOptionType['label']`（VNode | string | …），
  * 故这里转成 string 再匹配 —— 直接当 string 用会类型不兼容（编译期报错）。
  */
-function filterModel(input: string, option?: { label?: unknown; value?: unknown }) {
+function filterModel(
+  input: string,
+  option?: { label?: unknown; value?: unknown },
+) {
   const q = input.toLowerCase();
   const label = String(option?.label ?? '').toLowerCase();
   const value = String(option?.value ?? '').toLowerCase();
@@ -342,7 +353,10 @@ async function doLoad(runtimeId: number) {
   if (!clipName) return;
 
   busy.value = `load-${runtimeId}`;
-  opResult.value[runtimeId] = { ok: true, text: `正在载入 ${clipName}…（最长 3 分钟）` };
+  opResult.value[runtimeId] = {
+    ok: true,
+    text: `正在载入 ${clipName}…（最长 3 分钟）`,
+  };
   try {
     const r = await schedulerComfyUiLoad(runtimeId, clipName);
     const gb = (r.usedDeltaMb / 1024).toFixed(1);
@@ -355,7 +369,10 @@ async function doLoad(runtimeId: number) {
     };
     await load();
   } catch (e) {
-    opResult.value[runtimeId] = { ok: false, text: (e as Error)?.message || '载入失败' };
+    opResult.value[runtimeId] = {
+      ok: false,
+      text: (e as Error)?.message || '载入失败',
+    };
   } finally {
     busy.value = '';
   }
@@ -372,7 +389,10 @@ async function doFree(runtimeId: number) {
     };
     await load();
   } catch (e) {
-    opResult.value[runtimeId] = { ok: false, text: (e as Error)?.message || '清除失败' };
+    opResult.value[runtimeId] = {
+      ok: false,
+      text: (e as Error)?.message || '清除失败',
+    };
   } finally {
     busy.value = '';
   }
@@ -405,7 +425,16 @@ async function doFree(runtimeId: number) {
           心跳指示：**光带转满 = 10 秒没收到新数据 = 死了**（用户语义）。
           正常时它每 2 秒左右归零一次、永远走不满 —— "总在滚、从不走满"才健康。
         -->
-        <Tag :color="heartbeatDead ? 'error' : ringState === 'warn' ? 'warning' : 'success'" class="!mr-0">
+        <Tag
+          :color="
+            heartbeatDead
+              ? 'error'
+              : ringState === 'warn'
+                ? 'warning'
+                : 'success'
+          "
+          class="!mr-0"
+        >
           {{
             heartbeatDead
               ? `心跳超时 ${deadSec}s`
@@ -421,7 +450,13 @@ async function doFree(runtimeId: number) {
     </template>
 
     <Spin :spinning="loading && !data">
-      <Alert v-if="errorText" class="mb-2" show-icon type="error" :message="errorText" />
+      <Alert
+        v-if="errorText"
+        class="mb-2"
+        show-icon
+        type="error"
+        :message="errorText"
+      />
 
       <!-- 缓存未就绪：如实说明，而不是显示"一切正常" -->
       <Alert
@@ -482,12 +517,21 @@ async function doFree(runtimeId: number) {
 
           <div class="flex flex-wrap items-center gap-2">
             <span class="font-medium">调度器</span>
-            <Tag class="!mr-0">{{ decisionText(scheduler?.decision ?? '') }}</Tag>
-            <Tag :color="scheduler?.gpuWindowOpen ? 'green' : 'default'" class="!mr-0">
+            <Tag class="!mr-0">{{
+              decisionText(scheduler?.decision ?? '')
+            }}</Tag>
+            <Tag
+              :color="scheduler?.gpuWindowOpen ? 'green' : 'default'"
+              class="!mr-0"
+            >
               GPU 窗口 {{ scheduler?.gpuWindowOpen ? '开' : '关' }}
               {{ scheduler?.gpuWindow ? `(${scheduler.gpuWindow})` : '' }}
             </Tag>
-            <Tag v-if="(scheduler?.totalQueued ?? 0) > 0" color="blue" class="!mr-0">
+            <Tag
+              v-if="(scheduler?.totalQueued ?? 0) > 0"
+              color="blue"
+              class="!mr-0"
+            >
               排队 {{ scheduler?.totalQueued }}
             </Tag>
           </div>
@@ -555,7 +599,9 @@ async function doFree(runtimeId: number) {
                   {{ r.online ? '在线' : '离线' }}
                 </Tag>
                 <Tooltip title="本运行时内部换模型的代价">
-                  <Tag class="!mr-0">内部切换 {{ r.internalSwitchCostMin }}min</Tag>
+                  <Tag class="!mr-0"
+                    >内部切换 {{ r.internalSwitchCostMin }}min</Tag
+                  >
                 </Tooltip>
               </div>
 
@@ -606,7 +652,9 @@ async function doFree(runtimeId: number) {
                   <Select
                     v-model:value="selectedModel[r.runtimeId]"
                     :options="modelOptions"
-                    :placeholder="modelsLoading ? '读取模型列表…' : '选择要载入的模型'"
+                    :placeholder="
+                      modelsLoading ? '读取模型列表…' : '选择要载入的模型'
+                    "
                     :loading="modelsLoading"
                     allow-clear
                     show-search
@@ -659,7 +707,8 @@ async function doFree(runtimeId: number) {
             <div class="text-xs text-muted-foreground">排队中（按功能）</div>
             <div class="mt-1 flex flex-wrap gap-1">
               <Tag v-for="q in m.queued" :key="q.functionKey" color="blue">
-                {{ q.functionName }}：{{ q.queued }} 个（最久 {{ q.oldestWaitMin }} 分钟）
+                {{ q.functionName }}：{{ q.queued }} 个（最久
+                {{ q.oldestWaitMin }} 分钟）
               </Tag>
             </div>
           </div>

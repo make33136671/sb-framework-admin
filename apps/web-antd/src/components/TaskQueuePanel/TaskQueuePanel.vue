@@ -41,9 +41,8 @@ import {
 import {
   TASK_STATUS_TEXT,
   TASK_TYPE_TEXT,
-  useTaskStream,
+  useTaskStream,taskStatusColor
 } from '#/composables/useTaskStream';
-import { taskStatusColor } from '#/composables/useTaskStream';
 
 // 状态/类型 → 中文（与任务列表页同一份映射，避免两处口径漂移）
 const typeText = (t: string) => TASK_TYPE_TEXT[t] ?? t;
@@ -91,7 +90,9 @@ interface ViewGroup {
 
 /** 按真实执行顺序比较（与后端领取 SQL 同口径）。 */
 const byExecOrder = (a: TaskItem, b: TaskItem) =>
-  b.priority - a.priority || (a.sortNo ?? a.id) - (b.sortNo ?? b.id) || a.id - b.id;
+  b.priority - a.priority ||
+  (a.sortNo ?? a.id) - (b.sortNo ?? b.id) ||
+  a.id - b.id;
 
 const groups = computed<ViewGroup[]>(() => {
   const map = new Map<string, TaskItem[]>();
@@ -108,8 +109,13 @@ const groups = computed<ViewGroup[]>(() => {
 
   const out: ViewGroup[] = [];
   for (const [key, members] of map) {
+    // 空组不该存在（map 是按 members 建的），但显式跳过比断言安全：
+    // 万一将来构造逻辑变了，这里是"少显示一组"而不是崩溃。
+    if (members.length === 0) continue;
     members.sort(byExecOrder);
-    const lead = members.find((m) => isGpu(m)) ?? members[0]!;
+    // 优先用 GPU 任务做代表（用户最关心"卡在出图还是卡在提示词"），
+    // 没有 GPU 任务才用第一个
+    const lead = members.find((m) => isGpu(m)) ?? (members[0] as TaskItem);
     // 生图任务存在、但同组没有已完成的 prompt_gen → 它在等前置
     // （后端有前置门，不会抢跑；这里只是把"为什么还没跑"显示出来）
     const hasText = members.some((m) => !isGpu(m));
@@ -262,7 +268,11 @@ onUnmounted(() => {
                   </Button>
                 </Tooltip>
                 <Tooltip title="下移">
-                  <Button size="small" type="text" @click="move(g.lead, 'down')">
+                  <Button
+                    size="small"
+                    type="text"
+                    @click="move(g.lead, 'down')"
+                  >
                     <IconifyIcon icon="lucide:arrow-down" class="size-3.5" />
                   </Button>
                 </Tooltip>
@@ -320,7 +330,11 @@ onUnmounted(() => {
                   </Button>
                 </Tooltip>
                 <Tooltip title="下移">
-                  <Button size="small" type="text" @click="move(g.lead, 'down')">
+                  <Button
+                    size="small"
+                    type="text"
+                    @click="move(g.lead, 'down')"
+                  >
                     <IconifyIcon icon="lucide:arrow-down" class="size-3.5" />
                   </Button>
                 </Tooltip>
