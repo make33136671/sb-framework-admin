@@ -144,7 +144,7 @@ catalog:
   lefthook: ^2.1.8
   lodash.clonedeep: ^4.5.0
   lucide-vue-next: ^0.577.0
-  md-editor-v3: ^6.4.1
+  md-editor-v3: ^7.1.0
   medium-zoom: ^1.1.0
   monaco-editor: ^0.55.1
   naive-ui: ^2.44.1
