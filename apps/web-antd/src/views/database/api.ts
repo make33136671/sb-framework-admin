@@ -39,6 +39,21 @@ export async function postRestart() {
   return api.post('/App/Restart', {}, { silent: true });
 }
 
+/** 上传并导入备份文件（.zip 内含 .sql 或裸 .sql）。只导入到备份列表，不执行恢复。 */
+export async function postImport(file: File, remark?: string) {
+  const formData = new FormData();
+  formData.append('file', file);
+  if (remark) formData.append('remark', remark);
+  return api.post('/Database/Import', formData);
+}
+
+/** 试运行校验（只读）：确认备份能解开、方言匹配、恢复工具可用 */
+export async function postValidate(id: number) {
+  const formData = new FormData();
+  formData.append('id', String(id));
+  return api.post('/Database/Validate', formData);
+}
+
 /** 手动上传/重试上传 单条本地备份到云端 */
 export async function postUploadToCloud(id: number) {
   const formData = new FormData();
