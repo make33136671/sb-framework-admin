@@ -27,9 +27,11 @@ import {
   getSettingByKey,
   postBackup,
   postDel,
+  postImport,
   postRestart,
   postRestore,
   postUploadToCloud,
+  postValidate,
 } from './api';
 
 // ============ 数据库信息 ============
@@ -99,6 +101,70 @@ async function handleBackup() {
   } finally {
     backing.value = false;
   }
+}
+
+// ============ 上传导入备份 ============
+const importVisible = ref(false);
+const importFile = ref<File | null>(null);
+const importRemark = ref('');
+const importing = ref(false);
+const importResult = ref<null | {
+  detectedDialect?: string;
+  fileName: string;
+  id: number;
+}>(null);
+
+function handleImportClick() {
+  importFile.value = null;
+  importRemark.value = '';
+  importResult.value = null;
+  importVisible.value = true;
+}
+
+function onImportFileChange(e: Event) {
+  const input = e.target as HTMLInputElement;
+  importFile.value = input.files?.[0] ?? null;
+}
+
+async function handleImportConfirm() {
+  if (!importFile.value) {
+    message.warning('请选择备份文件（.zip 或 .sql）');
+    return;
+  }
+  importing.value = true;
+  try {
+    const res: any = await postImport(importFile.value, importRemark.value);
+    // 导入成功后立刻试运行校验，避免等到真正恢复时才发现文件不可用
+    let validateMsg = '';
+    try {
+      const v: any = await postValidate(res?.id);
+      validateMsg = v?.message || '校验通过';
+    } catch {
+      validateMsg = '校验未通过（仍可在列表中手动恢复）';
+    }
+    importResult.value = {
+      id: res?.id,
+      fileName: res?.fileName || importFile.value.name,
+      detectedDialect: res?.detectedDialect,
+    };
+    message.success(`导入成功；${validateMsg}`);
+    gridApi.reload();
+  } finally {
+    importing.value = false;
+  }
+}
+
+/** 导入完成后直接跳到恢复流程（走同一套高危确认） */
+function handleRestoreImported() {
+  if (!importResult.value) return;
+  importVisible.value = false;
+  handleRestoreClick({
+    id: importResult.value.id,
+    fileName: importResult.value.fileName,
+    fileSize: 0,
+    createdTime: '',
+    source: 'both',
+  });
 }
 
 // ============ 下载 ============
@@ -411,14 +477,36 @@ onMounted(() => {
           </div>
 
           <div style="margin-top: 16px">
-            <Button
-              type="primary"
-              :loading="backing"
-              :disabled="!dbInfo?.available"
-              @click="handleBackup"
+            <Space>
+              <Button
+                type="primary"
+                :loading="backing"
+                :disabled="!dbInfo?.available"
+                @click="handleBackup"
+              >
+                备份数据库
+              </Button>
+              <Button
+                :disabled="!dbInfo?.restoreToolAvailable"
+                :title="
+                  dbInfo?.restoreToolAvailable
+                    ? '上传已有的备份文件，导入后可恢复'
+                    : `${dbInfo?.restoreToolName || '恢复工具'} 不可用，无法恢复上传的备份`
+                "
+                @click="handleImportClick"
+              >
+                上传备份文件
+              </Button>
+            </Space>
+            <div
+              style="
+                margin-top: 8px;
+                font-size: 12px;
+                color: var(--ant-color-text-tertiary);
+              "
             >
-              备份数据库
-            </Button>
+              上传备份仅「导入」到下方列表，不会自动覆盖数据库；需要恢复时请在列表中点击「恢复」。
+            </div>
           </div>
         </Card>
       </template>
@@ -532,6 +620,96 @@ onMounted(() => {
         </Space>
       </template>
     </Grid>
+
+    <!-- 上传导入备份弹窗 -->
+    <Modal
+      v-model:open="importVisible"
+      title="上传备份文件"
+      :closable="!importing"
+      :mask-closable="false"
+      :footer="null"
+      width="560px"
+      destroy-on-close
+    >
+      <Alert
+        type="info"
+        show-icon
+        message="上传只是把备份导入到列表，不会立即覆盖数据库"
+        description="导入成功后会试运行校验（解开压缩包、核对数据库方言）。确认无误后，再在列表里点击「恢复」执行还原。"
+        style="margin-bottom: 16px"
+      />
+
+      <div v-if="!importResult">
+        <div style="margin-bottom: 8px; font-weight: 500">选择备份文件</div>
+        <input
+          type="file"
+          accept=".zip,.sql"
+          :disabled="importing"
+          style="margin-bottom: 4px"
+          @change="onImportFileChange"
+        />
+        <div
+          style="
+            margin-bottom: 16px;
+            font-size: 12px;
+            color: var(--ant-color-text-tertiary);
+          "
+        >
+          支持系统导出的 .zip 备份包（内含 .sql），或裸 .sql 文件。
+          文件必须是当前数据库类型导出的（{{
+            dbInfo?.dumpToolName || 'mysqldump'
+          }}）； 跨类型（MySQL ↔ PostgreSQL）的备份 SQL 不兼容，会被拒绝。
+        </div>
+
+        <div style="margin-bottom: 8px; font-weight: 500">备注（可选）</div>
+        <Input
+          v-model:value="importRemark"
+          :disabled="importing"
+          placeholder="例如：从生产环境导出的版本回滚备份"
+          :maxlength="200"
+          style="margin-bottom: 16px"
+        />
+
+        <div style="display: flex; gap: 8px; justify-content: flex-end">
+          <Button :disabled="importing" @click="importVisible = false">
+            取消
+          </Button>
+          <Button
+            type="primary"
+            :loading="importing"
+            :disabled="!importFile"
+            @click="handleImportConfirm"
+          >
+            上传并校验
+          </Button>
+        </div>
+      </div>
+
+      <div v-else>
+        <Alert
+          type="success"
+          show-icon
+          message="备份已导入并校验通过"
+          :description="`${importResult.fileName}（${importResult.detectedDialect || '方言已核对'}）已出现在备份列表中。`"
+          style="margin-bottom: 16px"
+        />
+        <div
+          style="
+            margin-bottom: 16px;
+            font-size: 12px;
+            color: var(--ant-color-text-tertiary);
+          "
+        >
+          恢复会覆盖当前数据库全部数据（恢复前系统会自动再做一次安全备份）。
+        </div>
+        <div style="display: flex; gap: 8px; justify-content: flex-end">
+          <Button @click="importVisible = false">稍后再说</Button>
+          <Button type="primary" danger @click="handleRestoreImported">
+            立即恢复这个备份
+          </Button>
+        </div>
+      </div>
+    </Modal>
 
     <!-- 恢复数据库确认弹窗（双重防呆：警告 + 输入数据库名） -->
     <Modal
